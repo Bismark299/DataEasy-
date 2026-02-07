@@ -84,7 +84,41 @@ const initDatabase = async () => {
 };
 
 // Security Middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",  // Required for Tailwind config
+                "'unsafe-eval'",    // Required for Tailwind CDN
+                "https://cdn.tailwindcss.com",
+                "https://js.paystack.co",
+                "https://cdnjs.cloudflare.com"
+            ],
+            styleSrc: [
+                "'self'",
+                "'unsafe-inline'",  // Required for Tailwind
+                "https://cdn.tailwindcss.com",
+                "https://cdnjs.cloudflare.com",
+                "https://fonts.googleapis.com"
+            ],
+            fontSrc: [
+                "'self'",
+                "https://cdnjs.cloudflare.com",
+                "https://fonts.gstatic.com"
+            ],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: [
+                "'self'",
+                "https://api.paystack.co",
+                "https://*.paystack.co"
+            ],
+            frameSrc: ["https://js.paystack.co"]
+        }
+    },
+    crossOriginEmbedderPolicy: false  // Required for external resources
+}));
 app.use(securityHeaders);
 
 // HTTPS redirect in production
