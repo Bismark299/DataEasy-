@@ -19,14 +19,17 @@ const logger = require('../utils/logger');
 const API_BASE_URL = process.env.DATAHUB_API_URL || process.env.MCBIS_API_URL || 'https://datahub.mcbissolution.com/api/v1';
 const API_TOKEN = process.env.DATAHUB_API_TOKEN || process.env.MCBIS_API_TOKEN;
 
-// Create axios instance with default config
+// Create axios instance optimized for server-to-server API calls
+// Using custom User-Agent identifies this as a legitimate API client
 const mcbisApi = axios.create({
     baseURL: API_BASE_URL,
     headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'User-Agent': 'DataEasyPlus/1.0'  // Custom user agent for API client identification
     },
-    timeout: 30000 // 30 second timeout
+    timeout: 30000,      // 30 second timeout
+    maxRedirects: 5      // Handle redirects automatically
 });
 
 // Add auth token to all requests
@@ -36,25 +39,42 @@ mcbisApi.interceptors.request.use((config) => {
     } else {
         logger.error('MCBIS API Token not configured');
     }
+    logger.info('MCBIS API Request', { url: config.url, method: config.method });
     return config;
 });
 
-// Log all responses
+// Response interceptor with Cloudflare detection
 mcbisApi.interceptors.response.use(
     (response) => {
+        // Check if response is HTML (Cloudflare challenge page)
+        const data = response.data;
+        if (typeof data === 'string' && (data.includes('<!DOCTYPE') || data.includes('<html') || data.includes('Just a moment'))) {
+            logger.error('MCBIS API returned Cloudflare challenge page');
+            const error = new Error('API returned HTML (Cloudflare challenge). Contact McbisSolution to whitelist server IP.');
+            error.cloudflareBlocked = true;
+            throw error;
+        }
+        
         logger.info('MCBIS API Response', {
             url: response.config.url,
-            status: response.status,
-            data: response.data
+            status: response.status
         });
         return response;
     },
     (error) => {
+        // Check for Cloudflare block in error response
+        const responseData = error.response?.data;
+        if (typeof responseData === 'string' && (responseData.includes('<!DOCTYPE') || responseData.includes('<html') || responseData.includes('Just a moment'))) {
+            logger.error('MCBIS API blocked by Cloudflare');
+            error.cloudflareBlocked = true;
+            error.message = 'API blocked by Cloudflare. Contact McbisSolution to whitelist your server IP.';
+        }
+        
         logger.error('MCBIS API Error', {
             url: error.config?.url,
             status: error.response?.status,
             message: error.message,
-            data: error.response?.data
+            cloudflareBlocked: error.cloudflareBlocked || false
         });
         throw error;
     }
@@ -112,8 +132,25 @@ async function getWalletBalance() {
             raw: response.data
         };
     } catch (error) {
+        // Check for Cloudflare challenge
+        if (error.cloudflareBlocked) {
+            logger.error('MCBIS API blocked by Cloudflare challenge');
+            return {
+                success: false,
+                balance: 0,
+                configured: true,
+                error: 'MCBIS API blocked by Cloudflare. Contact McbisSolution to whitelist your server IP.',
+                cloudflareBlocked: true
+            };
+        }
+        
         logger.error('Failed to fetch MCBIS wallet balance', { error: error.message });
-        throw new Error('Failed to fetch wallet balance from provider');
+        return {
+            success: false,
+            balance: 0,
+            configured: true,
+            error: 'Failed to fetch wallet balance: ' + error.message
+        };
     }
 }
 
