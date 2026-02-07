@@ -16,6 +16,16 @@ const logger = require('../utils/logger');
 exports.register = async (req, res) => {
     try {
         const { fullName, email, phone, password } = req.body;
+        
+        // Log incoming request
+        logger.info('Register attempt', { fullName, email, phone: phone ? phone.substring(0, 4) + '***' : null });
+
+        // Validate required fields
+        if (!fullName || !email || !phone || !password) {
+            return res.status(400).json({ 
+                error: 'All fields are required (fullName, email, phone, password)' 
+            });
+        }
 
         // Check if user exists
         const existingUser = await User.findOne({
@@ -36,15 +46,19 @@ exports.register = async (req, res) => {
         }
 
         // Create user
+        logger.info('Creating user...');
         const user = await User.create({
             fullName,
             email: email.toLowerCase(),
             phone,
             password
         });
+        logger.info('User created', { userId: user.id });
 
         // Create wallet for user
+        logger.info('Creating wallet...');
         await Wallet.create({ userId: user.id });
+        logger.info('Wallet created');
 
         // Generate token
         const token = generateToken({ id: user.id });
@@ -64,13 +78,19 @@ exports.register = async (req, res) => {
         
         // Handle Sequelize validation errors
         if (error.name === 'SequelizeValidationError') {
+            const validationErrors = error.errors.map(e => e.message).join(', ');
             return res.status(400).json({ 
-                error: error.errors[0]?.message || 'Validation failed' 
+                error: validationErrors || 'Validation failed' 
             });
         }
         if (error.name === 'SequelizeUniqueConstraintError') {
             return res.status(400).json({ 
                 error: 'Email or phone already exists' 
+            });
+        }
+        if (error.name === 'SequelizeDatabaseError') {
+            return res.status(500).json({ 
+                error: 'Database error: ' + error.message 
             });
         }
         
