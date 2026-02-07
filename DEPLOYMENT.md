@@ -1,6 +1,6 @@
-# Btopup GH - Deployment Guide for Render
+# DataEasy+ - Deployment Guide for Render
 
-This guide explains how to deploy Btopup GH to [Render](https://render.com).
+This guide explains how to deploy DataEasy+ to [Render](https://render.com).
 
 ## Prerequisites
 
@@ -28,7 +28,7 @@ This guide explains how to deploy Btopup GH to [Render](https://render.com).
 #### Step 1: Create PostgreSQL Database
 
 1. Render Dashboard → "New" → "PostgreSQL"
-2. Name: `btopup-db`
+2. Name: `dataeasy-db`
 3. Region: Choose closest to your users
 4. Plan: Free (or upgrade as needed)
 5. Create Database
@@ -39,7 +39,7 @@ This guide explains how to deploy Btopup GH to [Render](https://render.com).
 1. Render Dashboard → "New" → "Web Service"
 2. Connect your repository
 3. Configure:
-   - **Name**: `btopup-backend`
+   - **Name**: `dataeasy-backend`
    - **Region**: Same as database
    - **Branch**: `main`
    - **Root Directory**: `backend`
@@ -65,7 +65,7 @@ This guide explains how to deploy Btopup GH to [Render](https://render.com).
 1. Render Dashboard → "New" → "Static Site"
 2. Connect your repository
 3. Configure:
-   - **Name**: `btopup-frontend`
+   - **Name**: `dataeasy-frontend`
    - **Branch**: `main`
    - **Root Directory**: `.` (root of repo, not backend)
    - **Build Command**: Leave empty or `echo "No build"`
@@ -79,7 +79,7 @@ After deploying, update `assets/js/config.js`:
 
 ```javascript
 // Change this line to your actual backend URL
-window.API_BASE_URL = window.API_BASE_URL || 'https://btopup-backend.onrender.com/api';
+window.API_BASE_URL = window.API_BASE_URL || 'https://dataeasy-backend.onrender.com/api';
 ```
 
 Or, redeploy after updating.
@@ -88,7 +88,7 @@ Or, redeploy after updating.
 
 Add your frontend URL to backend environment:
 ```
-FRONTEND_URL=https://btopup-frontend.onrender.com
+FRONTEND_URL=https://dataeasy-frontend.onrender.com
 ```
 
 ## Environment Variables Reference
@@ -106,7 +106,7 @@ FRONTEND_URL=https://btopup-frontend.onrender.com
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `FRONTEND_URL` | Frontend URL for CORS | `https://btopup.onrender.com` |
+| `FRONTEND_URL` | Frontend URL for CORS | `https://dataeasy.onrender.com` |
 | `ALLOWED_ORIGINS` | Additional CORS origins | `https://mydomain.com` |
 | `MCBIS_API_KEY` | MCBIS provider API key | Your key |
 | `MCBIS_API_URL` | MCBIS provider URL | `https://api.mcbis.com` |

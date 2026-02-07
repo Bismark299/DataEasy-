@@ -1,6 +1,6 @@
-# Btopup GH Backend
+# DataEasy+ Backend
 
-Node.js + Express backend API for the Btopup GH bulk data topup platform.
+Node.js + Express backend API for the DataEasy+ bulk data topup platform.
 
 ## Quick Start
 
@@ -22,7 +22,7 @@ cp .env.example .env
 Edit `.env` file:
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/btopup
+MONGODB_URI=mongodb://localhost:27017/dataeasy
 JWT_SECRET=your-super-secret-jwt-key-change-this
 
 # Paystack Keys
@@ -227,7 +227,7 @@ npm test
 2. Use a process manager like PM2:
    ```bash
    npm install -g pm2
-   pm2 start server.js --name btopup-api
+   pm2 start server.js --name dataeasy-api
    ```
 3. Configure reverse proxy (Nginx/Apache)
 4. Set up SSL certificate

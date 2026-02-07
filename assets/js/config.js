@@ -1,5 +1,5 @@
 /**
- * Btopup GH - Frontend Configuration
+ * DataEasy+ - Frontend Configuration
  * 
  * This file configures the API endpoint for different environments.
  * 
@@ -21,7 +21,7 @@
     if (isProduction) {
         // IMPORTANT: Update this URL after deploying your backend to Render
         // Format: https://your-backend-app-name.onrender.com/api
-        window.API_BASE_URL = window.API_BASE_URL || 'https://btopup-backend.onrender.com/api';
+        window.API_BASE_URL = window.API_BASE_URL || 'https://dataeasy-backend.onrender.com/api';
         window.PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_live_YOUR_LIVE_KEY_HERE';
     } else {
         // Development - use local backend

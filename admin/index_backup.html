@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Btopup GH</title>
+    <title>Admin Dashboard - DataEasy+</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/admin.css">
 </head>
@@ -24,7 +24,7 @@
         </button>
         <div class="sidebar-logo">
             <div class="logo-box">BT</div>
-            <span class="logo-text">Btopup GH</span>
+            <span class="logo-text">DataEasy+</span>
         </div>
         
         <div class="menu-label">Menu</div>
@@ -86,7 +86,7 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="greeting">
-                    <h1 id="greetingText">Good morning, Admin ðŸ‘‹</h1>
+                    <h1 id="greetingText">Good morning, Admin 👋</h1>
                     <p>Welcome to your admin control center</p>
                 </div>
             </div>
@@ -101,7 +101,7 @@
                 </div>
                 <div class="header-stat">
                     <div class="label"><i class="fas fa-chart-line"></i> Revenue</div>
-                    <div class="value profit" id="headerRevenue">GHâ‚µ 0.00</div>
+                    <div class="value profit" id="headerRevenue">GH₵ 0.00</div>
                 </div>
                 <div class="admin-avatar">A</div>
             </div>
@@ -119,7 +119,7 @@
                 <div class="stat-card wallet">
                     <div class="info">
                         <h4>Total Balance</h4>
-                        <div class="value" id="totalWalletBalance">GHâ‚µ 0.00</div>
+                        <div class="value" id="totalWalletBalance">GH₵ 0.00</div>
                     </div>
                     <div class="icon"><i class="fas fa-wallet"></i></div>
                 </div>
@@ -133,7 +133,7 @@
                 <div class="stat-card amount">
                     <div class="info">
                         <h4>Revenue Today</h4>
-                        <div class="value" id="revenueToday">GHâ‚µ 0.00</div>
+                        <div class="value" id="revenueToday">GH₵ 0.00</div>
                     </div>
                     <div class="icon"><i class="fas fa-coins"></i></div>
                 </div>
@@ -288,7 +288,7 @@
 
         // Check admin authentication
         function checkAdminAuth() {
-            const token = localStorage.getItem('btopup_admin_token');
+            const token = localStorage.getItem('dataeasy_admin_token');
             if (!token) {
                 window.location.href = '../pages/login.html';
                 return;
@@ -317,8 +317,8 @@
 
             // Logout button
             document.getElementById('logoutBtn').addEventListener('click', () => {
-                localStorage.removeItem('btopup_admin_token');
-                localStorage.removeItem('btopup_admin');
+                localStorage.removeItem('dataeasy_admin_token');
+                localStorage.removeItem('dataeasy_admin');
                 window.location.href = '../pages/login.html';
             });
         }
@@ -330,9 +330,9 @@
             if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
             else if (hour >= 17) greeting = 'Good evening';
             
-            const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
             const name = admin.name || 'Admin';
-            document.getElementById('greetingText').textContent = `${greeting}, ${name} ðŸ‘‹`;
+            document.getElementById('greetingText').textContent = `${greeting}, ${name} 👋`;
         }
 
         // Load dashboard data
@@ -356,7 +356,7 @@
         async function loadStats() {
             try {
                 // Get users
-                const usersResponse = await BtopupAPI.admin.getUsers();
+                const usersResponse = await DataEasyAPI.admin.getUsers();
                 const users = usersResponse.users || usersResponse || [];
                 const totalUsers = users.length;
                 
@@ -369,7 +369,7 @@
                 });
 
                 // Get orders
-                const ordersResponse = await BtopupAPI.admin.getOrders();
+                const ordersResponse = await DataEasyAPI.admin.getOrders();
                 const orders = ordersResponse.orders || ordersResponse || [];
                 
                 // Calculate order stats
@@ -397,9 +397,9 @@
                 });
 
                 // Update UI
-                document.getElementById('totalWalletBalance').textContent = `GHâ‚µ ${totalBalance.toFixed(2)}`;
+                document.getElementById('totalWalletBalance').textContent = `GH₵ ${totalBalance.toFixed(2)}`;
                 document.getElementById('ordersToday').textContent = ordersToday;
-                document.getElementById('revenueToday').textContent = `GHâ‚µ ${revenueToday.toFixed(2)}`;
+                document.getElementById('revenueToday').textContent = `GH₵ ${revenueToday.toFixed(2)}`;
                 document.getElementById('totalUsers').textContent = totalUsers;
 
                 document.getElementById('pendingCount').textContent = pendingCount;
@@ -411,7 +411,7 @@
                 // Header stats
                 document.getElementById('headerTotalUsers').textContent = totalUsers;
                 document.getElementById('headerTotalOrders').textContent = orders.length;
-                document.getElementById('headerRevenue').textContent = `GHâ‚µ ${revenueToday.toFixed(2)}`;
+                document.getElementById('headerRevenue').textContent = `GH₵ ${revenueToday.toFixed(2)}`;
 
                 // Badges
                 document.getElementById('usersBadge').textContent = totalUsers;
@@ -425,7 +425,7 @@
         // Load recent orders
         async function loadRecentOrders() {
             try {
-                const response = await BtopupAPI.admin.getOrders();
+                const response = await DataEasyAPI.admin.getOrders();
                 const orders = response.orders || response || [];
                 
                 const tbody = document.getElementById('recentOrdersBody');
@@ -452,7 +452,7 @@
                         <td>${order.recipientNumber || 'N/A'}</td>
                         <td><span class="network-badge ${(order.network || '').toLowerCase()}">${order.network || 'N/A'}</span></td>
                         <td>${order.package?.name || 'N/A'}</td>
-                        <td><strong>GHâ‚µ ${parseFloat(order.totalAmount || 0).toFixed(2)}</strong></td>
+                        <td><strong>GH₵ ${parseFloat(order.totalAmount || 0).toFixed(2)}</strong></td>
                         <td><span class="status-badge ${order.status}">${order.status}</span></td>
                         <td>${new Date(order.createdAt).toLocaleDateString()}</td>
                         <td>
@@ -489,7 +489,7 @@
         // Load recent users
         async function loadRecentUsers() {
             try {
-                const response = await BtopupAPI.admin.getUsers();
+                const response = await DataEasyAPI.admin.getUsers();
                 const users = response.users || response || [];
                 
                 const tbody = document.getElementById('recentUsersBody');
@@ -526,7 +526,7 @@
                             </td>
                             <td>${user.phone || 'N/A'}</td>
                             <td><span class="role-badge ${user.role}">${user.role}</span></td>
-                            <td><span class="balance-amount ${balance > 0 ? 'positive' : 'zero'}">GHâ‚µ ${parseFloat(balance).toFixed(2)}</span></td>
+                            <td><span class="balance-amount ${balance > 0 ? 'positive' : 'zero'}">GH₵ ${parseFloat(balance).toFixed(2)}</span></td>
                             <td><span class="status-badge ${user.status || 'active'}">${user.status || 'active'}</span></td>
                             <td>${new Date(user.createdAt).toLocaleDateString()}</td>
                             <td>
@@ -559,7 +559,7 @@
         // View order details
         async function viewOrder(orderId) {
             try {
-                const response = await BtopupAPI.admin.getOrders();
+                const response = await DataEasyAPI.admin.getOrders();
                 const orders = response.orders || response || [];
                 const order = orders.find(o => o.id === orderId);
                 
@@ -596,7 +596,7 @@
                     </div>
                     <div class="order-detail-item">
                         <div class="label">Amount</div>
-                        <div class="value"><strong>GHâ‚µ ${parseFloat(order.totalAmount || 0).toFixed(2)}</strong></div>
+                        <div class="value"><strong>GH₵ ${parseFloat(order.totalAmount || 0).toFixed(2)}</strong></div>
                     </div>
                     <div class="order-detail-item">
                         <div class="label">Date</div>
@@ -626,7 +626,7 @@
             if (!confirm('Are you sure you want to complete this order?')) return;
 
             try {
-                await BtopupAPI.admin.updateOrderStatus(orderId, 'completed');
+                await DataEasyAPI.admin.updateOrderStatus(orderId, 'completed');
                 showToast('success', 'Success', 'Order completed successfully');
                 closeModal('viewOrderModal');
                 loadDashboardData();
@@ -641,7 +641,7 @@
             if (!confirm('Are you sure you want to cancel this order?')) return;
 
             try {
-                await BtopupAPI.admin.updateOrderStatus(orderId, 'cancelled');
+                await DataEasyAPI.admin.updateOrderStatus(orderId, 'cancelled');
                 showToast('success', 'Success', 'Order cancelled successfully');
                 loadDashboardData();
             } catch (error) {

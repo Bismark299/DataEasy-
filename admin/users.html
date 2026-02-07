@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users Management - Btopup GH Admin</title>
+    <title>Users Management - DataEasy+ Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="../assets/js/config.js"></script>
@@ -51,7 +51,7 @@
         
         <div class="flex items-center gap-3 p-5 border-b border-white/10">
             <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">BT</div>
-            <span class="text-white font-bold text-lg logo-text sidebar-text">Btopup GH</span>
+            <span class="text-white font-bold text-lg logo-text sidebar-text">DataEasy+</span>
         </div>
         
         <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
@@ -148,7 +148,7 @@
                         <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
                             <div class="p-4 border-b border-gray-100">
                                 <p class="font-semibold text-gray-800" id="profileName">Administrator</p>
-                                <p class="text-sm text-gray-500" id="profileEmail">admin@btopupgh.com</p>
+                                <p class="text-sm text-gray-500" id="profileEmail">admin@dataeasyplus.com</p>
                                 <p class="text-xs text-blue-500 mt-1" id="profileRole">Super Admin</p>
                             </div>
                             <div class="p-2">
@@ -436,7 +436,7 @@
         });
 
         function checkAdminAuth() {
-            const token = localStorage.getItem('btopup_admin_token');
+            const token = localStorage.getItem('dataeasy_admin_token');
             if (!token) {
                 window.location.href = '../pages/login.html';
                 return;
@@ -449,7 +449,7 @@
             if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
             else if (hour >= 17) greeting = 'Good evening';
             
-            const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
             const name = admin.name || 'Admin';
             document.getElementById('greetingText').textContent = `${greeting}, ${name} 👋`;
         }
@@ -470,9 +470,9 @@
         }
 
         function loadProfileInfo() {
-            const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
             const name = admin.name || 'Administrator';
-            const email = admin.username || 'admin@btopupgh.com';
+            const email = admin.username || 'admin@dataeasyplus.com';
             const role = admin.role || 'Super Admin';
             
             document.getElementById('profileName').textContent = name;
@@ -484,7 +484,7 @@
         async function loadHeaderStats() {
             try {
                 // Get today's stats from API (Ghana time based)
-                const statsResponse = await BtopupAPI.admin.getStats();
+                const statsResponse = await DataEasyAPI.admin.getStats();
                 if (statsResponse.success && statsResponse.stats) {
                     const stats = statsResponse.stats;
                     // Show today's total orders (amountToday) and profit in header
@@ -500,8 +500,8 @@
         }
 
         function logout() {
-            localStorage.removeItem('btopup_admin_token');
-            localStorage.removeItem('btopup_admin');
+            localStorage.removeItem('dataeasy_admin_token');
+            localStorage.removeItem('dataeasy_admin');
             window.location.href = '../pages/login.html';
         }
 
@@ -538,8 +538,8 @@
             }
 
             document.getElementById('logoutBtn').addEventListener('click', () => {
-                localStorage.removeItem('btopup_admin_token');
-                localStorage.removeItem('btopup_admin');
+                localStorage.removeItem('dataeasy_admin_token');
+                localStorage.removeItem('dataeasy_admin');
                 window.location.href = '../pages/login.html';
             });
         }
@@ -563,7 +563,7 @@
 
         async function loadUsers() {
             try {
-                const response = await BtopupAPI.admin.getUsers({ limit: 1000 });
+                const response = await DataEasyAPI.admin.getUsers({ limit: 1000 });
                 allUsers = response.users || response || [];
                 updateStats();
                 filterUsers();
@@ -743,7 +743,7 @@
             if (confirmed) {
                 try {
                     const newPassword = 'temp' + Math.random().toString(36).substring(2, 8);
-                    await BtopupAPI.admin.updateUser(userId, { password: newPassword });
+                    await DataEasyAPI.admin.updateUser(userId, { password: newPassword });
                     showToast('success', 'Success', `Password reset successfully`);
                     await showAlert({
                         title: 'New Password Generated',
@@ -850,10 +850,10 @@
                 if (password) userData.password = password;
 
                 if (userId) {
-                    await BtopupAPI.admin.updateUser(userId, userData);
+                    await DataEasyAPI.admin.updateUser(userId, userData);
                     showToast('success', 'Success', 'User updated successfully');
                 } else {
-                    await BtopupAPI.admin.createUser(userData);
+                    await DataEasyAPI.admin.createUser(userData);
                     showToast('success', 'Success', 'User created successfully');
                 }
                 closeModal('userModal');
@@ -902,7 +902,7 @@
             if (!amount || amount <= 0) { showToast('error', 'Error', 'Please enter a valid amount'); return; }
 
             try {
-                await BtopupAPI.admin.adjustWallet(userId, { type, amount, description: description || `Admin ${type} adjustment` });
+                await DataEasyAPI.admin.adjustWallet(userId, { type, amount, description: description || `Admin ${type} adjustment` });
                 showToast('success', 'Success', `Wallet ${type}ed successfully`);
                 closeModal('fundWalletModal');
                 loadUsers();
@@ -924,7 +924,7 @@
 
         async function deleteUser(userId) {
             try {
-                await BtopupAPI.admin.deleteUser(userId);
+                await DataEasyAPI.admin.deleteUser(userId);
                 showToast('success', 'Success', 'User deleted successfully');
                 closeModal('deleteConfirmModal');
                 loadUsers();

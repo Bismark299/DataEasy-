@@ -1,13 +1,13 @@
 /**
- * Btopup GH - Admin Module
+ * DataEasy+ - Admin Module
  * Admin dashboard functionality
  * Supports both API backend and localStorage fallback
  */
 (function() {
     'use strict';
 
-    const { Storage, Toast, EventBus } = BtopupUtils;
-    const { Format } = BtopupUtils;
+    const { Storage, Toast, EventBus } = DataEasyUtils;
+    const { Format } = DataEasyUtils;
 
     // ==========================================
     // ADMIN CONFIGURATION
@@ -35,10 +35,10 @@
     // CHECK API AVAILABILITY
     // ==========================================
     async function checkAPIAvailability() {
-        if (typeof BtopupAPI !== 'undefined') {
+        if (typeof DataEasyAPI !== 'undefined') {
             try {
-                const available = await BtopupAPI.isBackendAvailable();
-                useAPI = available && BtopupAPI.Auth.isAdminAuthenticated();
+                const available = await DataEasyAPI.isBackendAvailable();
+                useAPI = available && DataEasyAPI.Auth.isAdminAuthenticated();
                 console.log(useAPI ? '✅ Admin using API backend' : '⚠️ Admin using localStorage fallback');
             } catch (e) {
                 useAPI = false;
@@ -58,8 +58,8 @@
 
     function getAdminSession() {
         // Check for token stored by API or localStorage
-        const token = localStorage.getItem('btopup_admin_token');
-        const adminData = localStorage.getItem('btopup_admin');
+        const token = localStorage.getItem('dataeasy_admin_token');
+        const adminData = localStorage.getItem('dataeasy_admin');
         
         if (token && adminData) {
             try {
@@ -74,8 +74,8 @@
     function setAdminSession(admin) {
         // Generate a simple token for localStorage fallback
         const token = 'local_admin_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
-        localStorage.setItem('btopup_admin_token', token);
-        localStorage.setItem('btopup_admin', JSON.stringify({
+        localStorage.setItem('dataeasy_admin_token', token);
+        localStorage.setItem('dataeasy_admin', JSON.stringify({
             username: admin.username,
             name: admin.name,
             role: admin.role,
@@ -84,16 +84,16 @@
     }
 
     function clearAdminSession() {
-        localStorage.removeItem('btopup_admin_token');
-        localStorage.removeItem('btopup_admin');
-        if (typeof BtopupAPI !== 'undefined') {
-            BtopupAPI.clearTokens();
+        localStorage.removeItem('dataeasy_admin_token');
+        localStorage.removeItem('dataeasy_admin');
+        if (typeof DataEasyAPI !== 'undefined') {
+            DataEasyAPI.clearTokens();
         }
     }
 
     function requireAdmin() {
         // Check API admin token first
-        if (typeof BtopupAPI !== 'undefined' && BtopupAPI.Auth.isAdminAuthenticated()) {
+        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAdminAuthenticated()) {
             return { username: 'admin', name: 'Administrator', role: 'admin' };
         }
         
@@ -110,9 +110,9 @@
     // ==========================================
     async function getAllOrders() {
         // Try API first
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             try {
-                const response = await BtopupAPI.Admin.getOrders({ limit: 100 });
+                const response = await DataEasyAPI.Admin.getOrders({ limit: 100 });
                 if (response.success) {
                     return response.orders.map(order => ({
                         id: order.orderId,
@@ -159,9 +159,9 @@
 
     async function getAllUsers() {
         // Try API first
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             try {
-                const response = await BtopupAPI.Admin.getUsers({ limit: 100 });
+                const response = await DataEasyAPI.Admin.getUsers({ limit: 100 });
                 if (response.success) {
                     return response.users.map(user => ({
                         id: user._id,
@@ -189,9 +189,9 @@
 
     async function getAllTransactions() {
         // Try API first
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             try {
-                const response = await BtopupAPI.Admin.getTransactions({ limit: 100 });
+                const response = await DataEasyAPI.Admin.getTransactions({ limit: 100 });
                 if (response.success) {
                     return response.transactions.map(tx => ({
                         id: tx._id,
@@ -235,9 +235,9 @@
 
     async function updateUserWallet(userId, amount, type, description) {
         // Try API first
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             try {
-                const response = await BtopupAPI.Admin.adjustWallet(userId, Math.abs(amount), type, description);
+                const response = await DataEasyAPI.Admin.adjustWallet(userId, Math.abs(amount), type, description);
                 if (response.success) {
                     Toast.success(response.message);
                     return true;
@@ -261,9 +261,9 @@
 
     async function updateOrderStatus(orderId, newStatus, userEmail = null) {
         // Try API first
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             try {
-                const response = await BtopupAPI.Admin.updateOrderStatus(orderId, newStatus);
+                const response = await DataEasyAPI.Admin.updateOrderStatus(orderId, newStatus);
                 if (response.success) {
                     Toast.success(response.message);
                     return true;
@@ -307,9 +307,9 @@
     // ==========================================
     async function getStats() {
         // Try API first
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             try {
-                const response = await BtopupAPI.Admin.getDashboard();
+                const response = await DataEasyAPI.Admin.getDashboard();
                 if (response.success) {
                     return {
                         todayOrders: response.stats.todayOrders,
@@ -407,7 +407,7 @@
                             <i class="fas fa-bolt text-white text-lg"></i>
                         </div>
                         <div>
-                            <h1 class="text-white font-bold">Btopup GH</h1>
+                            <h1 class="text-white font-bold">DataEasy+</h1>
                             <p class="text-gray-400 text-xs">Admin Panel</p>
                         </div>
                     </a>
@@ -435,7 +435,7 @@
                             <p class="text-gray-400 text-xs">${session?.role || 'admin'}</p>
                         </div>
                     </div>
-                    <button onclick="BtopupAdmin.logout()" class="w-full px-4 py-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition flex items-center justify-center gap-2">
+                    <button onclick="DataEasyAdmin.logout()" class="w-full px-4 py-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition flex items-center justify-center gap-2">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </button>
@@ -878,10 +878,10 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button class="flex-1 px-3 py-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition text-sm" onclick="BtopupAdmin.adjustWallet('${user.id || user._id}', '${user.email}')">
+                        <button class="flex-1 px-3 py-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition text-sm" onclick="DataEasyAdmin.adjustWallet('${user.id || user._id}', '${user.email}')">
                             <i class="fas fa-wallet mr-1"></i> Adjust
                         </button>
-                        <button class="flex-1 px-3 py-2 bg-gray-600/20 text-gray-400 rounded-lg hover:bg-gray-600/30 transition text-sm" onclick="BtopupAdmin.viewUserOrders('${user.email}')">
+                        <button class="flex-1 px-3 py-2 bg-gray-600/20 text-gray-400 rounded-lg hover:bg-gray-600/30 transition text-sm" onclick="DataEasyAdmin.viewUserOrders('${user.email}')">
                             <i class="fas fa-history mr-1"></i> Orders
                         </button>
                     </div>
@@ -1026,9 +1026,9 @@
 
         // Get packages from cart module
         const allPackages = {
-            MTN: BtopupCart.getPackages('MTN'),
-            AirtelTigo: BtopupCart.getPackages('AirtelTigo'),
-            Telecel: BtopupCart.getPackages('Telecel')
+            MTN: DataEasyCart.getPackages('MTN'),
+            AirtelTigo: DataEasyCart.getPackages('AirtelTigo'),
+            Telecel: DataEasyCart.getPackages('Telecel')
         };
 
         const app = document.getElementById('app');
@@ -1189,11 +1189,11 @@
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-gray-400 text-sm mb-2">Platform Name</label>
-                                    <input type="text" value="Btopup GH" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none">
+                                    <input type="text" value="DataEasy+" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none">
                                 </div>
                                 <div>
                                     <label class="block text-gray-400 text-sm mb-2">Support Email</label>
-                                    <input type="email" value="support@btopup.gh" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none">
+                                    <input type="email" value="support@dataeasyplus.com" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none">
                                 </div>
                             </div>
                         </div>
@@ -1282,7 +1282,7 @@
     // ==========================================
     // PUBLIC API
     // ==========================================
-    window.BtopupAdmin = {
+    window.DataEasyAdmin = {
         // Auth
         isAdminCredentials,
         getAdminSession,

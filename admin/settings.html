@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - Btopup GH Admin</title>
+    <title>Settings - DataEasy+ Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="../assets/js/config.js"></script>
@@ -51,7 +51,7 @@
         
         <div class="flex items-center gap-3 p-5 border-b border-white/10">
             <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">BT</div>
-            <span class="text-white font-bold text-lg logo-text sidebar-text">Btopup GH</span>
+            <span class="text-white font-bold text-lg logo-text sidebar-text">DataEasy+</span>
         </div>
         
         <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
@@ -148,7 +148,7 @@
                         <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
                             <div class="p-4 border-b border-gray-100">
                                 <p class="font-semibold text-gray-800" id="profileName">Administrator</p>
-                                <p class="text-sm text-gray-500" id="profileEmail">admin@btopupgh.com</p>
+                                <p class="text-sm text-gray-500" id="profileEmail">admin@dataeasyplus.com</p>
                                 <p class="text-xs text-blue-500 mt-1" id="profileRole">Super Admin</p>
                             </div>
                             <div class="p-2">
@@ -186,14 +186,14 @@
                                 <label class="font-semibold text-gray-800 text-sm block">App Name</label>
                                 <span class="text-xs text-gray-500">Display name for the application</span>
                             </div>
-                            <input type="text" id="appName" value="Btopup GH" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                            <input type="text" id="appName" value="DataEasy+" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                         </div>
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
                             <div class="mb-2 sm:mb-0">
                                 <label class="font-semibold text-gray-800 text-sm block">Support Email</label>
                                 <span class="text-xs text-gray-500">Customer support email address</span>
                             </div>
-                            <input type="email" id="supportEmail" value="support@btopupgh.com" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                            <input type="email" id="supportEmail" value="support@dataeasyplus.com" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                         </div>
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
                             <div class="mb-2 sm:mb-0">
@@ -752,7 +752,7 @@
         });
 
         function checkAdminAuth() {
-            const token = localStorage.getItem('btopup_admin_token');
+            const token = localStorage.getItem('dataeasy_admin_token');
             if (!token) {
                 window.location.href = '../pages/login.html';
                 return;
@@ -765,7 +765,7 @@
             if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
             else if (hour >= 17) greeting = 'Good evening';
             
-            const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
             const name = admin.name || 'Admin';
             document.getElementById('greetingText').textContent = `${greeting}, ${name} 👋`;
         }
@@ -786,9 +786,9 @@
         }
 
         function loadProfileInfo() {
-            const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
             const name = admin.name || 'Administrator';
-            const email = admin.username || 'admin@btopupgh.com';
+            const email = admin.username || 'admin@dataeasyplus.com';
             const role = admin.role || 'Super Admin';
             
             document.getElementById('profileName').textContent = name;
@@ -800,7 +800,7 @@
         async function loadHeaderStats() {
             try {
                 // Get today's stats from API (Ghana time based)
-                const statsResponse = await BtopupAPI.admin.getStats();
+                const statsResponse = await DataEasyAPI.admin.getStats();
                 if (statsResponse.success && statsResponse.stats) {
                     const stats = statsResponse.stats;
                     // Show today's total orders (amountToday) and profit in header
@@ -816,8 +816,8 @@
         }
 
         function logout() {
-            localStorage.removeItem('btopup_admin_token');
-            localStorage.removeItem('btopup_admin');
+            localStorage.removeItem('dataeasy_admin_token');
+            localStorage.removeItem('dataeasy_admin');
             window.location.href = '../pages/login.html';
         }
 
@@ -846,13 +846,13 @@
             };
             
             // Save to localStorage as backup
-            localStorage.setItem('btopup_network_availability', JSON.stringify({
+            localStorage.setItem('dataeasy_network_availability', JSON.stringify({
                 ...availability,
                 updatedAt: new Date().toISOString()
             }));
             
             try {
-                const response = await BtopupAPI.admin.updateNetworkAvailability(availability);
+                const response = await DataEasyAPI.admin.updateNetworkAvailability(availability);
                 if (response.success) {
                     console.log('Network availability saved to server');
                 } else {
@@ -866,7 +866,7 @@
 
         async function loadNetworkAvailability() {
             try {
-                const response = await BtopupAPI.admin.getNetworkAvailability();
+                const response = await DataEasyAPI.admin.getNetworkAvailability();
                 if (response.success && response.availability) {
                     document.getElementById('enableMTN').checked = response.availability.MTN !== false;
                     document.getElementById('enableTelecel').checked = response.availability.Telecel !== false;
@@ -878,7 +878,7 @@
             }
             
             // Fallback to localStorage
-            const saved = JSON.parse(localStorage.getItem('btopup_network_availability') || '{}');
+            const saved = JSON.parse(localStorage.getItem('dataeasy_network_availability') || '{}');
             if (saved.MTN !== undefined) document.getElementById('enableMTN').checked = saved.MTN;
             if (saved.Telecel !== undefined) document.getElementById('enableTelecel').checked = saved.Telecel;
             if (saved.AirtelTigo !== undefined) document.getElementById('enableAirtelTigo').checked = saved.AirtelTigo;
@@ -937,8 +937,8 @@
             }
 
             document.getElementById('logoutBtn').addEventListener('click', () => {
-                localStorage.removeItem('btopup_admin_token');
-                localStorage.removeItem('btopup_admin');
+                localStorage.removeItem('dataeasy_admin_token');
+                localStorage.removeItem('dataeasy_admin');
                 window.location.href = '../pages/login.html';
             });
         }
@@ -947,11 +947,11 @@
             try {
                 // Load settings from server first
                 try {
-                    const appResponse = await BtopupAPI.admin.getAppSettings();
+                    const appResponse = await DataEasyAPI.admin.getAppSettings();
                     if (appResponse.success && appResponse.settings) {
                         const s = appResponse.settings;
-                        document.getElementById('appName').value = s.appName || 'Btopup GH';
-                        document.getElementById('supportEmail').value = s.supportEmail || 'support@btopupgh.com';
+                        document.getElementById('appName').value = s.appName || 'DataEasy+';
+                        document.getElementById('supportEmail').value = s.supportEmail || 'support@dataeasyplus.com';
                         document.getElementById('supportPhone').value = s.supportPhone || '+233 20 000 0000';
                         document.getElementById('maintenanceMode').checked = s.maintenanceMode || false;
                         document.getElementById('minDeposit').value = s.minDeposit || 1;
@@ -962,7 +962,7 @@
                 } catch (appError) {
                     console.log('Could not load app settings from server, using local');
                     // Fallback to localStorage
-                    const settings = JSON.parse(localStorage.getItem('btopup_settings') || '{}');
+                    const settings = JSON.parse(localStorage.getItem('dataeasy_settings') || '{}');
                     if (settings.appName) document.getElementById('appName').value = settings.appName;
                     if (settings.supportEmail) document.getElementById('supportEmail').value = settings.supportEmail;
                     if (settings.supportPhone) document.getElementById('supportPhone').value = settings.supportPhone;
@@ -974,13 +974,13 @@
                 }
 
                 // Load localStorage-only settings (these don't have backend yet)
-                const settings = JSON.parse(localStorage.getItem('btopup_settings') || '{}');
+                const settings = JSON.parse(localStorage.getItem('dataeasy_settings') || '{}');
                 document.getElementById('enablePaystack').checked = settings.enablePaystack !== false;
                 if (settings.paystackKey) document.getElementById('paystackKey').value = settings.paystackKey;
                 
                 // Load fee settings from server
                 try {
-                    const feeResponse = await BtopupAPI.admin.getFeeSettings();
+                    const feeResponse = await DataEasyAPI.admin.getFeeSettings();
                     if (feeResponse.success && feeResponse.settings) {
                         document.getElementById('topup_fees_enabled').checked = feeResponse.settings.feesEnabled !== false;
                         document.getElementById('topup_fee_percentage').value = feeResponse.settings.feePercentage || 2;
@@ -1046,11 +1046,11 @@
                 };
 
                 // Save to localStorage for settings that don't have backend yet
-                localStorage.setItem('btopup_settings', JSON.stringify(settings));
+                localStorage.setItem('dataeasy_settings', JSON.stringify(settings));
                 
                 // Save app settings to server (maintenance, limits, security)
                 try {
-                    await BtopupAPI.admin.updateAppSettings({
+                    await DataEasyAPI.admin.updateAppSettings({
                         appName: settings.appName,
                         supportEmail: settings.supportEmail,
                         supportPhone: settings.supportPhone,
@@ -1066,7 +1066,7 @@
                 
                 // Save fee settings to server
                 try {
-                    await BtopupAPI.admin.updateFeeSettings({
+                    await DataEasyAPI.admin.updateFeeSettings({
                         topup_fees_enabled: settings.topup_fees_enabled,
                         topup_fee_percentage: settings.topup_fee_percentage
                     });
@@ -1093,10 +1093,10 @@
             });
             
             if (confirmed) {
-                localStorage.removeItem('btopup_settings');
+                localStorage.removeItem('dataeasy_settings');
                 
-                document.getElementById('appName').value = 'Btopup GH';
-                document.getElementById('supportEmail').value = 'support@btopupgh.com';
+                document.getElementById('appName').value = 'DataEasy+';
+                document.getElementById('supportEmail').value = 'support@dataeasyplus.com';
                 document.getElementById('supportPhone').value = '+233 20 000 0000';
                 document.getElementById('maintenanceMode').checked = false;
                 
@@ -1136,7 +1136,7 @@
             if (newPassword !== confirmPassword) { showToast('error', 'Error', 'Passwords do not match'); return; }
 
             try {
-                await BtopupAPI.admin.changePassword(newPassword);
+                await DataEasyAPI.admin.changePassword(newPassword);
                 showToast('success', 'Success', 'Password changed successfully');
                 document.getElementById('newPassword').value = '';
                 document.getElementById('confirmPassword').value = '';
@@ -1194,7 +1194,7 @@
             showToast('info', 'Testing Connection', 'Connecting to MCBIS API...');
             
             try {
-                const response = await BtopupAPI.admin.getProviderProducts();
+                const response = await DataEasyAPI.admin.getProviderProducts();
                 
                 if (response.success && response.products) {
                     const productCount = Object.keys(response.products).length;
@@ -1215,7 +1215,7 @@
             if (headerRefreshIcon) headerRefreshIcon.classList.add('fa-spin');
             
             try {
-                const response = await BtopupAPI.admin.getProviderBalance();
+                const response = await DataEasyAPI.admin.getProviderBalance();
                 
                 if (response.success) {
                     const formattedBalance = `₵ ${parseFloat(response.balance).toFixed(2)}`;
@@ -1333,7 +1333,7 @@
         async function loadMcbisSettings() {
             try {
                 // Try to load from backend first
-                const response = await BtopupAPI.admin.getMcbisSettings();
+                const response = await DataEasyAPI.admin.getMcbisSettings();
                 if (response.success && response.settings) {
                     const settings = response.settings;
                     
@@ -1344,7 +1344,7 @@
                     document.getElementById('mcbisAutoSync').checked = settings.mcbisAutoSync !== false;
                     
                     // Also save to localStorage as backup
-                    localStorage.setItem('btopup_mcbis_settings', JSON.stringify({
+                    localStorage.setItem('dataeasy_mcbis_settings', JSON.stringify({
                         enabled: settings.mcbisEnabled,
                         mcbis_mtnAPI: settings.mcbis_mtnAPI,
                         mcbis_telecelAPI: settings.mcbis_telecelAPI,
@@ -1360,7 +1360,7 @@
             }
             
             // Fallback to localStorage
-            const mcbisSettings = JSON.parse(localStorage.getItem('btopup_mcbis_settings') || '{}');
+            const mcbisSettings = JSON.parse(localStorage.getItem('dataeasy_mcbis_settings') || '{}');
             
             if (mcbisSettings.enabled !== undefined) {
                 document.getElementById('mcbisEnabled').checked = mcbisSettings.enabled;
@@ -1407,7 +1407,7 @@
             };
             
             // Save to localStorage as backup
-            localStorage.setItem('btopup_mcbis_settings', JSON.stringify({
+            localStorage.setItem('dataeasy_mcbis_settings', JSON.stringify({
                 enabled: settings.mcbisEnabled,
                 mcbis_mtnAPI: settings.mcbis_mtnAPI,
                 mcbis_telecelAPI: settings.mcbis_telecelAPI,
@@ -1419,7 +1419,7 @@
             
             // Save to backend
             try {
-                const response = await BtopupAPI.admin.updateMcbisSettings(settings);
+                const response = await DataEasyAPI.admin.updateMcbisSettings(settings);
                 if (response.success) {
                     console.log('MCBIS settings saved to server');
                 }
@@ -1434,7 +1434,7 @@
 
         async function refreshCircuitBreaker() {
             try {
-                const response = await BtopupAPI.admin.getCircuitBreakerStatus();
+                const response = await DataEasyAPI.admin.getCircuitBreakerStatus();
                 if (response.success && response.circuitBreaker) {
                     updateCircuitBreakerUI(response.circuitBreaker);
                 }
@@ -1491,7 +1491,7 @@
             if (!confirmed) return;
             
             try {
-                const response = await BtopupAPI.admin.resetCircuitBreaker();
+                const response = await DataEasyAPI.admin.resetCircuitBreaker();
                 if (response.success) {
                     showToast('success', '✅ Circuit Breaker Reset', 'The circuit breaker has been reset to CLOSED state');
                     refreshCircuitBreaker();
@@ -1532,7 +1532,7 @@
 
         async function executeEmergencyStop(reason) {
             try {
-                const response = await BtopupAPI.admin.emergencyStop(reason);
+                const response = await DataEasyAPI.admin.emergencyStop(reason);
                 if (response.success) {
                     showToast('warning', '🛑 EMERGENCY STOP ACTIVATED', response.message);
                     // Reload page to reflect changes
@@ -1549,7 +1549,7 @@
             showToast('info', 'Running Reconciliation', 'Checking for mismatches...');
             
             try {
-                const response = await BtopupAPI.admin.runReconciliation();
+                const response = await DataEasyAPI.admin.runReconciliation();
                 if (response.success && response.report) {
                     const report = response.report;
                     const mismatches = report.mismatches?.length || 0;
@@ -1573,7 +1573,7 @@
 
         async function loadProviderSummary() {
             try {
-                const response = await BtopupAPI.admin.getProviderSummary();
+                const response = await DataEasyAPI.admin.getProviderSummary();
                 if (response.success) {
                     // Update circuit breaker
                     if (response.circuitBreaker) {
@@ -1599,7 +1599,7 @@
 
         async function viewTransactionsForReview() {
             try {
-                const response = await BtopupAPI.admin.getTransactionsForReview();
+                const response = await DataEasyAPI.admin.getTransactionsForReview();
                 if (response.success) {
                     if (response.count === 0) {
                         showToast('info', 'No Flagged Transactions', 'There are no transactions requiring review');

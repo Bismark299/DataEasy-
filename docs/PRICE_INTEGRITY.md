@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Btopup GH system enforces **database as the single source of truth** for all pricing. This document describes the architecture and safeguards in place.
+The DataEasy+ system enforces **database as the single source of truth** for all pricing. This document describes the architecture and safeguards in place.
 
 ## Core Principles
 

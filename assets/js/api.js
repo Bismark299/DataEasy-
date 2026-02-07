@@ -1,9 +1,9 @@
 /**
- * Btopup GH - API Service Module
+ * DataEasy+ - API Service Module
  * Handles all communication with the backend API
  */
 
-const BtopupAPI = (function() {
+const DataEasyAPI = (function() {
     'use strict';
 
     // ==========================================
@@ -16,7 +16,7 @@ const BtopupAPI = (function() {
     // TOKEN MANAGEMENT
     // ==========================================
     function getAuthToken() {
-        const session = localStorage.getItem('btopup_session');
+        const session = localStorage.getItem('dataeasy_session');
         if (session) {
             try {
                 const parsed = JSON.parse(session);
@@ -29,22 +29,22 @@ const BtopupAPI = (function() {
     }
 
     function getAdminToken() {
-        return localStorage.getItem('btopup_admin_token');
+        return localStorage.getItem('dataeasy_admin_token');
     }
 
     function setAuthToken(token, userData) {
-        localStorage.setItem('btopup_session', JSON.stringify({
+        localStorage.setItem('dataeasy_session', JSON.stringify({
             token,
             userId: userData.id,
             createdAt: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         }));
-        localStorage.setItem('btopup_user', JSON.stringify(userData));
+        localStorage.setItem('dataeasy_user', JSON.stringify(userData));
     }
 
     function setAdminToken(token, adminData) {
-        localStorage.setItem('btopup_admin_token', token);
-        localStorage.setItem('btopup_admin', JSON.stringify({
+        localStorage.setItem('dataeasy_admin_token', token);
+        localStorage.setItem('dataeasy_admin', JSON.stringify({
             username: adminData.username,
             name: adminData.name || 'Administrator',
             role: adminData.role || 'admin',
@@ -53,10 +53,10 @@ const BtopupAPI = (function() {
     }
 
     function clearTokens() {
-        localStorage.removeItem('btopup_session');
-        localStorage.removeItem('btopup_user');
-        localStorage.removeItem('btopup_admin_token');
-        localStorage.removeItem('btopup_admin');
+        localStorage.removeItem('dataeasy_session');
+        localStorage.removeItem('dataeasy_user');
+        localStorage.removeItem('dataeasy_admin_token');
+        localStorage.removeItem('dataeasy_admin');
     }
 
     // ==========================================
@@ -98,10 +98,10 @@ const BtopupAPI = (function() {
                     // Only clear tokens if this wasn't an admin request
                     // Admin pages handle their own auth flow
                     if (!options.adminAuth) {
-                        localStorage.removeItem('btopup_session');
-                        localStorage.removeItem('btopup_user');
-                        if (typeof BtopupUtils !== 'undefined') {
-                            BtopupUtils.Toast.error('Session expired. Please login again.');
+                        localStorage.removeItem('dataeasy_session');
+                        localStorage.removeItem('dataeasy_user');
+                        if (typeof DataEasyUtils !== 'undefined') {
+                            DataEasyUtils.Toast.error('Session expired. Please login again.');
                         }
                     }
                 }
@@ -182,7 +182,7 @@ const BtopupAPI = (function() {
         },
 
         isAuthenticated() {
-            const session = localStorage.getItem('btopup_session');
+            const session = localStorage.getItem('dataeasy_session');
             if (!session) return false;
             
             try {
@@ -729,4 +729,4 @@ const BtopupAPI = (function() {
 })();
 
 // Make globally available
-window.BtopupAPI = BtopupAPI;
+window.DataEasyAPI = DataEasyAPI;

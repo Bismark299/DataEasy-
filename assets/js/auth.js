@@ -1,14 +1,14 @@
 /**
- * Btopup GH - Authentication Module
+ * DataEasy+ - Authentication Module
  * User authentication, session management, and security
  * Supports both API backend and localStorage fallback
  */
 
-const BtopupAuth = (function() {
+const DataEasyAuth = (function() {
     'use strict';
 
-    const { Storage, Toast, Format, EventBus, DOM } = BtopupUtils;
-    const { Rules, FormValidator, Sanitize } = BtopupValidation;
+    const { Storage, Toast, Format, EventBus, DOM } = DataEasyUtils;
+    const { Rules, FormValidator, Sanitize } = DataEasyValidation;
 
     // ==========================================
     // SESSION CONFIGURATION
@@ -26,9 +26,9 @@ const BtopupAuth = (function() {
     // CHECK API AVAILABILITY
     // ==========================================
     async function checkAPIAvailability() {
-        if (typeof BtopupAPI !== 'undefined') {
+        if (typeof DataEasyAPI !== 'undefined') {
             try {
-                const available = await BtopupAPI.isBackendAvailable();
+                const available = await DataEasyAPI.isBackendAvailable();
                 useAPI = available;
                 console.log(useAPI ? '✅ Using API backend' : '⚠️ Using localStorage fallback');
             } catch (e) {
@@ -55,9 +55,9 @@ const BtopupAuth = (function() {
         }
 
         // Try API first
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             try {
-                const response = await BtopupAPI.Auth.register({ fullName, email, phone, password });
+                const response = await DataEasyAPI.Auth.register({ fullName, email, phone, password });
                 if (response.success) {
                     currentUser = response.user;
                     Toast.success('Account created successfully! Please login.');
@@ -130,14 +130,14 @@ const BtopupAuth = (function() {
         }
 
         // Check for admin credentials first (works with API too)
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             // Detect if this might be an admin login (not an email or phone number)
             const looksLikeAdminUsername = !emailOrPhone.includes('@') && !/^0[2-59]\d{8}$/.test(emailOrPhone);
             
             // Try admin login first ONLY if it looks like an admin username
             if (looksLikeAdminUsername) {
                 try {
-                    const adminResponse = await BtopupAPI.Auth.adminLogin({ 
+                    const adminResponse = await DataEasyAPI.Auth.adminLogin({ 
                         username: emailOrPhone, 
                         password 
                     });
@@ -153,7 +153,7 @@ const BtopupAuth = (function() {
 
             // Try user login
             try {
-                const response = await BtopupAPI.Auth.login({ 
+                const response = await DataEasyAPI.Auth.login({ 
                     emailOrPhone, 
                     password 
                 });
@@ -173,10 +173,10 @@ const BtopupAuth = (function() {
         }
 
         // Fallback: Check for admin credentials
-        if (typeof BtopupAdmin !== 'undefined' && BtopupAdmin.isAdminCredentials) {
-            const admin = BtopupAdmin.isAdminCredentials(emailOrPhone, password);
+        if (typeof DataEasyAdmin !== 'undefined' && DataEasyAdmin.isAdminCredentials) {
+            const admin = DataEasyAdmin.isAdminCredentials(emailOrPhone, password);
             if (admin) {
-                BtopupAdmin.setAdminSession(admin);
+                DataEasyAdmin.setAdminSession(admin);
                 Toast.success(`Welcome, ${admin.name}!`);
                 return { success: true, isAdmin: true, admin };
             }
@@ -228,8 +228,8 @@ const BtopupAuth = (function() {
      */
     function logout() {
         // Clear API tokens if using API
-        if (typeof BtopupAPI !== 'undefined') {
-            BtopupAPI.clearTokens();
+        if (typeof DataEasyAPI !== 'undefined') {
+            DataEasyAPI.clearTokens();
         }
         
         Storage.remove('session');
@@ -250,7 +250,7 @@ const BtopupAuth = (function() {
      */
     function isAuthenticated() {
         // Check API auth first
-        if (typeof BtopupAPI !== 'undefined' && BtopupAPI.Auth.isAuthenticated()) {
+        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
             return true;
         }
         
@@ -273,9 +273,9 @@ const BtopupAuth = (function() {
         if (currentUser) return currentUser;
         
         // Try to get from API
-        if (useAPI && typeof BtopupAPI !== 'undefined' && BtopupAPI.Auth.isAuthenticated()) {
+        if (useAPI && typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
             try {
-                const response = await BtopupAPI.Auth.getMe();
+                const response = await DataEasyAPI.Auth.getMe();
                 if (response.success) {
                     currentUser = response.user;
                     Storage.set('user', response.user);
@@ -319,9 +319,9 @@ const BtopupAuth = (function() {
         }
 
         // Try API first
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             try {
-                const response = await BtopupAPI.Users.updateProfile(updates);
+                const response = await DataEasyAPI.Users.updateProfile(updates);
                 if (response.success) {
                     currentUser = response.user;
                     Storage.set('user', response.user);
@@ -375,9 +375,9 @@ const BtopupAuth = (function() {
         }
 
         // Try API first
-        if (useAPI && typeof BtopupAPI !== 'undefined') {
+        if (useAPI && typeof DataEasyAPI !== 'undefined') {
             try {
-                const response = await BtopupAPI.Auth.changePassword(currentPassword, newPassword);
+                const response = await DataEasyAPI.Auth.changePassword(currentPassword, newPassword);
                 if (response.success) {
                     Toast.success('Password changed successfully');
                     EventBus.emit('auth:passwordChanged');
@@ -704,7 +704,7 @@ const BtopupAuth = (function() {
         // Update UI
         updateAuthUI();
 
-        console.log('✅ Btopup Auth initialized');
+        console.log('✅ DataEasy Auth initialized');
     }
 
     // Auto-init
@@ -735,4 +735,4 @@ const BtopupAuth = (function() {
 })();
 
 // Make it globally available
-window.BtopupAuth = BtopupAuth;
+window.DataEasyAuth = DataEasyAuth;

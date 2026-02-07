@@ -1,5 +1,5 @@
 /**
- * Btopup GH - Backend Server
+ * DataEasy+ - Backend Server
  * Main entry point
  */
 
@@ -162,7 +162,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/api/health', async (req, res) => {
     const health = {
         status: 'ok',
-        message: 'Btopup GH API is running',
+        message: 'DataEasy+ API is running',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: process.env.NODE_ENV || 'development'
@@ -204,7 +204,7 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, async () => {
     console.log(`
     ╔═══════════════════════════════════════════╗
-    ║     Btopup GH API Server                  ║
+    ║     DataEasy+ API Server                  ║
     ║     Running on port ${PORT}                   ║
     ║     Environment: ${process.env.NODE_ENV || 'development'}            ║
     ╚═══════════════════════════════════════════╝

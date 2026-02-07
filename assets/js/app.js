@@ -1,13 +1,13 @@
 /**
- * Btopup GH - Main Application Logic
+ * DataEasy+ - Main Application Logic
  * Page initialization, event handlers, and core functionality
  */
 
-const BtopupApp = (function() {
+const DataEasyApp = (function() {
     'use strict';
 
-    const { Storage, Toast, Format, EventBus, DOM, Network, Modal, Paystack } = BtopupUtils;
-    const { BulkParser } = BtopupValidation;
+    const { Storage, Toast, Format, EventBus, DOM, Network, Modal, Paystack } = DataEasyUtils;
+    const { BulkParser } = DataEasyValidation;
 
     // ==========================================
     // STATE
@@ -32,7 +32,7 @@ const BtopupApp = (function() {
                 const network = tab.dataset.networkTab;
                 
                 // Check if network is available
-                if (!BtopupCart.isNetworkAvailable(network)) {
+                if (!DataEasyCart.isNetworkAvailable(network)) {
                     Toast.warning(`${network} is currently out of stock`);
                     return;
                 }
@@ -45,7 +45,7 @@ const BtopupApp = (function() {
         updateNetworkTabAvailability();
 
         // Set initial network (first available one)
-        const availability = BtopupCart.getNetworkAvailability();
+        const availability = DataEasyCart.getNetworkAvailability();
         const defaultNetwork = availability.MTN ? 'MTN' : 
                                availability.Telecel ? 'Telecel' : 
                                availability.AirtelTigo ? 'AirtelTigo' : 'MTN';
@@ -57,7 +57,7 @@ const BtopupApp = (function() {
      */
     function updateNetworkTabAvailability() {
         const tabs = document.querySelectorAll('[data-network-tab]');
-        const availability = BtopupCart.getNetworkAvailability();
+        const availability = DataEasyCart.getNetworkAvailability();
 
         tabs.forEach(tab => {
             const network = tab.dataset.networkTab;
@@ -87,20 +87,20 @@ const BtopupApp = (function() {
 
     function setActiveNetwork(network) {
         // Check availability before setting
-        if (!BtopupCart.isNetworkAvailable(network)) {
+        if (!DataEasyCart.isNetworkAvailable(network)) {
             Toast.warning(`${network} is currently out of stock`);
             return;
         }
         
         state.currentNetwork = network;
-        BtopupCart.setNetwork(network);
+        DataEasyCart.setNetwork(network);
 
         // Update tab styles
         const tabs = document.querySelectorAll('[data-network-tab]');
         tabs.forEach(tab => {
             const tabNetwork = tab.dataset.networkTab;
             const isActive = tabNetwork === network;
-            const isAvailable = BtopupCart.isNetworkAvailable(tabNetwork);
+            const isAvailable = DataEasyCart.isNetworkAvailable(tabNetwork);
             
             // Remove all network-specific classes
             tab.classList.remove(
@@ -177,7 +177,7 @@ const BtopupApp = (function() {
         const container = document.getElementById('packages-grid');
         if (!container) return;
 
-        const packages = BtopupCart.getPackages(network);
+        const packages = DataEasyCart.getPackages(network);
         
         container.innerHTML = packages.map(pkg => createPackageCard(pkg, network)).join('');
 
@@ -244,7 +244,7 @@ const BtopupApp = (function() {
     // PACKAGE MODAL
     // ==========================================
     function openPackageModal(packageId) {
-        const pkg = BtopupCart.findPackage(packageId);
+        const pkg = DataEasyCart.findPackage(packageId);
         if (!pkg) return;
 
         state.selectedPackage = pkg;
@@ -322,7 +322,7 @@ const BtopupApp = (function() {
 
         // Validate phone
         const phoneNumbers = [];
-        const validation = BtopupValidation.Rules.ghanaPhone(phone);
+        const validation = DataEasyValidation.Rules.ghanaPhone(phone);
         if (!validation.isValid) {
             Toast.error(validation.message);
             DOM.shake(phoneInput);
@@ -340,7 +340,7 @@ const BtopupApp = (function() {
         phoneNumbers.push(phone);
 
         // Add to cart
-        BtopupCart.addItem(state.selectedPackage.id, phoneNumbers, quantity);
+        DataEasyCart.addItem(state.selectedPackage.id, phoneNumbers, quantity);
         closePackageModal();
     }
 
@@ -356,7 +356,7 @@ const BtopupApp = (function() {
         if (!textarea) return;
 
         // Real-time parsing with debounce
-        textarea.addEventListener('input', BtopupUtils.debounce(() => {
+        textarea.addEventListener('input', DataEasyUtils.debounce(() => {
             parseBulkNumbers();
         }, 500));
 
@@ -400,7 +400,7 @@ const BtopupApp = (function() {
             const packageId = `${networkPrefix}-${item.dataSize}gb`;
             
             // Use silent mode to prevent individual toasts
-            const success = BtopupCart.addItem(packageId, [item.number], 1, { silent: true });
+            const success = DataEasyCart.addItem(packageId, [item.number], 1, { silent: true });
             if (success) {
                 addedCount++;
             } else {
@@ -677,12 +677,12 @@ const BtopupApp = (function() {
         
         if (checkoutBtn) {
             checkoutBtn.addEventListener('click', async () => {
-                if (BtopupCart.isEmpty()) {
+                if (DataEasyCart.isEmpty()) {
                     Toast.warning('Your cart is empty');
                     return;
                 }
 
-                if (!BtopupAuth.isAuthenticated()) {
+                if (!DataEasyAuth.isAuthenticated()) {
                     Toast.warning('Please login to continue');
                     const isInPagesFolder = window.location.pathname.includes('/pages/');
                     const loginPath = isInPagesFolder ? 'login.html' : 'pages/login.html';
@@ -693,12 +693,12 @@ const BtopupApp = (function() {
                 // Confirm checkout
                 Modal.confirm(
                     'Confirm Order',
-                    `Total amount: ${Format.currency(BtopupCart.getTotal())}. Proceed with payment?`,
+                    `Total amount: ${Format.currency(DataEasyCart.getTotal())}. Proceed with payment?`,
                     async () => {
                         DOM.setLoading(checkoutBtn, true, 'Processing...');
                         
                         try {
-                            const order = await BtopupCart.checkout();
+                            const order = await DataEasyCart.checkout();
                             DOM.setLoading(checkoutBtn, false);
                             
                             if (order) {
@@ -739,7 +739,7 @@ const BtopupApp = (function() {
                 Modal.confirm(
                     'Clear Cart',
                     'Are you sure you want to remove all items from your cart?',
-                    () => BtopupCart.clearCart()
+                    () => DataEasyCart.clearCart()
                 );
             });
         }
@@ -754,9 +754,9 @@ const BtopupApp = (function() {
         let todayDebit = 0;
         
         // Try API first
-        if (typeof BtopupAPI !== 'undefined' && BtopupAPI.Auth.isAuthenticated()) {
+        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
             try {
-                const response = await BtopupAPI.Wallet.getBalance();
+                const response = await DataEasyAPI.Wallet.getBalance();
                 if (response.success) {
                     balance = response.balance;
                     // Also update localStorage for offline use
@@ -767,7 +767,7 @@ const BtopupApp = (function() {
                 
                 // Fetch today's transactions from wallet history
                 try {
-                    const txResponse = await BtopupAPI.Wallet.getHistory({ limit: 50 });
+                    const txResponse = await DataEasyAPI.Wallet.getHistory({ limit: 50 });
                     if (txResponse.success && txResponse.transactions) {
                         const today = new Date().toDateString();
                         txResponse.transactions.forEach(tx => {
@@ -846,9 +846,9 @@ const BtopupApp = (function() {
         // Fetch orders from API or localStorage
         async function fetchOrders() {
             // Try API first
-            if (typeof BtopupAPI !== 'undefined' && BtopupAPI.Auth.isAuthenticated()) {
+            if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
                 try {
-                    const response = await BtopupAPI.Users.getOrders();
+                    const response = await DataEasyAPI.Users.getOrders();
                     if (response.success) {
                         allOrders = response.orders.map(order => ({
                             ...order,
@@ -1076,7 +1076,7 @@ const BtopupApp = (function() {
 
         // Search input
         if (searchInput) {
-            searchInput.addEventListener('input', BtopupUtils.debounce(() => {
+            searchInput.addEventListener('input', DataEasyUtils.debounce(() => {
                 renderOrders(currentFilter, searchInput.value);
             }, 300));
         }
@@ -1146,9 +1146,9 @@ const BtopupApp = (function() {
         let order = null;
 
         // Try API first
-        if (typeof BtopupAPI !== 'undefined' && BtopupAPI.Auth.isAuthenticated()) {
+        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
             try {
-                const response = await BtopupAPI.Orders.getById(orderId);
+                const response = await DataEasyAPI.Orders.getById(orderId);
                 if (response.success && response.order) {
                     order = response.order;
                     order.id = order.orderId;  // Normalize id field
@@ -1493,9 +1493,9 @@ const BtopupApp = (function() {
         DOM.setLoading(button, true, 'Connecting...');
 
         // Try using API if available
-        if (typeof BtopupAPI !== 'undefined' && BtopupAPI.Auth.isAuthenticated()) {
+        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
             try {
-                await BtopupAPI.Paystack.openPopup(
+                await DataEasyAPI.Paystack.openPopup(
                     user.email,
                     amount,
                     async (verification) => {
@@ -1586,9 +1586,9 @@ const BtopupApp = (function() {
         let transactions = [];
 
         // Try API first
-        if (typeof BtopupAPI !== 'undefined' && BtopupAPI.Auth.isAuthenticated()) {
+        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
             try {
-                const response = await BtopupAPI.Wallet.getHistory({ limit: 20 });
+                const response = await DataEasyAPI.Wallet.getHistory({ limit: 20 });
                 if (response.success) {
                     transactions = response.transactions.map(tx => ({
                         ...tx,
@@ -1679,7 +1679,7 @@ const BtopupApp = (function() {
     // ACCOUNT PAGE
     // ==========================================
     function initAccountPage() {
-        const user = BtopupAuth.getUserSync();
+        const user = DataEasyAuth.getUserSync();
         if (!user) return;
 
         // Populate form fields
@@ -1736,10 +1736,10 @@ const BtopupApp = (function() {
                     phone: phoneInput?.value
                 };
 
-                const result = await BtopupAuth.updateProfile(updates);
+                const result = await DataEasyAuth.updateProfile(updates);
                 if (result.success) {
                     // Update UI
-                    BtopupAuth.updateAuthUI();
+                    DataEasyAuth.updateAuthUI();
                     // Reset form state
                     if (nameInput) nameInput.disabled = true;
                     if (phoneInput) phoneInput.disabled = true;
@@ -1796,13 +1796,13 @@ const BtopupApp = (function() {
                     return;
                 }
 
-                const validation = BtopupValidation.Rules.password(newPassword);
+                const validation = DataEasyValidation.Rules.password(newPassword);
                 if (!validation.isValid) {
                     Toast.error(validation.message);
                     return;
                 }
 
-                const result = await BtopupAuth.changePassword(currentPassword, newPassword);
+                const result = await DataEasyAuth.changePassword(currentPassword, newPassword);
                 if (result.success) {
                     passwordForm.reset();
                     // Close modal on success
@@ -1824,7 +1824,7 @@ const BtopupApp = (function() {
         const page = path.split('/').pop().replace('.html', '') || 'index';
 
         // Sync packages from API (updates pricing and availability)
-        await BtopupCart.syncPackagesFromAPI();
+        await DataEasyCart.syncPackagesFromAPI();
 
         // Initialize common components
         initSidebars();
@@ -1832,7 +1832,7 @@ const BtopupApp = (function() {
         initSidebarTopup(); // Initialize sidebar Paystack top-up
         initCheckout(); // Initialize checkout on all pages (cart is available everywhere)
         updateWalletDisplay();
-        BtopupAuth.updateAuthUI();
+        DataEasyAuth.updateAuthUI();
 
         // Listen for package updates to refresh network availability
         EventBus.on('packages:loaded', () => {
@@ -1849,27 +1849,27 @@ const BtopupApp = (function() {
                 initBulkOrders();
                 break;
             case 'login':
-                BtopupAuth.redirectIfAuthenticated();
-                BtopupAuth.initLoginForm('#login-form');
+                DataEasyAuth.redirectIfAuthenticated();
+                DataEasyAuth.initLoginForm('#login-form');
                 break;
             case 'register':
-                BtopupAuth.redirectIfAuthenticated();
-                BtopupAuth.initRegisterForm('#register-form');
+                DataEasyAuth.redirectIfAuthenticated();
+                DataEasyAuth.initRegisterForm('#register-form');
                 break;
             case 'orders':
-                BtopupAuth.requireAuth();
+                DataEasyAuth.requireAuth();
                 initOrdersPage();
                 break;
             case 'order-details':
-                BtopupAuth.requireAuth();
+                DataEasyAuth.requireAuth();
                 initOrderDetailsPage();
                 break;
             case 'wallet-history':
-                BtopupAuth.requireAuth();
+                DataEasyAuth.requireAuth();
                 initWalletPage();
                 break;
             case 'account-details':
-                BtopupAuth.requireAuth();
+                DataEasyAuth.requireAuth();
                 initAccountPage();
                 break;
         }
@@ -1906,7 +1906,7 @@ const BtopupApp = (function() {
             }
         });
 
-        console.log('✅ Btopup App initialized');
+        console.log('✅ DataEasy App initialized');
     }
 
     // Auto-init
@@ -1928,4 +1928,4 @@ const BtopupApp = (function() {
 })();
 
 // Make it globally available
-window.BtopupApp = BtopupApp;
+window.DataEasyApp = DataEasyApp;

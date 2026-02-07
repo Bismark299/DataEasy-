@@ -1,9 +1,9 @@
 /**
- * Btopup GH - Validation Module
+ * DataEasy+ - Validation Module
  * Form validation, phone number validation, input sanitization
  */
 
-const BtopupValidation = (function() {
+const DataEasyValidation = (function() {
     'use strict';
 
     // ==========================================
@@ -42,7 +42,7 @@ const BtopupValidation = (function() {
                 return { isValid: false, message: 'Phone number must be 10 digits' };
             }
             
-            const network = BtopupUtils.Network.detect(clean);
+            const network = DataEasyUtils.Network.detect(clean);
             if (!network) {
                 return { isValid: false, message: 'Invalid Ghana phone number prefix' };
             }
@@ -208,7 +208,7 @@ const BtopupValidation = (function() {
                     number: phoneNumber,
                     network: validation.network,
                     dataSize,
-                    formatted: BtopupUtils.Format.phone(phoneNumber)
+                    formatted: DataEasyUtils.Format.phone(phoneNumber)
                 });
             });
 
@@ -284,7 +284,7 @@ const BtopupValidation = (function() {
             }
 
             if (this.options.validateOnInput) {
-                field.addEventListener('input', BtopupUtils.debounce(() => {
+                field.addEventListener('input', DataEasyUtils.debounce(() => {
                     this.validateField(name);
                 }, 300));
             }
@@ -391,7 +391,7 @@ const BtopupValidation = (function() {
             
             if (firstErrorField) {
                 firstErrorField[1].field.focus();
-                BtopupUtils.DOM.shake(firstErrorField[1].field);
+                DataEasyUtils.DOM.shake(firstErrorField[1].field);
             }
         }
 
@@ -483,4 +483,4 @@ const BtopupValidation = (function() {
 })();
 
 // Make it globally available
-window.BtopupValidation = BtopupValidation;
+window.DataEasyValidation = DataEasyValidation;

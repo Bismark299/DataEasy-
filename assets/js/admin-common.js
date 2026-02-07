@@ -16,7 +16,7 @@ const AdminCommon = (function() {
      * @returns {boolean} True if authenticated
      */
     function checkAdminAuth() {
-        const token = localStorage.getItem('btopup_admin_token');
+        const token = localStorage.getItem('dataeasy_admin_token');
         if (!token) {
             window.location.href = '../pages/login.html';
             return false;
@@ -28,8 +28,8 @@ const AdminCommon = (function() {
      * Log out the admin user
      */
     function logout() {
-        localStorage.removeItem('btopup_admin_token');
-        localStorage.removeItem('btopup_admin');
+        localStorage.removeItem('dataeasy_admin_token');
+        localStorage.removeItem('dataeasy_admin');
         window.location.href = '../pages/login.html';
     }
 
@@ -47,7 +47,7 @@ const AdminCommon = (function() {
         if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
         else if (hour >= 17) greeting = 'Good evening';
         
-        const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+        const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
         const name = admin.name || 'Admin';
         
         const element = document.getElementById(elementId);
@@ -60,9 +60,9 @@ const AdminCommon = (function() {
      * Load and display admin profile information
      */
     function loadProfileInfo() {
-        const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+        const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
         const name = admin.name || 'Administrator';
-        const email = admin.username || admin.email || 'admin@btopupgh.com';
+        const email = admin.username || admin.email || 'admin@dataeasyplus.com';
         const role = admin.role || 'Super Admin';
         
         const profileName = document.getElementById('profileName');
@@ -179,7 +179,7 @@ const AdminCommon = (function() {
         if (refreshIcon) refreshIcon.classList.add('fa-spin');
         
         try {
-            const response = await BtopupAPI.admin.getProviderBalance();
+            const response = await DataEasyAPI.admin.getProviderBalance();
             
             if (response.success) {
                 const formattedBalance = `₵ ${parseFloat(response.balance).toFixed(2)}`;
@@ -236,7 +236,7 @@ const AdminCommon = (function() {
     async function loadHeaderStats() {
         try {
             // Fetch orders to calculate stats
-            const ordersResponse = await BtopupAPI.admin.getOrders();
+            const ordersResponse = await DataEasyAPI.admin.getOrders();
             const orders = ordersResponse?.orders || [];
             
             // Calculate today's stats

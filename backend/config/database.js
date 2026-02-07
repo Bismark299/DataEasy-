@@ -31,7 +31,7 @@ if (databaseUrl) {
 } else {
     // Use individual environment variables
     sequelize = new Sequelize(
-        process.env.DB_NAME || 'btopup_gh',
+        process.env.DB_NAME || 'dataeasy_plus',
         process.env.DB_USER || 'postgres',
         process.env.DB_PASSWORD || 'postgres',
         {

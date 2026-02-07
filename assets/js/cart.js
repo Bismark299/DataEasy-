@@ -1,5 +1,5 @@
 /**
- * Btopup GH - Cart Management System
+ * DataEasy+ - Cart Management System
  * Full shopping cart functionality with persistence
  * 
  * ⚠️ PRICING: All prices are fetched from the API (database)
@@ -7,10 +7,10 @@
  * Prices are synchronized from the backend on page load.
  */
 
-const BtopupCart = (function() {
+const DataEasyCart = (function() {
     'use strict';
 
-    const { Storage, Toast, Format, EventBus, DOM } = BtopupUtils;
+    const { Storage, Toast, Format, EventBus, DOM } = DataEasyUtils;
 
     // ==========================================
     // CART STATE
@@ -104,7 +104,7 @@ const BtopupCart = (function() {
         }
 
         const validNumbers = phoneNumbers.filter(num => {
-            const detected = BtopupUtils.Network.detect(num);
+            const detected = DataEasyUtils.Network.detect(num);
             return detected === network;
         });
 
@@ -299,11 +299,11 @@ const BtopupCart = (function() {
             <div class="cart-item bg-gray-800/50 rounded-lg p-3 border border-gray-700" data-item-id="${item.id}">
                 <div class="flex justify-between items-start mb-2">
                     <div>
-                        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold mb-1" style="background-color: ${BtopupUtils.Network.getColor(item.network).bg}; color: ${BtopupUtils.Network.getColor(item.network).text}">
+                        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold mb-1" style="background-color: ${DataEasyUtils.Network.getColor(item.network).bg}; color: ${DataEasyUtils.Network.getColor(item.network).text}">
                             ${item.network}
                         </span>
                     </div>
-                    <button class="text-gray-500 hover:text-red-400 transition" onclick="BtopupCart.removeItem('${item.id}')">
+                    <button class="text-gray-500 hover:text-red-400 transition" onclick="DataEasyCart.removeItem('${item.id}')">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -328,11 +328,11 @@ const BtopupCart = (function() {
                 
                 <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-700">
                     <div class="flex items-center gap-2">
-                        <button class="w-7 h-7 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition" onclick="BtopupCart.updateQuantity('${item.id}', ${item.quantity - 1})">
+                        <button class="w-7 h-7 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition" onclick="DataEasyCart.updateQuantity('${item.id}', ${item.quantity - 1})">
                             <i class="fas fa-minus text-xs"></i>
                         </button>
                         <span class="text-white font-medium w-8 text-center">${item.quantity}</span>
-                        <button class="w-7 h-7 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition" onclick="BtopupCart.updateQuantity('${item.id}', ${item.quantity + 1})">
+                        <button class="w-7 h-7 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition" onclick="DataEasyCart.updateQuantity('${item.id}', ${item.quantity + 1})">
                             <i class="fas fa-plus text-xs"></i>
                         </button>
                     </div>
@@ -385,7 +385,7 @@ const BtopupCart = (function() {
         const network = networks[0];
 
         // Try API first
-        if (typeof BtopupAPI !== 'undefined' && BtopupAPI.Auth.isAuthenticated()) {
+        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
             // Set submitting flag and disable checkout buttons
             isSubmitting = true;
             disableCheckoutButtons(true);
@@ -415,7 +415,7 @@ const BtopupCart = (function() {
                     }
                 });
 
-                const response = await BtopupAPI.Orders.create({
+                const response = await DataEasyAPI.Orders.create({
                     network,
                     items: orderItems
                 }, { idempotencyKey });
@@ -509,7 +509,7 @@ const BtopupCart = (function() {
     // ==========================================
     function init() {
         loadCart();
-        console.log('✅ Btopup Cart initialized');
+        console.log('✅ DataEasy Cart initialized');
     }
 
     // Auto-init
@@ -542,9 +542,9 @@ const BtopupCart = (function() {
      */
     async function syncPackagesFromAPI() {
         try {
-            // Use BtopupAPI if available (includes auth token for role-based pricing)
-            if (typeof BtopupAPI !== 'undefined' && BtopupAPI.Orders && BtopupAPI.Orders.getPackages) {
-                const data = await BtopupAPI.Orders.getPackages();
+            // Use DataEasyAPI if available (includes auth token for role-based pricing)
+            if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Orders && DataEasyAPI.Orders.getPackages) {
+                const data = await DataEasyAPI.Orders.getPackages();
                 
                 if (data.success && data.packages) {
                     // Update packages with API data (database prices)
@@ -572,16 +572,16 @@ const BtopupCart = (function() {
                 }
             }
             
-            // Fallback: Use raw fetch with auth token if BtopupAPI not available
+            // Fallback: Use raw fetch with auth token if DataEasyAPI not available
             // SECURITY: Use window.API_BASE_URL from config.js, never hardcode localhost
-            const baseUrl = window.API_BASE_URL || (typeof BtopupAPI !== 'undefined' && BtopupAPI.API_BASE_URL);
+            const baseUrl = window.API_BASE_URL || (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.API_BASE_URL);
             if (!baseUrl) {
                 throw new Error('API configuration not loaded. Please refresh the page.');
             }
             
             // Get auth token for role-based pricing
             const headers = { 'Content-Type': 'application/json' };
-            const session = localStorage.getItem('btopup_session');
+            const session = localStorage.getItem('dataeasy_session');
             if (session) {
                 try {
                     const parsed = JSON.parse(session);
@@ -696,4 +696,4 @@ const BtopupCart = (function() {
 })();
 
 // Make it globally available
-window.BtopupCart = BtopupCart;
+window.DataEasyCart = DataEasyCart;

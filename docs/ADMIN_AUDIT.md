@@ -44,8 +44,8 @@ const cost = formatPrice(pkg.cost || pkg.costPrice);
 
 ### 4. localStorage Key Consistency
 All keys were already consistent:
-- ✅ `btopup_admin_token` - Auth token
-- ✅ `btopup_admin` - Admin user object
+- ✅ `dataeasy_admin_token` - Auth token
+- ✅ `dataeasy_admin` - Admin user object
 - ✅ `sidebar_collapsed` - Sidebar state
 
 ## Solution: admin-common.js

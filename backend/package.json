@@ -1,7 +1,7 @@
 {
-  "name": "btopup-backend",
+  "name": "dataeasy-backend",
   "version": "1.0.0",
-  "description": "Btopup GH - Bulk Data Topup Platform API",
+  "description": "DataEasy+ - Bulk Data Topup Platform API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -18,7 +18,7 @@
     "airteltigo",
     "telecel"
   ],
-  "author": "Btopup GH",
+  "author": "DataEasy+",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.6.2",

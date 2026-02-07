@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orders Management - Btopup GH Admin</title>
+    <title>Orders Management - DataEasy+ Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="../assets/js/config.js"></script>
@@ -51,7 +51,7 @@
         
         <div class="flex items-center gap-3 p-5 border-b border-white/10">
             <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">BT</div>
-            <span class="text-white font-bold text-lg logo-text sidebar-text">Btopup GH</span>
+            <span class="text-white font-bold text-lg logo-text sidebar-text">DataEasy+</span>
         </div>
         
         <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
@@ -148,7 +148,7 @@
                         <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
                             <div class="p-4 border-b border-gray-100">
                                 <p class="font-semibold text-gray-800" id="profileName">Administrator</p>
-                                <p class="text-sm text-gray-500" id="profileEmail">admin@btopupgh.com</p>
+                                <p class="text-sm text-gray-500" id="profileEmail">admin@dataeasyplus.com</p>
                                 <p class="text-xs text-blue-500 mt-1" id="profileRole">Super Admin</p>
                             </div>
                             <div class="p-2">
@@ -423,7 +423,7 @@
         });
 
         function checkAdminAuth() {
-            const token = localStorage.getItem('btopup_admin_token');
+            const token = localStorage.getItem('dataeasy_admin_token');
             if (!token) {
                 window.location.href = '../pages/login.html';
                 return;
@@ -436,7 +436,7 @@
             if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
             else if (hour >= 17) greeting = 'Good evening';
             
-            const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
             const name = admin.name || 'Admin';
             document.getElementById('greetingText').textContent = `${greeting}, ${name} 👋`;
         }
@@ -457,9 +457,9 @@
         }
 
         function loadProfileInfo() {
-            const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
             const name = admin.name || 'Administrator';
-            const email = admin.username || 'admin@btopupgh.com';
+            const email = admin.username || 'admin@dataeasyplus.com';
             const role = admin.role || 'Super Admin';
             
             document.getElementById('profileName').textContent = name;
@@ -471,7 +471,7 @@
         async function loadHeaderStats() {
             try {
                 // Get today's stats from API (Ghana time based)
-                const statsResponse = await BtopupAPI.admin.getStats();
+                const statsResponse = await DataEasyAPI.admin.getStats();
                 if (statsResponse.success && statsResponse.stats) {
                     const stats = statsResponse.stats;
                     // Show today's total orders (amountToday) and profit in header
@@ -486,7 +486,7 @@
             // Fallback: calculate manually if API fails
             try {
                 // Load packages for cost price lookup
-                const pkgResponse = await BtopupAPI.admin.getPackages();
+                const pkgResponse = await DataEasyAPI.admin.getPackages();
                 const packageCostMap = {};
                 if (pkgResponse.success && pkgResponse.packages) {
                     Object.keys(pkgResponse.packages).forEach(network => {
@@ -500,7 +500,7 @@
 
                 // Load today's orders only and calculate stats
                 const today = getGhanaDateString();
-                const response = await BtopupAPI.admin.getOrders({ limit: 1000 });
+                const response = await DataEasyAPI.admin.getOrders({ limit: 1000 });
                 const orders = (response.orders || response || []).filter(order => {
                     const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
                     return orderDate === today;
@@ -539,8 +539,8 @@
         }
 
         function logout() {
-            localStorage.removeItem('btopup_admin_token');
-            localStorage.removeItem('btopup_admin');
+            localStorage.removeItem('dataeasy_admin_token');
+            localStorage.removeItem('dataeasy_admin');
             window.location.href = '../pages/login.html';
         }
 
@@ -577,8 +577,8 @@
             }
 
             document.getElementById('logoutBtn').addEventListener('click', () => {
-                localStorage.removeItem('btopup_admin_token');
-                localStorage.removeItem('btopup_admin');
+                localStorage.removeItem('dataeasy_admin_token');
+                localStorage.removeItem('dataeasy_admin');
                 window.location.href = '../pages/login.html';
             });
         }
@@ -654,7 +654,7 @@
 
         async function populateAgentFilter() {
             try {
-                const response = await BtopupAPI.admin.getUsers();
+                const response = await DataEasyAPI.admin.getUsers();
                 const users = response.users || response || [];
                 const agentSelect = document.getElementById('agentFilter');
                 users.forEach(user => {
@@ -670,7 +670,7 @@
 
         async function loadOrders() {
             try {
-                const response = await BtopupAPI.admin.getOrders({ limit: 1000 });
+                const response = await DataEasyAPI.admin.getOrders({ limit: 1000 });
                 allOrders = response.orders || response || [];
                 filterOrders();
             } catch (error) {
@@ -922,7 +922,7 @@
         async function retryOrderItem(orderId, itemIndex) {
             showConfirm('Retry Item', 'Are you sure you want to retry this item?', 'success', async () => {
                 try {
-                    await BtopupAPI.admin.updateItemStatus(orderId, itemIndex, 'Processing');
+                    await DataEasyAPI.admin.updateItemStatus(orderId, itemIndex, 'Processing');
                     showToast('success', 'Success', 'Item is being retried');
                     closeModal('confirmModal');
                     loadOrders();
@@ -936,7 +936,7 @@
         async function completeOrderItem(orderId, itemIndex) {
             showConfirm('Complete Item', 'Mark this item as delivered?', 'success', async () => {
                 try {
-                    await BtopupAPI.admin.updateItemStatus(orderId, itemIndex, 'Delivered');
+                    await DataEasyAPI.admin.updateItemStatus(orderId, itemIndex, 'Delivered');
                     showToast('success', 'Success', 'Item marked as delivered');
                     closeModal('confirmModal');
                     loadOrders();
@@ -950,7 +950,7 @@
         async function cancelAndRefundItem(orderId, itemIndex) {
             showConfirm('Cancel & Refund', 'Cancel this item and refund the customer?', 'danger', async () => {
                 try {
-                    await BtopupAPI.admin.updateItemStatus(orderId, itemIndex, 'Failed');
+                    await DataEasyAPI.admin.updateItemStatus(orderId, itemIndex, 'Failed');
                     showToast('success', 'Success', 'Item cancelled and refunded');
                     closeModal('confirmModal');
                     loadOrders();
@@ -964,7 +964,7 @@
         async function retryOrder(orderId) {
             showConfirm('Retry Order', 'Are you sure you want to retry this order?', 'success', async () => {
                 try {
-                    await BtopupAPI.admin.updateOrderStatus(orderId, 'processing');
+                    await DataEasyAPI.admin.updateOrderStatus(orderId, 'processing');
                     showToast('success', 'Success', 'Order is being retried');
                     closeModal('confirmModal');
                     loadOrders();
@@ -984,7 +984,7 @@
                 syncBtn.disabled = true;
                 syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
                 
-                const token = localStorage.getItem('btopup_admin_token');
+                const token = localStorage.getItem('dataeasy_admin_token');
                 const apiBase = window.API_BASE_URL || 'http://localhost:9000/api';
                 const response = await fetch(`${apiBase}/admin/provider/sync-status`, {
                     method: 'POST',
@@ -1135,7 +1135,7 @@
         async function completeOrder(orderId) {
             showConfirm('Complete Order', 'Are you sure you want to mark this order as completed?', 'success', async () => {
                 try {
-                    await BtopupAPI.admin.updateOrderStatus(orderId, 'completed');
+                    await DataEasyAPI.admin.updateOrderStatus(orderId, 'completed');
                     showToast('success', 'Success', 'Order completed successfully');
                     closeModal('viewOrderModal');
                     closeModal('confirmModal');
@@ -1150,7 +1150,7 @@
         async function cancelOrder(orderId) {
             showConfirm('Cancel Order', 'Are you sure you want to cancel this order? The customer will be refunded.', 'danger', async () => {
                 try {
-                    await BtopupAPI.admin.updateOrderStatus(orderId, 'cancelled');
+                    await DataEasyAPI.admin.updateOrderStatus(orderId, 'cancelled');
                     showToast('success', 'Success', 'Order cancelled and refunded');
                     closeModal('viewOrderModal');
                     closeModal('confirmModal');
@@ -1166,7 +1166,7 @@
             if (selectedOrders.size === 0) return;
             showConfirm('Complete Selected', `Are you sure you want to complete ${selectedOrders.size} order(s)?`, 'success', async () => {
                 try {
-                    const promises = Array.from(selectedOrders).map(id => BtopupAPI.admin.updateOrderStatus(id, 'completed'));
+                    const promises = Array.from(selectedOrders).map(id => DataEasyAPI.admin.updateOrderStatus(id, 'completed'));
                     await Promise.all(promises);
                     showToast('success', 'Success', `${selectedOrders.size} orders completed`);
                     selectedOrders.clear();
@@ -1183,7 +1183,7 @@
             if (selectedOrders.size === 0) return;
             showConfirm('Cancel Selected', `Are you sure you want to cancel ${selectedOrders.size} order(s)?`, 'danger', async () => {
                 try {
-                    const promises = Array.from(selectedOrders).map(id => BtopupAPI.admin.updateOrderStatus(id, 'cancelled'));
+                    const promises = Array.from(selectedOrders).map(id => DataEasyAPI.admin.updateOrderStatus(id, 'cancelled'));
                     await Promise.all(promises);
                     showToast('success', 'Success', `${selectedOrders.size} orders cancelled`);
                     selectedOrders.clear();

@@ -1,9 +1,9 @@
 /**
- * Btopup GH - Utility Functions
+ * DataEasy+ - Utility Functions
  * Core helper functions used across the application
  */
 
-const BtopupUtils = (function() {
+const DataEasyUtils = (function() {
     'use strict';
 
     // ==========================================
@@ -12,7 +12,7 @@ const BtopupUtils = (function() {
     const Storage = {
         set(key, value) {
             try {
-                localStorage.setItem(`btopup_${key}`, JSON.stringify(value));
+                localStorage.setItem(`dataeasy_${key}`, JSON.stringify(value));
                 return true;
             } catch (e) {
                 console.error('Storage set error:', e);
@@ -22,7 +22,7 @@ const BtopupUtils = (function() {
 
         get(key, defaultValue = null) {
             try {
-                const item = localStorage.getItem(`btopup_${key}`);
+                const item = localStorage.getItem(`dataeasy_${key}`);
                 return item ? JSON.parse(item) : defaultValue;
             } catch (e) {
                 console.error('Storage get error:', e);
@@ -32,7 +32,7 @@ const BtopupUtils = (function() {
 
         remove(key) {
             try {
-                localStorage.removeItem(`btopup_${key}`);
+                localStorage.removeItem(`dataeasy_${key}`);
                 return true;
             } catch (e) {
                 console.error('Storage remove error:', e);
@@ -43,7 +43,7 @@ const BtopupUtils = (function() {
         clear() {
             try {
                 Object.keys(localStorage)
-                    .filter(key => key.startsWith('btopup_'))
+                    .filter(key => key.startsWith('dataeasy_'))
                     .forEach(key => localStorage.removeItem(key));
                 return true;
             } catch (e) {
@@ -483,7 +483,7 @@ const BtopupUtils = (function() {
                         {
                             display_name: "Platform",
                             variable_name: "platform",
-                            value: "Btopup GH"
+                            value: "DataEasy+"
                         },
                         ...Object.entries(metadata).map(([key, value]) => ({
                             display_name: key,
@@ -527,7 +527,7 @@ const BtopupUtils = (function() {
     // ==========================================
     function init() {
         Toast.init();
-        console.log('✅ Btopup Utils initialized');
+        console.log('✅ DataEasy Utils initialized');
     }
 
     // Auto-init when DOM ready
@@ -554,4 +554,4 @@ const BtopupUtils = (function() {
 })();
 
 // Make it globally available
-window.BtopupUtils = BtopupUtils;
+window.DataEasyUtils = DataEasyUtils;

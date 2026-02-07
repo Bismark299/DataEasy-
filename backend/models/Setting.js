@@ -167,8 +167,8 @@ module.exports = (sequelize) => {
     // Get general app settings
     Setting.getAppSettings = async function() {
         return {
-            appName: await this.getValue('app_name', 'Btopup GH'),
-            supportEmail: await this.getValue('support_email', 'support@btopupgh.com'),
+            appName: await this.getValue('app_name', 'DataEasy+'),
+            supportEmail: await this.getValue('support_email', 'support@dataeasyplus.com'),
             supportPhone: await this.getValue('support_phone', '+233 20 000 0000'),
             maintenanceMode: await this.getValue('maintenance_mode', false)
         };
