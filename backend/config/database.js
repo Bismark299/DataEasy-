@@ -76,6 +76,9 @@ const connectDB = async () => {
         // Auto-seed packages if database is empty
         await seedPackagesIfEmpty();
         
+        // Auto-seed test user if enabled (for production testing)
+        await seedTestUserIfEmpty();
+        
         return true;
     } catch (error) {
         console.error('❌ Database connection failed:', error.message);
@@ -182,6 +185,37 @@ const seedPackagesIfEmpty = async () => {
     } catch (error) {
         console.error('⚠️ Package seeding error:', error.message);
         // Don't fail startup - packages can be added manually via admin
+    }
+};
+
+/**
+ * Auto-seed a test user if database is empty (for production testing)
+ */
+const seedTestUserIfEmpty = async () => {
+    try {
+        const User = require('../models/User');
+        const Wallet = require('../models/Wallet');
+        const count = await User.count();
+        
+        if (count === 0 && process.env.SEED_TEST_USER === 'true') {
+            console.log('👤 No users found - creating test user...');
+            
+            // Create test user (password will be hashed by model hook)
+            const testUser = await User.create({
+                fullName: 'Test User',
+                email: 'test@dataeasy.com',
+                phone: '0241234567',
+                password: 'Test123!'
+            });
+            
+            // Create wallet for test user
+            await Wallet.create({ userId: testUser.id });
+            
+            console.log('✅ Test user created: test@dataeasy.com / Test123!');
+        }
+    } catch (error) {
+        console.error('⚠️ Test user seeding error:', error.message);
+        // Don't fail startup
     }
 };
 
