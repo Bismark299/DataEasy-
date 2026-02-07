@@ -2,10 +2,7 @@
  * DataEasy+ - Frontend Configuration
  * 
  * This file configures the API endpoint for different environments.
- * 
- * DEPLOYMENT INSTRUCTIONS:
- * For production, update the API_BASE_URL to your Render backend URL:
- * Example: 'https://your-backend-name.onrender.com/api'
+ * Paystack public key is fetched from backend (set via Render env vars)
  */
 
 (function() {
@@ -21,16 +18,29 @@
     if (isProduction) {
         // Same origin - frontend and backend served together
         window.API_BASE_URL = window.API_BASE_URL || '/api';
-        // Use test key for now - replace with pk_live_... when going live
-        window.PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_test_fa6266bd089971ce550966de52efe3add069fe55';
     } else {
         // Development - use local backend
         window.API_BASE_URL = 'http://localhost:9000/api';
-        window.PAYSTACK_PUBLIC_KEY = 'pk_test_fa6266bd089971ce550966de52efe3add069fe55';
     }
+    
+    // Default Paystack key (will be overwritten by backend config)
+    window.PAYSTACK_PUBLIC_KEY = 'pk_test_fa6266bd089971ce550966de52efe3add069fe55';
+    
+    // Fetch config from backend (includes Paystack public key from env vars)
+    fetch(`${window.API_BASE_URL}/auth/config`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.config.paystackPublicKey) {
+                window.PAYSTACK_PUBLIC_KEY = data.config.paystackPublicKey;
+                console.log('✅ Paystack key loaded from backend');
+            }
+        })
+        .catch(err => {
+            console.warn('⚠️ Could not fetch config, using default Paystack key');
+        });
 
     // Log configuration (development only)
-    if (!isProduction) {
+    if (!isLocalhost) {
         console.log('🔧 Config loaded:', {
             environment: isProduction ? 'production' : 'development',
             apiBaseUrl: window.API_BASE_URL

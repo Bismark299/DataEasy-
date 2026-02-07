@@ -10,6 +10,17 @@ const authController = require('../controllers/authController');
 const { registerValidation, loginValidation, adminLoginValidation } = require('../middleware/validation');
 const { protect } = require('../middleware/auth');
 const { authLimiter, adminAuthLimiter, registrationLimiter, passwordLimiter } = require('../middleware/rateLimiter');
+const { PAYSTACK_PUBLIC_KEY } = require('../config/paystack');
+
+// Public config endpoint (returns non-sensitive config for frontend)
+router.get('/config', (req, res) => {
+    res.json({
+        success: true,
+        config: {
+            paystackPublicKey: PAYSTACK_PUBLIC_KEY
+        }
+    });
+});
 
 // Public routes with rate limiting
 router.post('/register', registrationLimiter, registerValidation, authController.register);
