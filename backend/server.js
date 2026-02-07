@@ -113,7 +113,18 @@ app.use(helmet({
                 "'unsafe-inline'",  // Required for Tailwind
                 "https://cdn.tailwindcss.com",
                 "https://cdnjs.cloudflare.com",
-                "https://fonts.googleapis.com"
+                "https://fonts.googleapis.com",
+                "https://paystack.com",
+                "https://*.paystack.com"
+            ],
+            styleSrcElem: [
+                "'self'",
+                "'unsafe-inline'",
+                "https://cdn.tailwindcss.com",
+                "https://cdnjs.cloudflare.com",
+                "https://fonts.googleapis.com",
+                "https://paystack.com",
+                "https://*.paystack.com"
             ],
             fontSrc: [
                 "'self'",
@@ -126,7 +137,11 @@ app.use(helmet({
                 "https://api.paystack.co",
                 "https://*.paystack.co"
             ],
-            frameSrc: ["https://js.paystack.co"]
+            frameSrc: [
+                "https://js.paystack.co",
+                "https://checkout.paystack.com",
+                "https://*.paystack.com"
+            ]
         }
     },
     crossOriginEmbedderPolicy: false  // Required for external resources
