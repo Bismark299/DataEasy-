@@ -100,8 +100,6 @@ const allowedOrigins = [
     ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()) : [])
 ].filter(Boolean);
 
-const isProduction = process.env.NODE_ENV === 'production';
-
 app.use(cors({
     origin: function(origin, callback) {
         // In production, allow requests with no origin for same-origin requests

@@ -46,6 +46,62 @@ const DataEasyCart = (function() {
     };
 
     // ==========================================
+    // RECENT ORDER DUPLICATE PROTECTION
+    // ==========================================
+    const DUPLICATE_CHECK_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+    
+    /**
+     * Store a completed order for duplicate checking
+     */
+    function storeRecentOrder(orderItems, network) {
+        const recentOrders = Storage.get('recent_orders', []);
+        const now = Date.now();
+        
+        // Add new order items
+        orderItems.forEach(item => {
+            recentOrders.push({
+                packageId: item.packageId,
+                phoneNumber: item.phoneNumber,
+                network: network,
+                orderedAt: now
+            });
+        });
+        
+        // Clean up old entries (older than 5 minutes to be safe)
+        const cutoff = now - (5 * 60 * 1000);
+        const filtered = recentOrders.filter(o => o.orderedAt > cutoff);
+        
+        Storage.set('recent_orders', filtered);
+    }
+    
+    /**
+     * Check if there's a recent order for the same number + package
+     * Returns the recent order info if found, null otherwise
+     */
+    function checkRecentDuplicate(packageId, phoneNumber) {
+        const recentOrders = Storage.get('recent_orders', []);
+        const now = Date.now();
+        const cutoff = now - DUPLICATE_CHECK_WINDOW_MS;
+        
+        const duplicate = recentOrders.find(order => 
+            order.packageId === packageId && 
+            order.phoneNumber === phoneNumber &&
+            order.orderedAt > cutoff
+        );
+        
+        if (duplicate) {
+            const secondsAgo = Math.floor((now - duplicate.orderedAt) / 1000);
+            return {
+                ...duplicate,
+                secondsAgo,
+                timeAgoText: secondsAgo < 60 ? `${secondsAgo} seconds ago` : `${Math.floor(secondsAgo / 60)} minute(s) ago`
+            };
+        }
+        
+        return null;
+    }
+
+    // ==========================================
     // CART OPERATIONS
     // ==========================================
     function loadCart() {
@@ -63,7 +119,7 @@ const DataEasyCart = (function() {
     }
 
     function addItem(packageId, phoneNumbers = [], quantity = 1, options = {}) {
-        const { silent = false } = options;
+        const { silent = false, skipDuplicateCheck = false } = options;
         
         // Check if packages have been loaded from API
         if (!packagesLoaded) {
@@ -113,29 +169,107 @@ const DataEasyCart = (function() {
             return false;
         }
 
+        // ==========================================
+        // CHECK FOR RECENT DUPLICATE ORDERS
+        // ==========================================
+        if (!skipDuplicateCheck && !silent && validNumbers.length > 0) {
+            const duplicates = [];
+            for (const phone of validNumbers) {
+                const recentOrder = checkRecentDuplicate(packageId, phone);
+                if (recentOrder) {
+                    duplicates.push({ phone, recentOrder });
+                }
+            }
+            
+            if (duplicates.length > 0) {
+                // Show warning and ask for confirmation
+                const duplicate = duplicates[0]; // Show first duplicate
+                const message = `⚠️ You ordered ${pkg.name} for ${duplicate.phone} ${duplicate.recentOrder.timeAgoText}.\n\nAre you sure you want to order again?`;
+                
+                showDuplicateWarning(message, () => {
+                    // User confirmed - add with skipDuplicateCheck
+                    addItem(packageId, phoneNumbers, quantity, { ...options, skipDuplicateCheck: true });
+                });
+                
+                return 'pending_confirmation';
+            }
+        }
+
+        // ==========================================
+        // BLOCK SAME NUMBER+PACKAGE IN CART
+        // ==========================================
         const existingItem = cart.items.find(item => 
             item.packageId === packageId && 
             JSON.stringify(item.phoneNumbers.sort()) === JSON.stringify(validNumbers.sort())
         );
 
         if (existingItem) {
-            existingItem.quantity += quantity;
-        } else {
-            cart.items.push({
-                id: Date.now().toString(36),
-                packageId,
-                package: pkg,
-                network,
-                phoneNumbers: validNumbers,
-                quantity,
-                addedAt: new Date().toISOString()
-            });
+            // Block duplicate - tell user to use quantity buttons
+            if (!silent) {
+                Toast.warning(`${pkg.name} for this number is already in your cart. Use the quantity buttons to add more.`);
+            }
+            return false;
         }
+        
+        cart.items.push({
+            id: Date.now().toString(36),
+            packageId,
+            package: pkg,
+            network,
+            phoneNumbers: validNumbers,
+            quantity,
+            addedAt: new Date().toISOString()
+        });
 
         saveCart();
         updateCartUI();
         if (!silent) Toast.success(`${pkg.name} added to cart`);
         return true;
+    }
+    
+    /**
+     * Show duplicate order warning modal
+     */
+    function showDuplicateWarning(message, onConfirm) {
+        // Create a custom warning modal with amber styling
+        const modalHtml = `
+            <div id="duplicate-warning-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="modal-content bg-card-bg rounded-xl p-6 max-w-md w-full border border-amber-500/50 shadow-2xl transform transition-all">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-white text-lg font-bold">Possible Duplicate Order</h3>
+                    </div>
+                    <p class="text-gray-300 mb-6 whitespace-pre-line">${message}</p>
+                    <div class="flex gap-3">
+                        <button id="duplicate-cancel" class="flex-1 py-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition">Cancel</button>
+                        <button id="duplicate-confirm" class="flex-1 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium transition">Yes, Add Anyway</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = document.getElementById('duplicate-warning-modal');
+
+        document.getElementById('duplicate-confirm').onclick = () => {
+            modal.remove();
+            if (onConfirm) onConfirm();
+        };
+
+        document.getElementById('duplicate-cancel').onclick = () => {
+            modal.remove();
+        };
+        
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
     }
 
     function removeItem(itemId) {
@@ -421,6 +555,9 @@ const DataEasyCart = (function() {
                 }, { idempotencyKey });
 
                 if (response.success) {
+                    // Store order items for duplicate detection
+                    storeRecentOrder(orderItems, network);
+                    
                     // Clear cart
                     cart.items = [];
                     cart.phoneNumbers = [];
@@ -478,6 +615,18 @@ const DataEasyCart = (function() {
         const orders = Storage.get('orders', []);
         orders.unshift(order);
         Storage.set('orders', orders);
+        
+        // Store order items for duplicate detection (localStorage fallback)
+        const orderItemsForDuplicateCheck = [];
+        cart.items.forEach(item => {
+            item.phoneNumbers.forEach(phone => {
+                orderItemsForDuplicateCheck.push({
+                    packageId: item.packageId,
+                    phoneNumber: phone
+                });
+            });
+        });
+        storeRecentOrder(orderItemsForDuplicateCheck, network);
 
         // Deduct from wallet
         wallet.balance -= total;
