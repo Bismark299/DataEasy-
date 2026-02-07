@@ -9,6 +9,26 @@
     <script src="https://js.paystack.co/v1/inline.js"></script>
     <link rel="stylesheet" href="assets/css/custom.css">
     <script src="assets/js/config.js"></script>
+    <!-- Early auth check - redirect before page renders -->
+    <script>
+        (function() {
+            var session = localStorage.getItem('dataeasy_session');
+            if (!session) {
+                window.location.replace('pages/login.html');
+            } else {
+                try {
+                    var parsed = JSON.parse(session);
+                    if (!parsed.token || (parsed.expiresAt && new Date(parsed.expiresAt) < new Date())) {
+                        localStorage.removeItem('dataeasy_session');
+                        localStorage.removeItem('dataeasy_user');
+                        window.location.replace('pages/login.html');
+                    }
+                } catch(e) {
+                    window.location.replace('pages/login.html');
+                }
+            }
+        })();
+    </script>
     <script>
         tailwind.config = {
             theme: {

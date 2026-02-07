@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
             where: {
                 [Op.or]: [
                     { email: emailOrPhone.toLowerCase() },
-                    { phone: emailOrPhone.replace(/\\D/g, '') }
+                    { phone: emailOrPhone.replace(/\D/g, '') }
                 ]
             }
         });
@@ -105,8 +105,18 @@ exports.login = async (req, res) => {
             });
         }
 
-        // Get security settings
-        const securitySettings = await Setting.getSecuritySettings();
+        // Get security settings with fallback defaults
+        let securitySettings;
+        try {
+            securitySettings = await Setting.getSecuritySettings();
+        } catch (settingError) {
+            logger.warn('Could not fetch security settings, using defaults', { error: settingError.message });
+            securitySettings = {
+                maxLoginAttempts: 5,
+                lockoutMinutes: 15,
+                sessionTimeoutHours: 24
+            };
+        }
 
         // Check password
         const isMatch = await user.comparePassword(password);
@@ -150,8 +160,12 @@ exports.login = async (req, res) => {
             user: user.toSafeObject()
         });
     } catch (error) {
-        logger.error('Login error', { error: error.message });
-        res.status(500).json({ error: 'Login failed' });
+        logger.error('Login error', { 
+            error: error.message, 
+            stack: error.stack,
+            name: error.name 
+        });
+        res.status(500).json({ error: 'Login failed: ' + error.message });
     }
 };
 
