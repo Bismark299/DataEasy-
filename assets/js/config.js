@@ -23,8 +23,8 @@
         window.API_BASE_URL = 'http://localhost:9000/api';
     }
     
-    // Default Paystack key (will be overwritten by backend config)
-    window.PAYSTACK_PUBLIC_KEY = 'pk_test_fa6266bd089971ce550966de52efe3add069fe55';
+    // Paystack key will be fetched from backend (no hardcoded fallback)
+    window.PAYSTACK_PUBLIC_KEY = '';
     
     // Fetch config from backend (includes Paystack public key from env vars)
     fetch(`${window.API_BASE_URL}/auth/config`)

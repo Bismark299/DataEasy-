@@ -14,7 +14,7 @@ const DataEasyAPI = (function() {
     const API_BASE_URL = window.API_BASE_URL || (isLocalhost 
         ? 'http://localhost:9000/api' 
         : '/api');  // Same origin in production
-    const PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_test_fa6266bd089971ce550966de52efe3add069fe55';
+    const PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || '';
 
     // ==========================================
     // TOKEN MANAGEMENT

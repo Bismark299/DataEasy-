@@ -7,7 +7,7 @@ const axios = require('axios');
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-const PAYSTACK_PUBLIC_KEY = process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_fa6266bd089971ce550966de52efe3add069fe55';
+const PAYSTACK_PUBLIC_KEY = process.env.PAYSTACK_PUBLIC_KEY || '';
 
 // Create axios instance for Paystack
 const paystackAPI = axios.create({

@@ -1205,13 +1205,9 @@
                                 Paystack Settings
                             </h3>
                             <div class="space-y-4">
-                                <div>
-                                    <label class="block text-gray-400 text-sm mb-2">Public Key</label>
-                                    <input type="text" value="pk_test_fa6266bd089971ce550966de52efe3add069fe55" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none font-mono text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-400 text-sm mb-2">Secret Key</label>
-                                    <input type="password" value="sk_test_xxxxx" class="w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none font-mono text-sm">
+                                <div class="bg-yellow-900/30 border border-yellow-600 rounded-lg p-3 text-yellow-400 text-sm">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    Paystack keys are configured via Render environment variables (PAYSTACK_PUBLIC_KEY, PAYSTACK_SECRET_KEY)
                                 </div>
                             </div>
                         </div>

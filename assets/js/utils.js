@@ -453,8 +453,8 @@ const DataEasyUtils = (function() {
     // PAYSTACK CONFIGURATION
     // ==========================================
     const Paystack = {
-        // Paystack public key
-        publicKey: 'pk_test_fa6266bd089971ce550966de52efe3add069fe55',
+        // Paystack public key (loaded from backend config)
+        get publicKey() { return window.PAYSTACK_PUBLIC_KEY || ''; },
         
         /**
          * Initialize Paystack payment
