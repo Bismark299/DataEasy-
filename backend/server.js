@@ -47,6 +47,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const { connectDB } = require('./config/database');
@@ -66,6 +67,17 @@ const webhookRoutes = require('./routes/webhook');
 console.log('✅ Routes loaded successfully');
 
 const app = express();
+
+// Enable gzip compression for all responses (significantly reduces payload size)
+app.use(compression({
+    level: 6, // Balanced compression level
+    threshold: 1024, // Only compress responses > 1KB
+    filter: (req, res) => {
+        // Don't compress if client doesn't accept it
+        if (req.headers['x-no-compression']) return false;
+        return compression.filter(req, res);
+    }
+}));
 
 // Database connection status
 let dbConnected = false;
@@ -263,10 +275,17 @@ app.use('/api/webhook', webhookRoutes);
 const path = require('path');
 const frontendPath = path.join(__dirname, '..');
 
-// Serve static assets (CSS, JS, images)
-app.use('/assets', express.static(path.join(frontendPath, 'assets')));
-app.use('/pages', express.static(path.join(frontendPath, 'pages')));
-app.use('/admin', express.static(path.join(frontendPath, 'admin')));
+// Cache settings for static files (1 day for assets, improves load time)
+const staticOptions = {
+    maxAge: isProduction ? '1d' : 0, // Cache for 1 day in production
+    etag: true,
+    lastModified: true
+};
+
+// Serve static assets (CSS, JS, images) with caching
+app.use('/assets', express.static(path.join(frontendPath, 'assets'), staticOptions));
+app.use('/pages', express.static(path.join(frontendPath, 'pages'), staticOptions));
+app.use('/admin', express.static(path.join(frontendPath, 'admin'), staticOptions));
 
 // Serve HTML files
 app.get('/', (req, res) => {
