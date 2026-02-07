@@ -60,12 +60,13 @@ const connectDB = async () => {
         
         // Sync strategy based on environment
         if (process.env.NODE_ENV === 'production') {
-            // In production, create tables and add missing columns
+            // IMPORTANT: Fix columns BEFORE sync to avoid errors
+            // This ensures tables have all columns before Sequelize tries to use them
+            await fixMissingColumns();
+            
+            // Now sync (create tables if they don't exist)
             await sequelize.sync({ force: false });
             console.log('✅ Database synchronized (production mode)');
-            
-            // Run column fixes to ensure all columns exist
-            await fixMissingColumns();
         } else {
             // In development, just sync without alter
             await sequelize.sync();
@@ -191,6 +192,51 @@ const seedPackagesIfEmpty = async () => {
 const fixMissingColumns = async () => {
     console.log('🔧 Checking for missing columns...');
     
+    // First, ensure tables exist (they might not on first deploy)
+    const createTableStatements = [
+        `CREATE TABLE IF NOT EXISTS users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            "fullName" VARCHAR(100) NOT NULL,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            phone VARCHAR(15) NOT NULL UNIQUE,
+            password VARCHAR(255) NOT NULL,
+            "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS wallets (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            "userId" UUID NOT NULL UNIQUE REFERENCES users(id),
+            balance DECIMAL(10,2) DEFAULT 0,
+            currency VARCHAR(10) DEFAULT 'GHS',
+            "totalTopups" DECIMAL(10,2) DEFAULT 0,
+            "totalSpent" DECIMAL(10,2) DEFAULT 0,
+            version INTEGER DEFAULT 0,
+            "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS packages (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            network VARCHAR(50) NOT NULL,
+            name VARCHAR(100) NOT NULL,
+            data VARCHAR(50) NOT NULL,
+            validity VARCHAR(50) NOT NULL,
+            price DECIMAL(10,2) NOT NULL,
+            popular BOOLEAN DEFAULT false,
+            "isActive" BOOLEAN DEFAULT true,
+            "sortOrder" INTEGER DEFAULT 0,
+            "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )`
+    ];
+    
+    for (const sql of createTableStatements) {
+        try {
+            await sequelize.query(sql);
+        } catch (err) {
+            // Table might already exist with different structure, that's ok
+        }
+    }
+    
     const alterStatements = [
         // Users table
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS "agentCode" VARCHAR(20)`,
@@ -202,9 +248,11 @@ const fixMissingColumns = async () => {
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS "isVerified" BOOLEAN DEFAULT false`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN DEFAULT true`,
         `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar VARCHAR(255)`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{"twoFactorEnabled":false,"emailNotifications":true,"smsNotifications":true}'::jsonb`,
         
         // Wallets table
         `ALTER TABLE wallets ADD COLUMN IF NOT EXISTS "reservedBalance" DECIMAL(10,2) DEFAULT 0`,
+        `ALTER TABLE wallets ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP WITH TIME ZONE`,
         
         // Packages table - role prices
         `ALTER TABLE packages ADD COLUMN IF NOT EXISTS "costPrice" DECIMAL(10,2)`,
