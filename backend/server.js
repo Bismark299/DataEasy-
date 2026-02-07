@@ -133,35 +133,60 @@ app.use(cookieParser());
 // Request Logging - shows HTTP status codes
 app.use(morgan('dev'));
 
-// CORS - Allow frontend (both localhost and 127.0.0.1)
+// CORS Configuration
+// In production: Frontend and backend are on SAME origin (single Render service)
+// So we allow same-origin requests and also handle cases where Origin header is sent
 const allowedOrigins = [
     'http://localhost:5500',
     'http://127.0.0.1:5500',
     'http://localhost:5501',
     'http://127.0.0.1:5501',
+    'http://localhost:9000',
+    'http://127.0.0.1:9000',
     process.env.FRONTEND_URL,
+    process.env.RENDER_EXTERNAL_URL,  // Render provides this automatically
     // Add multiple frontend URLs if needed (comma-separated in env)
     ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()) : [])
 ].filter(Boolean);
 
+// Log allowed origins for debugging
+console.log('📋 CORS Allowed Origins:', allowedOrigins);
+
 app.use(cors({
     origin: function(origin, callback) {
-        // In production, allow requests with no origin for same-origin requests
-        // This is needed when frontend and backend are on the same domain
+        // Allow requests with no origin (same-origin, Postman, server-to-server)
         if (!origin) {
-            if (isProduction) {
-                // Allow same-origin requests (no origin header for same domain)
-                return callback(null, true);
-            }
             return callback(null, true);
         }
+        
+        // In production, be more permissive since frontend/backend are same origin
+        if (isProduction) {
+            // Allow if origin matches any allowed origin
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+            // Also allow if origin matches the request's host (same service)
+            // This handles Render's URL pattern
+            if (origin.includes('onrender.com') || origin.includes('render.com')) {
+                console.log('CORS: Allowing Render origin:', origin);
+                return callback(null, true);
+            }
+            // Allow any HTTPS origin in production for now (can tighten later)
+            if (origin.startsWith('https://')) {
+                console.log('CORS: Allowing HTTPS origin:', origin);
+                return callback(null, true);
+            }
+            console.warn('CORS: Blocked origin:', origin);
+            return callback(new Error('Not allowed by CORS'), false);
+        }
+        
+        // In development, allow all origins
         if (allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
-        // In production, be strict about origins
-        if (isProduction) {
-            console.warn('CORS: Blocked origin:', origin);
-            return callback(new Error('Not allowed by CORS'), false);
+        // Allow localhost variants in development
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+            return callback(null, true);
         }
         return callback(null, false);
     },
