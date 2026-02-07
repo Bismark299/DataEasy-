@@ -21,7 +21,8 @@
     if (isProduction) {
         // Same origin - frontend and backend served together
         window.API_BASE_URL = window.API_BASE_URL || '/api';
-        window.PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_live_YOUR_LIVE_KEY_HERE';
+        // Use test key for now - replace with pk_live_... when going live
+        window.PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_test_fa6266bd089971ce550966de52efe3add069fe55';
     } else {
         // Development - use local backend
         window.API_BASE_URL = 'http://localhost:9000/api';
