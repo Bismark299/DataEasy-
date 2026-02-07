@@ -198,9 +198,56 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhook', webhookRoutes);
 
-// 404 Handler
-app.use((req, res) => {
-    res.status(404).json({ error: 'Endpoint not found' });
+// ==========================================
+// SERVE STATIC FRONTEND FILES
+// ==========================================
+const path = require('path');
+const frontendPath = path.join(__dirname, '..');
+
+// Serve static assets (CSS, JS, images)
+app.use('/assets', express.static(path.join(frontendPath, 'assets')));
+app.use('/pages', express.static(path.join(frontendPath, 'pages')));
+app.use('/admin', express.static(path.join(frontendPath, 'admin')));
+
+// Serve HTML files
+app.get('/', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+app.get('/ad.html', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'ad.html'));
+});
+
+// Serve pages/*.html routes
+app.get('/pages/:page', (req, res) => {
+    const pagePath = path.join(frontendPath, 'pages', req.params.page);
+    res.sendFile(pagePath);
+});
+
+// Serve admin/*.html routes
+app.get('/admin/:page', (req, res) => {
+    const pagePath = path.join(frontendPath, 'admin', req.params.page);
+    res.sendFile(pagePath);
+});
+
+// Fallback to index.html for SPA-style routing (if needed)
+app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api')) {
+        return next();
+    }
+    // Try to serve the requested file, or fallback to index
+    const filePath = path.join(frontendPath, req.path);
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            res.sendFile(path.join(frontendPath, 'index.html'));
+        }
+    });
+});
+
+// 404 Handler (for API routes only now)
+app.use('/api', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
 });
 
 // Global Error Handler - sanitizes errors in production

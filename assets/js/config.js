@@ -17,11 +17,10 @@
     const isProduction = !isLocalhost;
 
     // Configure API base URL
-    // In production, this should point to your Render backend URL
+    // In production, use same-origin (relative path) since frontend is served from backend
     if (isProduction) {
-        // IMPORTANT: Update this URL after deploying your backend to Render
-        // Format: https://your-backend-app-name.onrender.com/api
-        window.API_BASE_URL = window.API_BASE_URL || 'https://dataeasy-backend.onrender.com/api';
+        // Same origin - frontend and backend served together
+        window.API_BASE_URL = window.API_BASE_URL || '/api';
         window.PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_live_YOUR_LIVE_KEY_HERE';
     } else {
         // Development - use local backend

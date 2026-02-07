@@ -9,11 +9,11 @@ const DataEasyAPI = (function() {
     // ==========================================
     // CONFIGURATION
     // ==========================================
-    // Auto-detect environment: use production API if not on localhost
+    // Auto-detect environment: use relative path in production (same origin)
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const API_BASE_URL = window.API_BASE_URL || (isLocalhost 
         ? 'http://localhost:9000/api' 
-        : 'https://dataeasy-backend.onrender.com/api');
+        : '/api');  // Same origin in production
     const PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_test_fa6266bd089971ce550966de52efe3add069fe55';
 
     // ==========================================
