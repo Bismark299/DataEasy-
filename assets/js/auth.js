@@ -131,11 +131,14 @@ const DataEasyAuth = (function() {
 
         // Check for admin credentials first (works with API too)
         if (useAPI && typeof DataEasyAPI !== 'undefined') {
-            // Detect if this might be an admin login (not an email or phone number)
-            const looksLikeAdminUsername = !emailOrPhone.includes('@') && !/^0[2-59]\d{8}$/.test(emailOrPhone);
+            // Detect if this might be an admin login
+            // Admin usernames often include "admin" or are non-standard emails
+            const looksLikeAdmin = 
+                emailOrPhone.toLowerCase().includes('admin') ||
+                (!emailOrPhone.includes('@') && !/^0[2-59]\d{8}$/.test(emailOrPhone));
             
-            // Try admin login first ONLY if it looks like an admin username
-            if (looksLikeAdminUsername) {
+            // Try admin login first if it looks like admin credentials
+            if (looksLikeAdmin) {
                 try {
                     const adminResponse = await DataEasyAPI.Auth.adminLogin({ 
                         username: emailOrPhone, 

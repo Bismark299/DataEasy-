@@ -106,17 +106,25 @@ exports.login = async (req, res) => {
     try {
         const { emailOrPhone, password } = req.body;
 
+        // Validate input
+        if (!emailOrPhone || !password) {
+            return res.status(400).json({ error: 'Email/phone and password are required' });
+        }
+
+        logger.info('Login attempt', { emailOrPhone: emailOrPhone.substring(0, 5) + '***' });
+
         // Find user by email or phone
         const user = await User.findOne({
             where: {
                 [Op.or]: [
-                    { email: emailOrPhone.toLowerCase() },
-                    { phone: emailOrPhone.replace(/\D/g, '') }
+                    { email: String(emailOrPhone).toLowerCase() },
+                    { phone: String(emailOrPhone).replace(/\D/g, '') }
                 ]
             }
         });
 
         if (!user) {
+            logger.info('Login failed: user not found');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
