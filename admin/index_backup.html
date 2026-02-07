@@ -1,0 +1,703 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Btopup GH</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p>Loading admin panel...</p>
+    </div>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-close-btn" id="sidebarCloseBtn">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="sidebar-logo">
+            <div class="logo-box">BT</div>
+            <span class="logo-text">Btopup GH</span>
+        </div>
+        
+        <div class="menu-label">Menu</div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="index.html" class="nav-link active" data-page="dashboard">
+                    <i class="fas fa-th-large"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="users.html" class="nav-link" data-page="users">
+                    <i class="fas fa-users"></i>
+                    <span>Users</span>
+                    <span class="alert-badge" id="usersBadge">0</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="orders.html" class="nav-link" data-page="orders">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Orders</span>
+                    <span class="alert-badge" id="pendingOrdersBadge">0</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="transactions.html" class="nav-link" data-page="transactions">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Transactions</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="packages.html" class="nav-link" data-page="packages">
+                    <i class="fas fa-cube"></i>
+                    <span>Packages</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="settings.html" class="nav-link" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <button class="logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div style="display: flex; align-items: center;">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="greeting">
+                    <h1 id="greetingText">Good morning, Admin ðŸ‘‹</h1>
+                    <p>Welcome to your admin control center</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-stat">
+                    <div class="label"><i class="fas fa-users"></i> Total Users</div>
+                    <div class="value" id="headerTotalUsers">0</div>
+                </div>
+                <div class="header-stat">
+                    <div class="label"><i class="fas fa-shopping-bag"></i> Total Orders</div>
+                    <div class="value" id="headerTotalOrders">0</div>
+                </div>
+                <div class="header-stat">
+                    <div class="label"><i class="fas fa-chart-line"></i> Revenue</div>
+                    <div class="value profit" id="headerRevenue">GHâ‚µ 0.00</div>
+                </div>
+                <div class="admin-avatar">A</div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="page-content">
+            <div class="page-title">
+                <i class="fas fa-th-large"></i>
+                <h2>Dashboard</h2>
+            </div>
+
+            <!-- Main Stats -->
+            <div class="main-stats">
+                <div class="stat-card wallet">
+                    <div class="info">
+                        <h4>Total Balance</h4>
+                        <div class="value" id="totalWalletBalance">GHâ‚µ 0.00</div>
+                    </div>
+                    <div class="icon"><i class="fas fa-wallet"></i></div>
+                </div>
+                <div class="stat-card orders">
+                    <div class="info">
+                        <h4>Orders Today</h4>
+                        <div class="value" id="ordersToday">0</div>
+                    </div>
+                    <div class="icon"><i class="fas fa-shopping-cart"></i></div>
+                </div>
+                <div class="stat-card amount">
+                    <div class="info">
+                        <h4>Revenue Today</h4>
+                        <div class="value" id="revenueToday">GHâ‚µ 0.00</div>
+                    </div>
+                    <div class="icon"><i class="fas fa-coins"></i></div>
+                </div>
+                <div class="stat-card bundle">
+                    <div class="info">
+                        <h4>Total Users</h4>
+                        <div class="value" id="totalUsers">0</div>
+                    </div>
+                    <div class="icon"><i class="fas fa-users"></i></div>
+                </div>
+            </div>
+
+            <!-- Order Status Cards -->
+            <div class="status-cards">
+                <div class="status-card pending">
+                    <h4>Pending Orders</h4>
+                    <div class="count" id="pendingCount">0</div>
+                    <div class="details">
+                        <span>Awaiting processing</span>
+                    </div>
+                </div>
+                <div class="status-card processing">
+                    <h4>Processing</h4>
+                    <div class="count" id="processingCount">0</div>
+                    <div class="details">
+                        <span>Currently in progress</span>
+                    </div>
+                </div>
+                <div class="status-card completed">
+                    <h4>Completed</h4>
+                    <div class="count" id="completedCount">0</div>
+                    <div class="details">
+                        <span>Successfully delivered</span>
+                    </div>
+                </div>
+                <div class="status-card cancelled">
+                    <h4>Cancelled</h4>
+                    <div class="count" id="cancelledCount">0</div>
+                    <div class="details">
+                        <span>Orders cancelled</span>
+                    </div>
+                </div>
+                <div class="status-card all">
+                    <h4>All Orders</h4>
+                    <div class="count" id="allOrdersCount">0</div>
+                    <div class="details">
+                        <span>Total all time</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Orders Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3><i class="fas fa-history"></i> Recent Orders</h3>
+                    <a href="orders.html" class="btn-action btn-primary" style="text-decoration: none;">
+                        <i class="fas fa-arrow-right"></i> View All Orders
+                    </a>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Recipient</th>
+                            <th>Network</th>
+                            <th>Package</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentOrdersBody">
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>Loading recent orders...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Recent Users -->
+            <div class="table-container" style="margin-top: 25px;">
+                <div class="table-header">
+                    <h3><i class="fas fa-user-plus"></i> Recent Users</h3>
+                    <a href="users.html" class="btn-action btn-primary" style="text-decoration: none;">
+                        <i class="fas fa-arrow-right"></i> View All Users
+                    </a>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Phone</th>
+                            <th>Role</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentUsersBody">
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>Loading recent users...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- View Order Modal -->
+    <div class="modal-overlay" id="viewOrderModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-receipt"></i> Order Details</h3>
+                <button class="modal-close" onclick="closeModal('viewOrderModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="order-detail-grid" id="orderDetailContent">
+                    <!-- Order details will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal cancel" onclick="closeModal('viewOrderModal')">Close</button>
+                <button class="btn-modal save" id="completeOrderBtn" style="display: none;">
+                    <i class="fas fa-check"></i> Complete Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/api.js"></script>
+    <script>
+        // Initialize Admin Dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminAuth();
+            initSidebar();
+            setGreeting();
+            loadDashboardData();
+        });
+
+        // Check admin authentication
+        function checkAdminAuth() {
+            const token = localStorage.getItem('btopup_admin_token');
+            if (!token) {
+                window.location.href = '../pages/login.html';
+                return;
+            }
+        }
+
+        // Initialize sidebar
+        function initSidebar() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebar = document.getElementById('sidebar');
+
+            mobileMenuBtn.addEventListener('click', () => {
+                sidebar.classList.add('open');
+                sidebarOverlay.classList.add('active');
+            });
+
+            sidebarCloseBtn.addEventListener('click', closeSidebar);
+            sidebarOverlay.addEventListener('click', closeSidebar);
+
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+            }
+
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('btopup_admin_token');
+                localStorage.removeItem('btopup_admin');
+                window.location.href = '../pages/login.html';
+            });
+        }
+
+        // Set greeting based on time
+        function setGreeting() {
+            const hour = new Date().getHours();
+            let greeting = 'Good morning';
+            if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+            else if (hour >= 17) greeting = 'Good evening';
+            
+            const admin = JSON.parse(localStorage.getItem('btopup_admin') || '{}');
+            const name = admin.name || 'Admin';
+            document.getElementById('greetingText').textContent = `${greeting}, ${name} ðŸ‘‹`;
+        }
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                // Load stats
+                await Promise.all([
+                    loadStats(),
+                    loadRecentOrders(),
+                    loadRecentUsers()
+                ]);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showToast('error', 'Error', 'Failed to load dashboard data');
+            } finally {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                // Get users
+                const usersResponse = await BtopupAPI.admin.getUsers();
+                const users = usersResponse.users || usersResponse || [];
+                const totalUsers = users.length;
+                
+                // Calculate total balance
+                let totalBalance = 0;
+                users.forEach(user => {
+                    if (user.wallet) {
+                        totalBalance += parseFloat(user.wallet.balance) || 0;
+                    }
+                });
+
+                // Get orders
+                const ordersResponse = await BtopupAPI.admin.getOrders();
+                const orders = ordersResponse.orders || ordersResponse || [];
+                
+                // Calculate order stats
+                const today = new Date().toDateString();
+                let ordersToday = 0;
+                let revenueToday = 0;
+                let pendingCount = 0;
+                let processingCount = 0;
+                let completedCount = 0;
+                let cancelledCount = 0;
+
+                orders.forEach(order => {
+                    const orderDate = new Date(order.createdAt).toDateString();
+                    if (orderDate === today) {
+                        ordersToday++;
+                        revenueToday += parseFloat(order.totalAmount) || 0;
+                    }
+
+                    switch (order.status) {
+                        case 'pending': pendingCount++; break;
+                        case 'processing': processingCount++; break;
+                        case 'completed': completedCount++; break;
+                        case 'cancelled': case 'failed': cancelledCount++; break;
+                    }
+                });
+
+                // Update UI
+                document.getElementById('totalWalletBalance').textContent = `GHâ‚µ ${totalBalance.toFixed(2)}`;
+                document.getElementById('ordersToday').textContent = ordersToday;
+                document.getElementById('revenueToday').textContent = `GHâ‚µ ${revenueToday.toFixed(2)}`;
+                document.getElementById('totalUsers').textContent = totalUsers;
+
+                document.getElementById('pendingCount').textContent = pendingCount;
+                document.getElementById('processingCount').textContent = processingCount;
+                document.getElementById('completedCount').textContent = completedCount;
+                document.getElementById('cancelledCount').textContent = cancelledCount;
+                document.getElementById('allOrdersCount').textContent = orders.length;
+
+                // Header stats
+                document.getElementById('headerTotalUsers').textContent = totalUsers;
+                document.getElementById('headerTotalOrders').textContent = orders.length;
+                document.getElementById('headerRevenue').textContent = `GHâ‚µ ${revenueToday.toFixed(2)}`;
+
+                // Badges
+                document.getElementById('usersBadge').textContent = totalUsers;
+                document.getElementById('pendingOrdersBadge').textContent = pendingCount;
+
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load recent orders
+        async function loadRecentOrders() {
+            try {
+                const response = await BtopupAPI.admin.getOrders();
+                const orders = response.orders || response || [];
+                
+                const tbody = document.getElementById('recentOrdersBody');
+                
+                if (orders.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>No orders found</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                // Get last 10 orders
+                const recentOrders = orders.slice(0, 10);
+                
+                tbody.innerHTML = recentOrders.map(order => `
+                    <tr>
+                        <td><strong>#${order.id}</strong></td>
+                        <td>${order.user?.name || 'N/A'}</td>
+                        <td>${order.recipientNumber || 'N/A'}</td>
+                        <td><span class="network-badge ${(order.network || '').toLowerCase()}">${order.network || 'N/A'}</span></td>
+                        <td>${order.package?.name || 'N/A'}</td>
+                        <td><strong>GHâ‚µ ${parseFloat(order.totalAmount || 0).toFixed(2)}</strong></td>
+                        <td><span class="status-badge ${order.status}">${order.status}</span></td>
+                        <td>${new Date(order.createdAt).toLocaleDateString()}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="action-icon view" onclick="viewOrder(${order.id})" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                ${order.status === 'pending' ? `
+                                <button class="action-icon complete" onclick="completeOrder(${order.id})" title="Complete">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="action-icon cancel" onclick="cancelOrder(${order.id})" title="Cancel">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                document.getElementById('recentOrdersBody').innerHTML = `
+                    <tr>
+                        <td colspan="9" class="empty-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Failed to load orders</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Load recent users
+        async function loadRecentUsers() {
+            try {
+                const response = await BtopupAPI.admin.getUsers();
+                const users = response.users || response || [];
+                
+                const tbody = document.getElementById('recentUsersBody');
+                
+                if (users.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>No users found</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                // Get last 10 users
+                const recentUsers = users.slice(0, 10);
+                
+                tbody.innerHTML = recentUsers.map(user => {
+                    const initials = (user.name || 'U').substring(0, 2).toUpperCase();
+                    const balance = user.wallet?.balance || 0;
+                    
+                    return `
+                        <tr>
+                            <td>
+                                <div class="user-profile">
+                                    <div class="avatar">${initials}</div>
+                                    <div class="info">
+                                        <div class="name">${user.name || 'N/A'}</div>
+                                        <div class="email">${user.email || 'N/A'}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${user.phone || 'N/A'}</td>
+                            <td><span class="role-badge ${user.role}">${user.role}</span></td>
+                            <td><span class="balance-amount ${balance > 0 ? 'positive' : 'zero'}">GHâ‚µ ${parseFloat(balance).toFixed(2)}</span></td>
+                            <td><span class="status-badge ${user.status || 'active'}">${user.status || 'active'}</span></td>
+                            <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="action-icon view" onclick="viewUser(${user.id})" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="action-icon fund" onclick="fundUser(${user.id})" title="Fund Wallet">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('recentUsersBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Failed to load users</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // View order details
+        async function viewOrder(orderId) {
+            try {
+                const response = await BtopupAPI.admin.getOrders();
+                const orders = response.orders || response || [];
+                const order = orders.find(o => o.id === orderId);
+                
+                if (!order) {
+                    showToast('error', 'Error', 'Order not found');
+                    return;
+                }
+
+                const content = document.getElementById('orderDetailContent');
+                content.innerHTML = `
+                    <div class="order-detail-item">
+                        <div class="label">Order ID</div>
+                        <div class="value">#${order.id}</div>
+                    </div>
+                    <div class="order-detail-item">
+                        <div class="label">Status</div>
+                        <div class="value"><span class="status-badge ${order.status}">${order.status}</span></div>
+                    </div>
+                    <div class="order-detail-item">
+                        <div class="label">Customer</div>
+                        <div class="value">${order.user?.name || 'N/A'}</div>
+                    </div>
+                    <div class="order-detail-item">
+                        <div class="label">Recipient</div>
+                        <div class="value">${order.recipientNumber || 'N/A'}</div>
+                    </div>
+                    <div class="order-detail-item">
+                        <div class="label">Network</div>
+                        <div class="value"><span class="network-badge ${(order.network || '').toLowerCase()}">${order.network || 'N/A'}</span></div>
+                    </div>
+                    <div class="order-detail-item">
+                        <div class="label">Package</div>
+                        <div class="value">${order.package?.name || 'N/A'}</div>
+                    </div>
+                    <div class="order-detail-item">
+                        <div class="label">Amount</div>
+                        <div class="value"><strong>GHâ‚µ ${parseFloat(order.totalAmount || 0).toFixed(2)}</strong></div>
+                    </div>
+                    <div class="order-detail-item">
+                        <div class="label">Date</div>
+                        <div class="value">${new Date(order.createdAt).toLocaleString()}</div>
+                    </div>
+                `;
+
+                // Show/hide complete button based on status
+                const completeBtn = document.getElementById('completeOrderBtn');
+                if (order.status === 'pending') {
+                    completeBtn.style.display = 'inline-flex';
+                    completeBtn.onclick = () => completeOrder(orderId);
+                } else {
+                    completeBtn.style.display = 'none';
+                }
+
+                document.getElementById('viewOrderModal').classList.add('active');
+
+            } catch (error) {
+                console.error('Error viewing order:', error);
+                showToast('error', 'Error', 'Failed to load order details');
+            }
+        }
+
+        // Complete order
+        async function completeOrder(orderId) {
+            if (!confirm('Are you sure you want to complete this order?')) return;
+
+            try {
+                await BtopupAPI.admin.updateOrderStatus(orderId, 'completed');
+                showToast('success', 'Success', 'Order completed successfully');
+                closeModal('viewOrderModal');
+                loadDashboardData();
+            } catch (error) {
+                console.error('Error completing order:', error);
+                showToast('error', 'Error', 'Failed to complete order');
+            }
+        }
+
+        // Cancel order
+        async function cancelOrder(orderId) {
+            if (!confirm('Are you sure you want to cancel this order?')) return;
+
+            try {
+                await BtopupAPI.admin.updateOrderStatus(orderId, 'cancelled');
+                showToast('success', 'Success', 'Order cancelled successfully');
+                loadDashboardData();
+            } catch (error) {
+                console.error('Error cancelling order:', error);
+                showToast('error', 'Error', 'Failed to cancel order');
+            }
+        }
+
+        // View user
+        function viewUser(userId) {
+            window.location.href = `users.html?view=${userId}`;
+        }
+
+        // Fund user
+        function fundUser(userId) {
+            window.location.href = `users.html?fund=${userId}`;
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Show toast notification
+        function showToast(type, title, message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: 'fas fa-check',
+                error: 'fas fa-times',
+                warning: 'fas fa-exclamation',
+                info: 'fas fa-info'
+            };
+
+            toast.innerHTML = `
+                <div class="toast-icon">
+                    <i class="${icons[type] || icons.info}"></i>
+                </div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+# Render Blueprint for Btopup GH
+# https://render.com/docs/blueprint-spec
+
+services:
+  # Backend API Service
+  - type: web
+    name: btopup-backend
+    runtime: node
+    region: oregon # or choose: frankfurt, singapore, ohio
+    plan: free # or starter, standard, etc.
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: btopup-db
+          property: connectionString
+      - key: FRONTEND_URL
+        sync: false # Set manually after deploying frontend
+      - key: ALLOWED_ORIGINS
+        sync: false # Comma-separated list of allowed origins
+      - key: PAYSTACK_SECRET_KEY
+        sync: false # Set manually - your Paystack secret key
+      - key: MCBIS_API_KEY
+        sync: false # Set manually - your MCBIS API key
+      - key: MCBIS_API_URL
+        sync: false # Set manually - your MCBIS API URL
+
+  # Frontend Static Site
+  - type: web
+    name: btopup-frontend
+    runtime: static
+    buildCommand: echo "No build needed"
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: btopup-db
+    databaseName: btopup_gh
+    plan: free # or starter, standard, etc.
+    region: oregon
