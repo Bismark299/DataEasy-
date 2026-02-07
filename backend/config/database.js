@@ -60,11 +60,12 @@ const connectDB = async () => {
         
         // Sync strategy based on environment
         if (process.env.NODE_ENV === 'production') {
-            // In production, just create tables if they don't exist
-            // Don't use alter: true as it can cause issues with enums and constraints
-            // For schema changes, use migrations instead
+            // In production, create tables and add missing columns
             await sequelize.sync({ force: false });
             console.log('✅ Database synchronized (production mode)');
+            
+            // Run column fixes to ensure all columns exist
+            await fixMissingColumns();
         } else {
             // In development, just sync without alter
             await sequelize.sync();
@@ -181,6 +182,48 @@ const seedPackagesIfEmpty = async () => {
         console.error('⚠️ Package seeding error:', error.message);
         // Don't fail startup - packages can be added manually via admin
     }
+};
+
+/**
+ * Fix missing columns in production database
+ * This ensures all columns exist even if sync didn't add them
+ */
+const fixMissingColumns = async () => {
+    console.log('🔧 Checking for missing columns...');
+    
+    const alterStatements = [
+        // Users table
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS "agentCode" VARCHAR(20)`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS "failedLoginAttempts" INTEGER DEFAULT 0`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP WITH TIME ZONE`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS "tokenVersion" INTEGER DEFAULT 0`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS "lastLogin" TIMESTAMP WITH TIME ZONE`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'agent'`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS "isVerified" BOOLEAN DEFAULT false`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN DEFAULT true`,
+        `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar VARCHAR(255)`,
+        
+        // Wallets table
+        `ALTER TABLE wallets ADD COLUMN IF NOT EXISTS "reservedBalance" DECIMAL(10,2) DEFAULT 0`,
+        
+        // Packages table - role prices
+        `ALTER TABLE packages ADD COLUMN IF NOT EXISTS "costPrice" DECIMAL(10,2)`,
+        `ALTER TABLE packages ADD COLUMN IF NOT EXISTS "superDealerPrice" DECIMAL(10,2)`,
+        `ALTER TABLE packages ADD COLUMN IF NOT EXISTS "dealerPrice" DECIMAL(10,2)`,
+        `ALTER TABLE packages ADD COLUMN IF NOT EXISTS "superAgentPrice" DECIMAL(10,2)`,
+    ];
+    
+    let fixed = 0;
+    for (const sql of alterStatements) {
+        try {
+            await sequelize.query(sql);
+            fixed++;
+        } catch (err) {
+            // Ignore errors (column might already exist or table doesn't exist yet)
+        }
+    }
+    
+    console.log(`✅ Column check complete (${fixed} statements executed)`);
 };
 
 // Graceful shutdown - only in production or when explicitly requested
