@@ -1845,6 +1845,8 @@ const DataEasyApp = (function() {
         switch(page) {
             case 'index':
             case '':
+                // Require authentication for the main dashboard
+                if (!DataEasyAuth.requireAuth()) return;
                 initNetworkTabs();
                 initBulkOrders();
                 break;
