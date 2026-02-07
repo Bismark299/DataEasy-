@@ -140,8 +140,8 @@ const User = sequelize.define('User', {
                     const randomNum = first3Digits * 10 + lastDigit; // e.g., 1234, 5678, etc.
                     agentCode = `BT-${randomNum}`;
                     
-                    // Check if this code already exists
-                    const existing = await User.findOne({
+                    // Check if this code already exists using sequelize.models to avoid circular reference
+                    const existing = await sequelize.models.User.findOne({
                         where: { agentCode: agentCode }
                     });
                     
