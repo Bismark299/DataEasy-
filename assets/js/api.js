@@ -625,7 +625,7 @@ const DataEasyAPI = (function() {
     // PAYSTACK INTEGRATION
     // ==========================================
     const Paystack = {
-        publicKey: PAYSTACK_PUBLIC_KEY,
+        get publicKey() { return window.PAYSTACK_PUBLIC_KEY || ''; },
 
         /**
          * Open Paystack popup for wallet topup
@@ -635,6 +635,19 @@ const DataEasyAPI = (function() {
          * @param {function} onClose - Callback when popup is closed
          */
         async openPopup(email, amount, onSuccess, onClose) {
+            // Wait for config to load if not ready
+            if (window.PAYSTACK_CONFIG_PROMISE) {
+                await window.PAYSTACK_CONFIG_PROMISE;
+            }
+            
+            // Check if Paystack key is configured
+            if (!this.publicKey) {
+                console.error('❌ Paystack public key not configured');
+                throw new Error('Payment system not configured. Please contact support.');
+            }
+            
+            console.log('🔑 Using Paystack key:', this.publicKey.substring(0, 15) + '...');
+            
             if (typeof PaystackPop === 'undefined') {
                 console.error('Paystack script not loaded');
                 throw new Error('Payment system not available');

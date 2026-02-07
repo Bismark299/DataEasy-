@@ -23,20 +23,27 @@
         window.API_BASE_URL = 'http://localhost:9000/api';
     }
     
-    // Paystack key will be fetched from backend (no hardcoded fallback)
+    // Paystack key - will be fetched from backend
     window.PAYSTACK_PUBLIC_KEY = '';
+    window.PAYSTACK_CONFIG_LOADED = false;
     
-    // Fetch config from backend (includes Paystack public key from env vars)
-    fetch(`${window.API_BASE_URL}/auth/config`)
+    // Promise to wait for config to load
+    window.PAYSTACK_CONFIG_PROMISE = fetch(`${window.API_BASE_URL}/auth/config`)
         .then(res => res.json())
         .then(data => {
             if (data.success && data.config.paystackPublicKey) {
                 window.PAYSTACK_PUBLIC_KEY = data.config.paystackPublicKey;
-                console.log('✅ Paystack key loaded from backend');
+                window.PAYSTACK_CONFIG_LOADED = true;
+                console.log('✅ Paystack key loaded from backend:', window.PAYSTACK_PUBLIC_KEY.substring(0, 15) + '...');
+                return true;
+            } else {
+                console.error('❌ Paystack key not configured in backend environment');
+                return false;
             }
         })
         .catch(err => {
-            console.warn('⚠️ Could not fetch config, using default Paystack key');
+            console.error('❌ Could not fetch config:', err);
+            return false;
         });
 
     // Log configuration (development only)
