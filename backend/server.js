@@ -67,11 +67,21 @@ console.log('✅ Routes loaded successfully');
 
 const app = express();
 
-// Connect to Database (don't block server start)
-connectDB().catch(err => {
-    console.error('❌ Database connection failed:', err.message);
-    console.log('⚠️ Server will continue without database');
-});
+// Database connection status
+let dbConnected = false;
+
+// Connect to Database and wait for it
+const initDatabase = async () => {
+    try {
+        const result = await connectDB();
+        dbConnected = result !== false;
+        return dbConnected;
+    } catch (err) {
+        console.error('❌ Database connection failed:', err.message);
+        console.log('⚠️ Server will continue without database');
+        return false;
+    }
+};
 
 // Security Middleware
 app.use(helmet());
@@ -199,15 +209,20 @@ app.use(sanitizeErrors);
 // Start Server
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, async () => {
-    console.log(`
+// Initialize database before starting server
+const startServer = async () => {
+    // Wait for database to be ready
+    await initDatabase();
+    
+    const server = app.listen(PORT, async () => {
+        console.log(`
     ╔═══════════════════════════════════════════╗
     ║     DataEasy+ API Server                  ║
     ║     Running on port ${PORT}                   ║
     ║     Environment: ${process.env.NODE_ENV || 'development'}            ║
     ╚═══════════════════════════════════════════╝
-    `);
-    console.log('✅ Server is ready and listening');
+        `);
+        console.log('✅ Server is ready and listening');
     
     // Run price integrity validation on startup
     try {
@@ -225,47 +240,51 @@ const server = app.listen(PORT, async () => {
     } catch (error) {
         console.error('⚠️ Background sync start error:', error.message);
     }
-});
-
-// Handle server errors
-server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${PORT} is already in use`);
-    } else {
-        console.error('❌ Server error:', err);
-    }
-});
-
-// Graceful shutdown handler
-const gracefulShutdown = async (signal) => {
-    console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
-    
-    // Stop accepting new connections
-    server.close(async () => {
-        console.log('✅ HTTP server closed');
-        
-        try {
-            // Close database connection
-            const { sequelize } = require('./config/database');
-            await sequelize.close();
-            console.log('✅ Database connection closed');
-        } catch (err) {
-            console.error('❌ Error closing database:', err.message);
-        }
-        
-        console.log('👋 Graceful shutdown complete');
-        process.exit(0);
     });
-    
-    // Force exit if graceful shutdown takes too long
-    setTimeout(() => {
-        console.error('❌ Forced shutdown after timeout');
-        process.exit(1);
-    }, 30000); // 30 seconds
+
+    // Handle server errors
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`❌ Port ${PORT} is already in use`);
+        } else {
+            console.error('❌ Server error:', err);
+        }
+    });
+
+    // Graceful shutdown handler
+    const gracefulShutdown = async (signal) => {
+        console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+        
+        // Stop accepting new connections
+        server.close(async () => {
+            console.log('✅ HTTP server closed');
+            
+            try {
+                // Close database connection
+                const { sequelize } = require('./config/database');
+                await sequelize.close();
+                console.log('✅ Database connection closed');
+            } catch (err) {
+                console.error('❌ Error closing database:', err.message);
+            }
+            
+            console.log('👋 Graceful shutdown complete');
+            process.exit(0);
+        });
+        
+        // Force exit if graceful shutdown takes too long
+        setTimeout(() => {
+            console.error('❌ Forced shutdown after timeout');
+            process.exit(1);
+        }, 30000); // 30 seconds
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 };
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+// Start the server
+startServer();
 
 // Keep alive - prevent idle exit
 setInterval(() => {}, 1000 * 60 * 60); // Keep event loop active
