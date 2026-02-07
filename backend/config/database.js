@@ -60,10 +60,11 @@ const connectDB = async () => {
         
         // Sync strategy based on environment
         if (process.env.NODE_ENV === 'production') {
-            // In production, use alter: true to safely update schema
-            // This adds new columns but doesn't drop existing data
-            await sequelize.sync({ alter: true });
-            console.log('✅ Database synchronized (production - alter mode)');
+            // In production, just create tables if they don't exist
+            // Don't use alter: true as it can cause issues with enums and constraints
+            // For schema changes, use migrations instead
+            await sequelize.sync({ force: false });
+            console.log('✅ Database synchronized (production mode)');
         } else {
             // In development, just sync without alter
             await sequelize.sync();
@@ -73,6 +74,7 @@ const connectDB = async () => {
         return true;
     } catch (error) {
         console.error('❌ Database connection failed:', error.message);
+        console.error('Full error:', error);
         
         // In development, continue without DB (use localStorage fallback)
         if (process.env.NODE_ENV === 'development') {
