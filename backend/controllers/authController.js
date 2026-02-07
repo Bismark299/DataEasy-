@@ -56,7 +56,11 @@ exports.register = async (req, res) => {
             user: user.toSafeObject()
         });
     } catch (error) {
-        logger.error('Register error', { error: error.message });
+        logger.error('Register error', { 
+            error: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         
         // Handle Sequelize validation errors
         if (error.name === 'SequelizeValidationError') {
@@ -70,7 +74,7 @@ exports.register = async (req, res) => {
             });
         }
         
-        res.status(500).json({ error: 'Failed to create account' });
+        res.status(500).json({ error: 'Failed to create account: ' + error.message });
     }
 };
 
