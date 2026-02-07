@@ -92,11 +92,23 @@ async function getProducts() {
  * @returns {Promise<Object>} Wallet balance info
  */
 async function getWalletBalance() {
+    // Check if API is configured
+    if (!API_TOKEN) {
+        logger.warn('MCBIS API Token not configured - cannot fetch balance');
+        return {
+            success: false,
+            balance: 0,
+            error: 'MCBIS API not configured. Set DATAHUB_API_TOKEN in environment.',
+            configured: false
+        };
+    }
+    
     try {
         const response = await mcbisApi.get('/walletBalance');
         return {
             success: true,
             balance: parseFloat(response.data?.data?.walletBalance || 0),
+            configured: true,
             raw: response.data
         };
     } catch (error) {

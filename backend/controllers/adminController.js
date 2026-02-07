@@ -1258,10 +1258,24 @@ const mcbisProvider = require('../services/mcbisProvider');
 exports.getProviderBalance = async (req, res) => {
     try {
         const result = await mcbisProvider.getWalletBalance();
+        
+        // Handle unconfigured API
+        if (result.configured === false) {
+            return res.json({
+                success: false,
+                balance: 0,
+                provider: 'MCBIS',
+                configured: false,
+                message: result.error || 'MCBIS API not configured',
+                timestamp: new Date().toISOString()
+            });
+        }
+        
         res.json({
             success: true,
             balance: result.balance,
             provider: 'MCBIS',
+            configured: true,
             timestamp: new Date().toISOString()
         });
     } catch (error) {
