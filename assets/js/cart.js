@@ -13,6 +13,12 @@ const DataEasyCart = (function() {
     const { Storage, Toast, Format, EventBus, DOM } = DataEasyUtils;
 
     // ==========================================
+    // CACHE CONFIGURATION
+    // ==========================================
+    const PACKAGES_CACHE_KEY = 'packages_cache';
+    const PACKAGES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
+    // ==========================================
     // CART STATE
     // ==========================================
     let cart = {
@@ -44,6 +50,40 @@ const DataEasyCart = (function() {
         Telecel: true,
         AirtelTigo: true
     };
+
+    // ==========================================
+    // CACHE HELPERS
+    // ==========================================
+    function getCachedPackages() {
+        try {
+            const cached = localStorage.getItem(PACKAGES_CACHE_KEY);
+            if (!cached) return null;
+            
+            const { data, timestamp } = JSON.parse(cached);
+            const age = Date.now() - timestamp;
+            
+            // Return cached data if still fresh
+            if (age < PACKAGES_CACHE_TTL) {
+                console.log(`✓ Using cached packages (${Math.round(age/1000)}s old)`);
+                return data;
+            }
+            console.log('✓ Package cache expired, will fetch fresh');
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+    
+    function setCachedPackages(data) {
+        try {
+            localStorage.setItem(PACKAGES_CACHE_KEY, JSON.stringify({
+                data,
+                timestamp: Date.now()
+            }));
+        } catch (e) {
+            // localStorage might be full, ignore
+        }
+    }
 
     // ==========================================
     // RECENT ORDER DUPLICATE PROTECTION
@@ -688,9 +728,35 @@ const DataEasyCart = (function() {
      * Sync packages from API (updates pricing and availability)
      * ⚠️ CRITICAL: This MUST be called before any cart operations
      * Packages start empty - API is the ONLY source of pricing
+     * Uses cache to avoid slow API calls on every page load
      */
-    async function syncPackagesFromAPI() {
+    async function syncPackagesFromAPI(forceRefresh = false) {
         try {
+            // Check cache first (unless force refresh)
+            if (!forceRefresh) {
+                const cached = getCachedPackages();
+                if (cached) {
+                    // Use cached data immediately
+                    for (const [network, pkgList] of Object.entries(cached.packages)) {
+                        if (Array.isArray(pkgList)) {
+                            packages[network] = pkgList;
+                        }
+                    }
+                    if (cached.networkAvailability) {
+                        networkAvailability = { ...networkAvailability, ...cached.networkAvailability };
+                    }
+                    packagesLoaded = true;
+                    packagesLoadError = null;
+                    
+                    // Emit event for UI refresh
+                    EventBus.emit('packages:loaded', { packages, networkAvailability });
+                    
+                    // Refresh in background (non-blocking)
+                    setTimeout(() => syncPackagesFromAPI(true), 100);
+                    return true;
+                }
+            }
+            
             // Use DataEasyAPI if available (includes auth token for role-based pricing)
             if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Orders && DataEasyAPI.Orders.getPackages) {
                 const data = await DataEasyAPI.Orders.getPackages();
@@ -712,6 +778,9 @@ const DataEasyCart = (function() {
                     packagesLoaded = true;
                     packagesLoadError = null;
                     console.log('✓ Packages synced from API (database prices, role:', data.userRole || 'guest', ')');
+                    
+                    // Cache the result
+                    setCachedPackages({ packages: data.packages, networkAvailability, userRole: data.userRole });
                     
                     // Emit event for UI refresh (includes network availability)
                     EventBus.emit('packages:loaded', { packages, networkAvailability });
