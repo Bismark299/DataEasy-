@@ -422,7 +422,7 @@
             
             try {
                 // First, load packages to get cost prices
-                const packagesRes = await fetch(`${API_BASE_URL}/api/admin/packages`, {
+                const packagesRes = await fetch(`${API_BASE_URL}/admin/packages`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -446,7 +446,7 @@
                 }
 
                 // Load orders for sales report
-                const ordersRes = await fetch(`${API_BASE_URL}/api/admin/orders?limit=1000`, {
+                const ordersRes = await fetch(`${API_BASE_URL}/admin/orders?limit=1000`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -468,7 +468,7 @@
                 }
 
                 // Load users for agents report
-                const usersRes = await fetch(`${API_BASE_URL}/api/admin/users?limit=1000`, {
+                const usersRes = await fetch(`${API_BASE_URL}/admin/users?limit=1000`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }

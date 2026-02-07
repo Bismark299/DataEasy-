@@ -102,20 +102,34 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: [
                 "'self'",
-                "'unsafe-inline'",  // Required for Tailwind config
-                "'unsafe-eval'",    // Required for Tailwind CDN
+                "'unsafe-inline'",
+                "'unsafe-eval'",
                 "https://cdn.tailwindcss.com",
                 "https://js.paystack.co",
-                "https://cdnjs.cloudflare.com"
+                "https://cdnjs.cloudflare.com",
+                "https://checkout.paystack.com",
+                "https://*.paystack.co",
+                "https://*.paystack.com"
+            ],
+            scriptSrcElem: [
+                "'self'",
+                "'unsafe-inline'",
+                "https://cdn.tailwindcss.com",
+                "https://js.paystack.co",
+                "https://cdnjs.cloudflare.com",
+                "https://checkout.paystack.com",
+                "https://*.paystack.co",
+                "https://*.paystack.com"
             ],
             styleSrc: [
                 "'self'",
-                "'unsafe-inline'",  // Required for Tailwind
+                "'unsafe-inline'",
                 "https://cdn.tailwindcss.com",
                 "https://cdnjs.cloudflare.com",
                 "https://fonts.googleapis.com",
                 "https://paystack.com",
-                "https://*.paystack.com"
+                "https://*.paystack.com",
+                "https://*.paystack.co"
             ],
             styleSrcElem: [
                 "'self'",
@@ -124,7 +138,8 @@ app.use(helmet({
                 "https://cdnjs.cloudflare.com",
                 "https://fonts.googleapis.com",
                 "https://paystack.com",
-                "https://*.paystack.com"
+                "https://*.paystack.com",
+                "https://*.paystack.co"
             ],
             fontSrc: [
                 "'self'",
@@ -135,16 +150,18 @@ app.use(helmet({
             connectSrc: [
                 "'self'",
                 "https://api.paystack.co",
-                "https://*.paystack.co"
+                "https://*.paystack.co",
+                "https://*.paystack.com"
             ],
             frameSrc: [
                 "https://js.paystack.co",
                 "https://checkout.paystack.com",
-                "https://*.paystack.com"
+                "https://*.paystack.com",
+                "https://*.paystack.co"
             ]
         }
     },
-    crossOriginEmbedderPolicy: false  // Required for external resources
+    crossOriginEmbedderPolicy: false
 }));
 app.use(securityHeaders);
 
