@@ -77,7 +77,7 @@
                 <span class="sidebar-text">Packages</span>
             </a>
             <div class="mb-1">
-                <button onclick="toggleReportsMenu()" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reports">
+                <button id="reportsMenuBtn" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reports">
                     <div class="flex items-center gap-3">
                         <i class="fas fa-chart-bar w-5"></i>
                         <span class="sidebar-text">Reports</span>
@@ -136,13 +136,13 @@
                         <div class="flex items-center gap-2">
                             <span class="text-gray-500"><i class="fas fa-plug mr-1 text-cyan-500"></i>MCBIS Bal:</span>
                             <span class="font-bold text-cyan-600" id="headerMcbisBalance">₵ --</span>
-                            <button onclick="checkMcbisBalance(true)" class="ml-1 text-cyan-500 hover:text-cyan-700 transition" title="Refresh MCBIS Balance">
+                            <button id="mcbisRefreshBtn" class="ml-1 text-cyan-500 hover:text-cyan-700 transition" title="Refresh MCBIS Balance">
                                 <i class="fas fa-sync-alt text-xs" id="headerMcbisRefreshIcon"></i>
                             </button>
                         </div>
                     </div>
                     <div class="relative">
-                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn" onclick="toggleProfileDropdown()">
+                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn">
                             <span id="profileInitial">A</span>
                         </button>
                         <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
@@ -155,7 +155,7 @@
                                 <a href="settings.html" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
                                     <i class="fas fa-cog w-5"></i> Settings
                                 </a>
-                                <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                <button id="dropdownLogoutBtn" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
                                     <i class="fas fa-sign-out-alt w-5"></i> Logout
                                 </button>
                             </div>
@@ -279,30 +279,30 @@
                                 <option value="AirtelTigo">AirtelTigo</option>
                             </select>
                         </div>
-                        <button class="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm font-medium flex items-center gap-2" onclick="syncWithMcbis()" id="syncBtn">
+                        <button class="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm font-medium flex items-center gap-2" id="syncBtn">
                             <i class="fas fa-sync-alt"></i>
                             Sync MCBIS
                         </button>
-                        <button class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition text-sm font-medium" onclick="exportOrders()">
+                        <button id="exportBtn" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition text-sm font-medium">
                             Export
                         </button>
                     </div>
 
                     <!-- Network Quick Filter Buttons -->
                     <div class="flex flex-wrap gap-3 mt-4 pt-4 border-t border-gray-100">
-                        <button class="px-5 py-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg transition text-sm font-bold flex items-center gap-2" onclick="filterByNetwork('MTN')">
+                        <button class="network-filter-btn px-5 py-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg transition text-sm font-bold flex items-center gap-2" data-network="MTN">
                             MTN
                             <span class="bg-white text-yellow-600 px-2 py-0.5 rounded-full text-xs font-bold" id="mtnCount">0</span>
                         </button>
-                        <button class="px-5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition text-sm font-bold flex items-center gap-2" onclick="filterByNetwork('Telecel')">
+                        <button class="network-filter-btn px-5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition text-sm font-bold flex items-center gap-2" data-network="Telecel">
                             Telecel
                             <span class="bg-white text-red-600 px-2 py-0.5 rounded-full text-xs font-bold" id="telecelCount">0</span>
                         </button>
-                        <button class="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm font-bold flex items-center gap-2" onclick="filterByNetwork('AirtelTigo')">
+                        <button class="network-filter-btn px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm font-bold flex items-center gap-2" data-network="AirtelTigo">
                             AirtelTigo
                             <span class="bg-white text-blue-600 px-2 py-0.5 rounded-full text-xs font-bold" id="airtelCount">0</span>
                         </button>
-                        <button class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition text-sm font-medium" onclick="clearFilters()">
+                        <button id="clearFiltersBtn" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition text-sm font-medium">
                             <i class="fas fa-times mr-1"></i> Clear Filters
                         </button>
                     </div>
@@ -353,13 +353,13 @@
         <div class="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-auto">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <h3 class="font-semibold text-gray-800"><i class="fas fa-receipt text-blue-500 mr-2"></i>Order Details</h3>
-                <button class="text-gray-400 hover:text-gray-600 text-xl" onclick="closeModal('viewOrderModal')">&times;</button>
+                <button class="modal-close-btn text-gray-400 hover:text-gray-600 text-xl" data-modal="viewOrderModal">&times;</button>
             </div>
             <div class="p-6" id="orderDetailContent">
                 <!-- Order details will be populated here -->
             </div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
-                <button class="px-4 py-2 text-gray-600 hover:text-gray-800 transition" onclick="closeModal('viewOrderModal')">Close</button>
+                <button class="modal-close-btn px-4 py-2 text-gray-600 hover:text-gray-800 transition" data-modal="viewOrderModal">Close</button>
                 <button class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition hidden" id="completeOrderBtn">
                     <i class="fas fa-check mr-1"></i> Complete
                 </button>
@@ -379,7 +379,7 @@
             <h3 class="text-lg font-semibold text-gray-800 mb-2" id="confirmTitle">Confirm Action</h3>
             <p class="text-gray-500 mb-6" id="confirmMessage">Are you sure?</p>
             <div class="flex gap-3 justify-center">
-                <button class="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg transition" onclick="closeModal('confirmModal')">
+                <button class="modal-close-btn px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg transition" data-modal="confirmModal">
                     <i class="fas fa-times mr-1"></i> Cancel
                 </button>
                 <button class="px-4 py-2 rounded-lg transition" id="confirmBtn">
@@ -416,11 +416,82 @@
             initProfileDropdown();
             loadOrders();
             initFilters();
+            initButtonListeners();
             // Load MCBIS balance
             if (typeof loadMcbisBalance === 'function') {
                 loadMcbisBalance();
             }
         });
+
+        // Initialize all button event listeners (CSP-compliant)
+        function initButtonListeners() {
+            // Reports menu toggle
+            document.getElementById('reportsMenuBtn')?.addEventListener('click', toggleReportsMenu);
+            
+            // MCBIS balance refresh
+            document.getElementById('mcbisRefreshBtn')?.addEventListener('click', () => checkMcbisBalance(true));
+            
+            // Profile dropdown
+            document.getElementById('profileBtn')?.addEventListener('click', toggleProfileDropdown);
+            
+            // Dropdown logout button
+            document.getElementById('dropdownLogoutBtn')?.addEventListener('click', logout);
+            
+            // Sync MCBIS button
+            document.getElementById('syncBtn')?.addEventListener('click', syncWithMcbis);
+            
+            // Export button
+            document.getElementById('exportBtn')?.addEventListener('click', exportOrders);
+            
+            // Clear filters button
+            document.getElementById('clearFiltersBtn')?.addEventListener('click', clearFilters);
+            
+            // Network filter buttons
+            document.querySelectorAll('.network-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const network = btn.dataset.network;
+                    filterByNetwork(network);
+                });
+            });
+            
+            // Modal close buttons (event delegation)
+            document.addEventListener('click', function(e) {
+                const closeBtn = e.target.closest('.modal-close-btn');
+                if (closeBtn) {
+                    const modalId = closeBtn.dataset.modal;
+                    if (modalId) closeModal(modalId);
+                }
+            });
+            
+            // Dynamically generated buttons (event delegation)
+            document.addEventListener('click', function(e) {
+                // Pagination buttons
+                const paginationBtn = e.target.closest('.pagination-btn');
+                if (paginationBtn) {
+                    const page = parseInt(paginationBtn.dataset.page);
+                    if (!isNaN(page)) goToPage(page);
+                    return;
+                }
+                
+                // Complete order item button
+                const completeBtn = e.target.closest('.complete-item-btn');
+                if (completeBtn) {
+                    const orderId = completeBtn.dataset.orderId;
+                    const itemIndex = parseInt(completeBtn.dataset.itemIndex);
+                    if (orderId) completeOrderItem(orderId, itemIndex);
+                    return;
+                }
+                
+                // Cancel and refund item button
+                const cancelBtn = e.target.closest('.cancel-item-btn');
+                if (cancelBtn) {
+                    const orderId = cancelBtn.dataset.orderId;
+                    const itemIndex = parseInt(cancelBtn.dataset.itemIndex);
+                    if (orderId) cancelAndRefundItem(orderId, itemIndex);
+                    return;
+                }
+            });
+        }
 
         function checkAdminAuth() {
             const token = localStorage.getItem('dataeasy_admin_token');
@@ -893,8 +964,8 @@
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-1">
-                                <button class="w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-lg transition" onclick="completeOrderItem('${orderItem.id}', ${orderItem.itemIndex})" title="Complete"><i class="fas fa-check"></i></button>
-                                <button class="w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-lg transition" onclick="cancelAndRefundItem('${orderItem.id}', ${orderItem.itemIndex})" title="Cancel & Refund"><i class="fas fa-undo"></i></button>
+                                <button class="complete-item-btn w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-lg transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Complete"><i class="fas fa-check"></i></button>
+                                <button class="cancel-item-btn w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-lg transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Cancel & Refund"><i class="fas fa-undo"></i></button>
                                 <span class="w-3 h-3 rounded-full ${getStatusDot(itemStatus)}"></span>
                             </div>
                         </td>
@@ -905,17 +976,17 @@
             document.getElementById('paginationInfo').textContent = `Showing ${start + 1} to ${Math.min(end, expandedItems.length)} of ${expandedItems.length} items`;
 
             const totalPages = Math.ceil(expandedItems.length / perPage);
-            let paginationHTML = `<button class="w-8 h-8 flex items-center justify-center rounded-lg ${currentPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+            let paginationHTML = `<button class="pagination-btn w-8 h-8 flex items-center justify-center rounded-lg ${currentPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
 
             for (let i = 1; i <= totalPages; i++) {
                 if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-                    paginationHTML += `<button class="w-8 h-8 flex items-center justify-center rounded-lg ${i === currentPage ? 'bg-sidebar text-white' : 'text-gray-600 hover:bg-gray-100'}" onclick="goToPage(${i})">${i}</button>`;
+                    paginationHTML += `<button class="pagination-btn w-8 h-8 flex items-center justify-center rounded-lg ${i === currentPage ? 'bg-sidebar text-white' : 'text-gray-600 hover:bg-gray-100'}" data-page="${i}">${i}</button>`;
                 } else if (i === currentPage - 3 || i === currentPage + 3) {
                     paginationHTML += `<span class="px-2 text-gray-400">...</span>`;
                 }
             }
 
-            paginationHTML += `<button class="w-8 h-8 flex items-center justify-center rounded-lg ${currentPage === totalPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+            paginationHTML += `<button class="pagination-btn w-8 h-8 flex items-center justify-center rounded-lg ${currentPage === totalPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
             document.getElementById('paginationButtons').innerHTML = paginationHTML;
         }
 
@@ -1239,8 +1310,10 @@
                     <div class="font-medium">${title}</div>
                     <div class="text-sm text-white/80">${message}</div>
                 </div>
-                <button class="ml-4 text-white/80 hover:text-white" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                <button class="ml-4 text-white/80 hover:text-white toast-close-btn"><i class="fas fa-times"></i></button>
             `;
+            const closeBtn = toast.querySelector('.toast-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', function() { toast.remove(); });
             container.appendChild(toast);
             setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 4000);
         }

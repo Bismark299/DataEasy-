@@ -77,7 +77,7 @@
                 <span class="sidebar-text">Packages</span>
             </a>
             <div class="mb-1">
-                <button onclick="toggleReportsMenu()" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition" title="Reports">
+                <button id="reportsMenuBtn" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition" title="Reports">
                     <div class="flex items-center gap-3">
                         <i class="fas fa-chart-bar w-5"></i>
                         <span class="sidebar-text">Reports</span>
@@ -136,13 +136,13 @@
                         <div class="flex items-center gap-2">
                             <span class="text-gray-500"><i class="fas fa-plug mr-1 text-cyan-500"></i>MCBIS Bal:</span>
                             <span class="font-bold text-cyan-600" id="headerMcbisBalance">₵ --</span>
-                            <button onclick="checkMcbisBalance(true)" class="ml-1 text-cyan-500 hover:text-cyan-700 transition" title="Refresh MCBIS Balance">
+                            <button id="mcbisRefreshBtn" class="ml-1 text-cyan-500 hover:text-cyan-700 transition" title="Refresh MCBIS Balance">
                                 <i class="fas fa-sync-alt text-xs" id="headerMcbisRefreshIcon"></i>
                             </button>
                         </div>
                     </div>
                     <div class="relative">
-                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn" onclick="toggleProfileDropdown()">
+                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn">
                             <span id="profileInitial">A</span>
                         </button>
                         <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
@@ -155,7 +155,7 @@
                                 <a href="settings.html" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
                                     <i class="fas fa-cog w-5"></i> Settings
                                 </a>
-                                <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                <button id="dropdownLogoutBtn" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
                                     <i class="fas fa-sign-out-alt w-5"></i> Logout
                                 </button>
                             </div>
@@ -742,6 +742,9 @@
 
         // Initial load
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize button listeners
+            initButtonListeners();
+            
             // Set greeting and load profile info
             setGreeting();
             loadProfileInfo();
@@ -757,6 +760,24 @@
             // Load reports data
             loadReportsData();
         });
+
+        function initButtonListeners() {
+            // Reports menu toggle
+            const reportsMenuBtn = document.getElementById('reportsMenuBtn');
+            if (reportsMenuBtn) reportsMenuBtn.addEventListener('click', toggleReportsMenu);
+
+            // MCBIS refresh button
+            const mcbisRefreshBtn = document.getElementById('mcbisRefreshBtn');
+            if (mcbisRefreshBtn) mcbisRefreshBtn.addEventListener('click', () => checkMcbisBalance(true));
+
+            // Profile dropdown toggle
+            const profileBtn = document.getElementById('profileBtn');
+            if (profileBtn) profileBtn.addEventListener('click', toggleProfileDropdown);
+
+            // Dropdown logout button
+            const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
+            if (dropdownLogoutBtn) dropdownLogoutBtn.addEventListener('click', logout);
+        }
     </script>
 </body>
 </html>

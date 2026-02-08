@@ -96,7 +96,7 @@
                 <span class="sidebar-text">Packages</span>
             </a>
             <div class="mb-1">
-                <button onclick="toggleReportsMenu()" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reports">
+                <button id="reportsMenuBtn" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reports">
                     <div class="flex items-center gap-3">
                         <i class="fas fa-chart-bar w-5"></i>
                         <span class="sidebar-text">Reports</span>
@@ -155,13 +155,13 @@
                         <div class="flex items-center gap-2">
                             <span class="text-gray-500"><i class="fas fa-plug mr-1 text-cyan-500"></i>MCBIS Bal:</span>
                             <span class="font-bold text-cyan-600" id="headerMcbisBalance">₵ --</span>
-                            <button onclick="checkMcbisBalance(true)" class="ml-1 text-cyan-500 hover:text-cyan-700 transition" title="Refresh MCBIS Balance">
+                            <button id="mcbisRefreshBtn" class="ml-1 text-cyan-500 hover:text-cyan-700 transition" title="Refresh MCBIS Balance">
                                 <i class="fas fa-sync-alt text-xs" id="headerMcbisRefreshIcon"></i>
                             </button>
                         </div>
                     </div>
                     <div class="relative">
-                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn" onclick="toggleProfileDropdown()">
+                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn">
                             <span id="profileInitial">A</span>
                         </button>
                         <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
@@ -174,7 +174,7 @@
                                 <a href="settings.html" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
                                     <i class="fas fa-cog w-5"></i> Settings
                                 </a>
-                                <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                <button id="dropdownLogoutBtn" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
                                     <i class="fas fa-sign-out-alt w-5"></i> Logout
                                 </button>
                             </div>
@@ -416,7 +416,7 @@
                         </button>
                     </div>
                     <div class="flex gap-2">
-                        <button class="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition" id="syncMcbisBtn" onclick="syncWithMcbis()">
+                        <button class="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition" id="syncMcbisBtn">
                             <i class="fas fa-sync-alt"></i>
                             <span>Sync MCBIS</span>
                         </button>
@@ -522,11 +522,11 @@
         <div class="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-auto">
             <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <h3 class="font-semibold text-gray-800"><i class="fas fa-receipt text-blue-500 mr-2"></i>Order Details</h3>
-                <button class="text-gray-400 hover:text-gray-600 text-xl" onclick="closeModal('viewOrderModal')">&times;</button>
+                <button class="modal-close-btn text-gray-400 hover:text-gray-600 text-xl" data-modal="viewOrderModal">&times;</button>
             </div>
             <div class="p-6" id="orderDetailContent"></div>
             <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
-                <button class="px-4 py-2 text-gray-600 hover:text-gray-800 transition" onclick="closeModal('viewOrderModal')">Close</button>
+                <button class="modal-close-btn px-4 py-2 text-gray-600 hover:text-gray-800 transition" data-modal="viewOrderModal">Close</button>
             </div>
         </div>
     </div>
@@ -554,6 +554,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             checkAdminAuth();
             initSidebar();
+            initButtonListeners();
             setGreeting();
             loadProfileInfo();
             loadDashboardData();
@@ -566,6 +567,61 @@
                 loadMcbisBalance();
             }
         });
+
+        function initButtonListeners() {
+            // Reports menu toggle
+            const reportsMenuBtn = document.getElementById('reportsMenuBtn');
+            if (reportsMenuBtn) reportsMenuBtn.addEventListener('click', toggleReportsMenu);
+
+            // MCBIS refresh button
+            const mcbisRefreshBtn = document.getElementById('mcbisRefreshBtn');
+            if (mcbisRefreshBtn) mcbisRefreshBtn.addEventListener('click', () => checkMcbisBalance(true));
+
+            // Profile dropdown toggle
+            const profileBtn = document.getElementById('profileBtn');
+            if (profileBtn) profileBtn.addEventListener('click', toggleProfileDropdown);
+
+            // Dropdown logout button
+            const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
+            if (dropdownLogoutBtn) dropdownLogoutBtn.addEventListener('click', logout);
+
+            // Sync MCBIS button
+            const syncMcbisBtn = document.getElementById('syncMcbisBtn');
+            if (syncMcbisBtn) syncMcbisBtn.addEventListener('click', syncWithMcbis);
+
+            // Modal close buttons with data-modal attribute
+            document.querySelectorAll('.modal-close-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const modalId = this.getAttribute('data-modal');
+                    if (modalId) closeModal(modalId);
+                });
+            });
+
+            // Event delegation for dynamically generated table action buttons and pagination
+            document.addEventListener('click', function(e) {
+                // Complete item button
+                const completeBtn = e.target.closest('.complete-item-btn');
+                if (completeBtn) {
+                    completeOrderItem(completeBtn.dataset.orderId, parseInt(completeBtn.dataset.itemIndex));
+                    return;
+                }
+
+                // Cancel item button
+                const cancelBtn = e.target.closest('.cancel-item-btn');
+                if (cancelBtn) {
+                    cancelAndRefundItem(cancelBtn.dataset.orderId, parseInt(cancelBtn.dataset.itemIndex));
+                    return;
+                }
+
+                // Pagination buttons
+                const paginationBtn = e.target.closest('.pagination-btn');
+                if (paginationBtn && !paginationBtn.disabled) {
+                    const page = parseInt(paginationBtn.dataset.page);
+                    if (page) goToPage(page);
+                    return;
+                }
+            });
+        }
 
         function checkAdminAuth() {
             const token = localStorage.getItem('dataeasy_admin_token');
@@ -1204,10 +1260,10 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-1">
                                 ${itemStatus !== 'delivered' && itemStatus !== 'completed' && itemStatus !== 'failed' && itemStatus !== 'cancelled' ? `
-                                <button class="w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition" onclick="completeOrderItem('${orderItem.id}', ${orderItem.itemIndex})" title="Complete">
+                                <button class="complete-item-btn w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Complete">
                                     <i class="fas fa-check text-xs"></i>
                                 </button>
-                                <button class="w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition" onclick="cancelAndRefundItem('${orderItem.id}', ${orderItem.itemIndex})" title="Cancel & Refund">
+                                <button class="cancel-item-btn w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Cancel & Refund">
                                     <i class="fas fa-undo text-xs"></i>
                                 </button>
                                 ` : ''}
@@ -1277,10 +1333,10 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 ${itemStatus !== 'delivered' && itemStatus !== 'completed' && itemStatus !== 'failed' && itemStatus !== 'cancelled' ? `
-                                <button class="w-10 h-10 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition shadow-sm" onclick="completeOrderItem('${orderItem.id}', ${orderItem.itemIndex})" title="Complete">
+                                <button class="complete-item-btn w-10 h-10 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition shadow-sm" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Complete">
                                     <i class="fas fa-check"></i>
                                 </button>
-                                <button class="w-10 h-10 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition shadow-sm" onclick="cancelAndRefundItem('${orderItem.id}', ${orderItem.itemIndex})" title="Cancel & Refund">
+                                <button class="cancel-item-btn w-10 h-10 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition shadow-sm" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Cancel & Refund">
                                     <i class="fas fa-undo"></i>
                                 </button>
                                 ` : ''}
@@ -1300,7 +1356,7 @@
             
             if (totalPages > 1) {
                 // Previous button
-                paginationHTML += `<button class="px-3 py-1 rounded ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} text-sm transition" onclick="${currentPage > 1 ? `goToPage(${currentPage - 1})` : ''}" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+                paginationHTML += `<button class="pagination-btn px-3 py-1 rounded ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} text-sm transition" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
                 
                 // Page numbers (show max 5 pages)
                 let startPage = Math.max(1, currentPage - 2);
@@ -1311,12 +1367,12 @@
                 
                 for (let i = startPage; i <= endPage; i++) {
                     paginationHTML += `
-                        <button class="px-3 py-1 rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} text-sm transition" onclick="goToPage(${i})">${i}</button>
+                        <button class="pagination-btn px-3 py-1 rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} text-sm transition" data-page="${i}">${i}</button>
                     `;
                 }
                 
                 // Next button
-                paginationHTML += `<button class="px-3 py-1 rounded ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} text-sm transition" onclick="${currentPage < totalPages ? `goToPage(${currentPage + 1})` : ''}" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+                paginationHTML += `<button class="pagination-btn px-3 py-1 rounded ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} text-sm transition" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
             }
             
             document.getElementById('paginationButtons').innerHTML = paginationHTML;
@@ -1697,10 +1753,12 @@
                     <div class="font-medium">${title}</div>
                     <div class="text-sm text-white/80">${message}</div>
                 </div>
-                <button class="ml-4 text-white/80 hover:text-white" onclick="this.parentElement.remove()">
+                <button class="ml-4 text-white/80 hover:text-white toast-close-btn">
                     <i class="fas fa-times"></i>
                 </button>
             `;
+            const closeBtn = toast.querySelector('.toast-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', function() { toast.remove(); });
             container.appendChild(toast);
             setTimeout(() => {
                 toast.classList.add('opacity-0');

@@ -1929,6 +1929,7 @@ const DataEasyApp = (function() {
         const modalClose = document.getElementById('close-package-modal');
         const modalBackdrop = document.getElementById('package-modal');
         const addToCartBtn = document.getElementById('modal-add-to-cart');
+        const modalPhoneInput = document.getElementById('modal-phone-input');
 
         if (modalClose) modalClose.addEventListener('click', closePackageModal);
         if (modalBackdrop) {
@@ -1937,6 +1938,13 @@ const DataEasyApp = (function() {
             });
         }
         if (addToCartBtn) addToCartBtn.addEventListener('click', addToCartFromModal);
+        
+        // Phone input - allow only numbers
+        if (modalPhoneInput) {
+            modalPhoneInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+        }
 
         // Listen for cart updates
         EventBus.on('cart:updated', updateWalletDisplay);
