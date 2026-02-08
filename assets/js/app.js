@@ -988,7 +988,7 @@ const DataEasyApp = (function() {
                             <td class="py-4 px-3 md:px-4 text-sm">${deliveryDisplay}</td>
                             <td class="py-4 px-3 md:px-4">
                                 <a href="order-details.html?id=${order.id}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded transition inline-block">View</a>
-                                <button class="bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-1.5 rounded transition ml-1" onclick="event.stopPropagation(); exportOrder('${order.id}')">Export</button>
+                                <button class="export-single-order-btn bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-1.5 rounded transition ml-1" data-order-id="${order.id}">Export</button>
                             </td>
                         </tr>
                     `;
@@ -1040,7 +1040,7 @@ const DataEasyApp = (function() {
                                     <span class="text-gray-400 font-semibold text-sm">ACTIONS:</span>
                                     <div class="flex gap-2">
                                         <a href="order-details.html?id=${order.id}" class="px-4 py-1.5 border border-blue-500 text-blue-400 text-sm rounded hover:bg-blue-500/10 transition">View</a>
-                                        <button onclick="event.stopPropagation(); exportOrder('${order.id}')" class="px-4 py-1.5 border border-blue-500 text-blue-400 text-sm rounded hover:bg-blue-500/10 transition">Export</button>
+                                        <button class="export-single-order-btn px-4 py-1.5 border border-blue-500 text-blue-400 text-sm rounded hover:bg-blue-500/10 transition" data-order-id="${order.id}">Export</button>
                                     </div>
                                 </div>
                             </div>
@@ -1083,10 +1083,110 @@ const DataEasyApp = (function() {
 
         // Initial render
         renderOrders();
+
+        // ==========================================
+        // EXPORT SINGLE ORDER
+        // ==========================================
+        function exportSingleOrder(orderId) {
+            const order = allOrders.find(o => o.id === orderId);
+            
+            if (!order) {
+                Toast.error('Order not found');
+                return;
+            }
+
+            // Build CSV content
+            let csv = 'Phone Number,Network,Package,Amount\n';
+            
+            if (order.items) {
+                order.items.forEach(item => {
+                    const phones = item.phoneNumbers || [];
+                    phones.forEach(phone => {
+                        csv += `${phone},${item.network},${item.package?.data || item.packageName || 'N/A'},${item.package?.price || item.price || 0}\n`;
+                    });
+                });
+            }
+
+            // Create and download file
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `order-${orderId.slice(-7)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            Toast.success('Order exported successfully');
+        }
+
+        // Event delegation for single order export buttons
+        document.addEventListener('click', (e) => {
+            const exportBtn = e.target.closest('.export-single-order-btn');
+            if (exportBtn) {
+                e.stopPropagation();
+                const orderId = exportBtn.dataset.orderId;
+                if (orderId) {
+                    exportSingleOrder(orderId);
+                }
+            }
+        });
+
+        // ==========================================
+        // EXPORT ALL ORDERS (Today's Orders)
+        // ==========================================
+        const exportAllBtn = document.getElementById('export-all-orders-btn');
+        if (exportAllBtn) {
+            exportAllBtn.addEventListener('click', () => {
+                // Filter to today's orders only
+                const today = new Date().toDateString();
+                const todayOrders = allOrders.filter(o => new Date(o.createdAt).toDateString() === today);
+
+                if (todayOrders.length === 0) {
+                    Toast.error('No orders to export for today');
+                    return;
+                }
+
+                // Build CSV content with all orders
+                let csv = 'Order ID,Date,Phone Number,Network,Package,Amount,Payment Status,Delivery Status\n';
+                
+                todayOrders.forEach(order => {
+                    const orderDate = new Date(order.createdAt).toLocaleString();
+                    const paymentStatus = order.paymentStatus || 'Completed';
+                    const deliveryStatus = order.deliveryStatus || 'Processing';
+                    
+                    if (order.items && order.items.length > 0) {
+                        order.items.forEach(item => {
+                            const phones = item.phoneNumbers || [];
+                            phones.forEach(phone => {
+                                csv += `${order.id},${orderDate},${phone},${item.network},${item.package?.data || item.packageName || 'N/A'},${item.package?.price || item.price || 0},${paymentStatus},${deliveryStatus}\n`;
+                            });
+                        });
+                    } else {
+                        csv += `${order.id},${orderDate},-,-,-,${order.total},${paymentStatus},${deliveryStatus}\n`;
+                    }
+                });
+
+                // Create and download file
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const dateStr = new Date().toISOString().split('T')[0];
+                a.download = `orders-${dateStr}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                Toast.success(`Exported ${todayOrders.length} order(s) successfully`);
+            });
+        }
     }
 
     // ==========================================
-    // EXPORT ORDER
+    // EXPORT ORDER (Legacy - for backwards compatibility)
     // ==========================================
     function exportOrder(orderId) {
         const orders = Storage.get('orders', []);
