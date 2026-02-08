@@ -464,13 +464,28 @@ const DataEasyUtils = (function() {
          * @param {Function} options.onSuccess - Success callback
          * @param {Function} options.onCancel - Cancel callback
          */
-        pay(options) {
+        async pay(options) {
             const { amount, email, onSuccess, onCancel, metadata = {} } = options;
+
+            // Wait for config to load
+            if (window.PAYSTACK_CONFIG_PROMISE) {
+                console.log('⏳ Waiting for Paystack config...');
+                await window.PAYSTACK_CONFIG_PROMISE;
+            }
 
             if (!window.PaystackPop) {
                 Toast.error('Payment system not loaded. Please refresh the page.');
                 return;
             }
+            
+            // Check if key is configured
+            if (!this.publicKey || !this.publicKey.startsWith('pk_')) {
+                console.error('❌ Paystack key not configured:', this.publicKey);
+                Toast.error('Payment system not configured. Please contact support.');
+                return;
+            }
+            
+            console.log('🔑 Using Paystack key:', this.publicKey.substring(0, 15) + '...');
 
             const handler = PaystackPop.setup({
                 key: this.publicKey,
