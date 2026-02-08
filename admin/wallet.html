@@ -234,11 +234,20 @@
                             <input type="text" id="searchInput" placeholder="Eg. 2345" class="w-48 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-sidebar focus:border-transparent outline-none">
                         </div>
                         <div>
-                            <label class="block text-sm text-gray-700 mb-1">Sort By Type:</label>
+                            <label class="block text-sm text-gray-700 mb-1">Filter By Type:</label>
                             <select id="typeFilter" class="w-48 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-sidebar focus:border-transparent outline-none bg-white">
-                                <option value="">-- Select Type --</option>
-                                <option value="credit">Credit</option>
-                                <option value="debit">Debit</option>
+                                <option value="">-- All Types --</option>
+                                <option value="credit">Credit (Completed)</option>
+                                <option value="debit">Debit (Completed)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-700 mb-1">Filter By Status:</label>
+                            <select id="statusFilter" class="w-48 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-sidebar focus:border-transparent outline-none bg-white">
+                                <option value="">-- All Statuses --</option>
+                                <option value="completed">Completed</option>
+                                <option value="pending">Pending</option>
+                                <option value="failed">Failed</option>
                             </select>
                         </div>
                     </div>
@@ -642,6 +651,7 @@
         function initFilters() {
             document.getElementById('searchInput').addEventListener('input', debounce(filterTransactions, 300));
             document.getElementById('typeFilter').addEventListener('change', filterTransactions);
+            document.getElementById('statusFilter').addEventListener('change', filterTransactions);
         }
 
         async function loadTransactions() {
@@ -669,6 +679,7 @@
         function filterTransactions() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const type = document.getElementById('typeFilter').value;
+            const status = document.getElementById('statusFilter').value;
 
             let filtered = allTransactions.filter(tx => {
                 if (search) {
@@ -677,7 +688,13 @@
                         (tx.user?.agentCode || '').toLowerCase().includes(search);
                     if (!searchMatch) return false;
                 }
-                if (type && tx.type !== type) return false;
+                // When filtering by type, only show completed transactions (proper accounting)
+                if (type) {
+                    if (tx.type !== type) return false;
+                    if (tx.status !== 'completed') return false;
+                }
+                // Status filter
+                if (status && tx.status !== status) return false;
                 return true;
             });
 
@@ -762,6 +779,7 @@
         function clearFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('typeFilter').value = '';
+            document.getElementById('statusFilter').value = '';
             currentPage = 1;
             filterTransactions();
         }
@@ -799,6 +817,7 @@
         function exportTransactions() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const type = document.getElementById('typeFilter').value;
+            const status = document.getElementById('statusFilter').value;
 
             let filtered = allTransactions.filter(tx => {
                 if (search) {
@@ -808,7 +827,13 @@
                         (tx.user?.name || '').toLowerCase().includes(search);
                     if (!searchMatch) return false;
                 }
-                if (type && tx.type !== type) return false;
+                // When filtering by type, only show completed transactions
+                if (type) {
+                    if (tx.type !== type) return false;
+                    if (tx.status !== 'completed') return false;
+                }
+                // Status filter
+                if (status && tx.status !== status) return false;
                 return true;
             });
 
