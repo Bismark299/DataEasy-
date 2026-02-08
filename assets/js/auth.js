@@ -235,6 +235,11 @@ const DataEasyAuth = (function() {
             DataEasyAPI.clearTokens();
         }
         
+        // Clear packages cache so fresh prices load for new user/guest
+        if (typeof DataEasyCart !== 'undefined' && DataEasyCart.clearPackagesCache) {
+            DataEasyCart.clearPackagesCache();
+        }
+        
         Storage.remove('session');
         Storage.remove('user');
         currentUser = null;

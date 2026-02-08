@@ -131,6 +131,11 @@ const DataEasyAPI = (function() {
             
             if (response.success && response.token) {
                 setAuthToken(response.token, response.user);
+                
+                // Clear packages cache so fresh role-based prices are fetched
+                if (typeof DataEasyCart !== 'undefined' && DataEasyCart.clearPackagesCache) {
+                    DataEasyCart.clearPackagesCache();
+                }
             }
             
             return response;
@@ -144,6 +149,11 @@ const DataEasyAPI = (function() {
             
             if (response.success && response.token) {
                 setAuthToken(response.token, response.user);
+                
+                // Clear packages cache so fresh role-based prices are fetched
+                if (typeof DataEasyCart !== 'undefined' && DataEasyCart.clearPackagesCache) {
+                    DataEasyCart.clearPackagesCache();
+                }
             }
             
             return response;

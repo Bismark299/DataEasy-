@@ -54,6 +54,23 @@ const DataEasyCart = (function() {
     // ==========================================
     // CACHE HELPERS
     // ==========================================
+    
+    /**
+     * Get current user role from session
+     */
+    function getCurrentUserRole() {
+        try {
+            const session = localStorage.getItem('dataeasy_session');
+            if (session) {
+                const parsed = JSON.parse(session);
+                if (parsed.user && parsed.user.role) {
+                    return parsed.user.role;
+                }
+            }
+        } catch (e) { /* ignore */ }
+        return 'guest'; // Default for non-logged in users
+    }
+    
     function getCachedPackages() {
         try {
             const cached = localStorage.getItem(PACKAGES_CACHE_KEY);
@@ -62,9 +79,18 @@ const DataEasyCart = (function() {
             const { data, timestamp } = JSON.parse(cached);
             const age = Date.now() - timestamp;
             
+            // Check if user role has changed (logged in/out or different account)
+            const currentRole = getCurrentUserRole();
+            const cachedRole = data.userRole || 'guest';
+            if (currentRole !== cachedRole) {
+                console.log(`✓ User role changed (${cachedRole} → ${currentRole}), will fetch fresh prices`);
+                localStorage.removeItem(PACKAGES_CACHE_KEY);
+                return null;
+            }
+            
             // Return cached data if still fresh
             if (age < PACKAGES_CACHE_TTL) {
-                console.log(`✓ Using cached packages (${Math.round(age/1000)}s old)`);
+                console.log(`✓ Using cached packages (${Math.round(age/1000)}s old, role: ${cachedRole})`);
                 return data;
             }
             console.log('✓ Package cache expired, will fetch fresh');
@@ -83,6 +109,14 @@ const DataEasyCart = (function() {
         } catch (e) {
             // localStorage might be full, ignore
         }
+    }
+    
+    /**
+     * Clear packages cache (call on login/logout)
+     */
+    function clearPackagesCache() {
+        localStorage.removeItem(PACKAGES_CACHE_KEY);
+        console.log('✓ Packages cache cleared');
     }
 
     // ==========================================
@@ -908,7 +942,8 @@ const DataEasyCart = (function() {
         getNetworkAvailability,
         isNetworkAvailable,
         arePackagesLoaded,
-        getPackagesLoadError
+        getPackagesLoadError,
+        clearPackagesCache
     };
 
 })();
