@@ -14,10 +14,20 @@ const { PAYSTACK_PUBLIC_KEY } = require('../config/paystack');
 
 // Public config endpoint (returns non-sensitive config for frontend)
 router.get('/config', (req, res) => {
+    const publicKey = PAYSTACK_PUBLIC_KEY;
+    
+    // Log for debugging (only in development or when troubleshooting)
+    if (!publicKey) {
+        console.warn('⚠️ PAYSTACK_PUBLIC_KEY environment variable is not set!');
+    } else {
+        console.log('✅ Paystack public key configured:', publicKey.substring(0, 12) + '...');
+    }
+    
     res.json({
         success: true,
         config: {
-            paystackPublicKey: PAYSTACK_PUBLIC_KEY
+            paystackPublicKey: publicKey || '',
+            paystackConfigured: !!publicKey
         }
     });
 });

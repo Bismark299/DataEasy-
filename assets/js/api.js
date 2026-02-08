@@ -637,20 +637,33 @@ const DataEasyAPI = (function() {
         async openPopup(email, amount, onSuccess, onClose) {
             // Wait for config to load if not ready
             if (window.PAYSTACK_CONFIG_PROMISE) {
+                console.log('⏳ Waiting for Paystack config to load...');
                 await window.PAYSTACK_CONFIG_PROMISE;
             }
             
-            // Check if Paystack key is configured
+            // Check if Paystack is configured
+            if (!window.PAYSTACK_CONFIGURED) {
+                console.error('❌ Paystack is not configured on the server');
+                throw new Error('Payment system not configured. Admin needs to set PAYSTACK_PUBLIC_KEY in Render environment variables.');
+            }
+            
+            // Check if Paystack key exists
             if (!this.publicKey) {
-                console.error('❌ Paystack public key not configured');
+                console.error('❌ Paystack public key is empty');
                 throw new Error('Payment system not configured. Please contact support.');
+            }
+            
+            // Validate key format
+            if (!this.publicKey.startsWith('pk_')) {
+                console.error('❌ Invalid Paystack key format:', this.publicKey.substring(0, 10));
+                throw new Error('Invalid payment configuration. Please contact support.');
             }
             
             console.log('🔑 Using Paystack key:', this.publicKey.substring(0, 15) + '...');
             
             if (typeof PaystackPop === 'undefined') {
-                console.error('Paystack script not loaded');
-                throw new Error('Payment system not available');
+                console.error('❌ PaystackPop not loaded. Check if https://js.paystack.co/v1/inline.js is loaded.');
+                throw new Error('Payment system not available. Please refresh the page.');
             }
 
             // First create transaction record on backend to get reference and fee info
@@ -671,7 +684,8 @@ const DataEasyAPI = (function() {
             console.log('💰 Amount breakdown:', {
                 userWillReceive: initResponse.baseAmount,
                 feeAmount: feeAmount,
-                totalToPay: amountToPay
+                totalToPay: amountToPay,
+                amountInPesewas: Math.round(amountToPay * 100)
             });
 
             const handler = PaystackPop.setup({
