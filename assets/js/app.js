@@ -1629,39 +1629,88 @@ const DataEasyApp = (function() {
 
         // Render desktop table
         if (desktopContainer) {
-            desktopContainer.innerHTML = transactions.slice(0, 20).map((tx, index) => `
-                <tr class="border-b border-gray-700 hover:bg-gray-800/30 transition">
+            desktopContainer.innerHTML = transactions.slice(0, 20).map((tx, index) => {
+                // Determine status styling
+                const status = tx.status || 'completed';
+                const isPending = status === 'pending';
+                const isFailed = status === 'failed';
+                const isCompleted = status === 'completed';
+                
+                // Amount styling based on status
+                let amountClass = tx.type === 'credit' ? 'text-green-400' : 'text-red-400';
+                let amountPrefix = tx.type === 'credit' ? '+' : '-';
+                
+                if (isPending) {
+                    amountClass = 'text-yellow-400';
+                } else if (isFailed) {
+                    amountClass = 'text-gray-500 line-through';
+                }
+                
+                // Status badge
+                let statusBadge = '';
+                if (isPending) {
+                    statusBadge = `<span class="px-2 py-1 rounded text-xs bg-yellow-500/20 text-yellow-400">Pending</span>`;
+                } else if (isFailed) {
+                    statusBadge = `<span class="px-2 py-1 rounded text-xs bg-red-500/20 text-red-400">Failed</span>`;
+                } else {
+                    statusBadge = `<span class="px-2 py-1 rounded text-xs ${tx.type === 'credit' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}">${tx.type === 'credit' ? 'Credit' : 'Debit'}</span>`;
+                }
+                
+                return `
+                <tr class="border-b border-gray-700 hover:bg-gray-800/30 transition ${isFailed ? 'opacity-60' : ''}">
                     <td class="py-3 px-3 md:px-4 text-gray-400 text-sm">${index + 1}</td>
                     <td class="py-3 px-3 md:px-4 text-white text-sm font-mono">${tx.reference || tx.id || '-'}</td>
                     <td class="py-3 px-3 md:px-4 text-gray-400 text-sm hidden md:table-cell">${tx.balanceBefore !== undefined ? Format.currency(tx.balanceBefore) : '-'}</td>
                     <td class="py-3 px-3 md:px-4">
-                        <span class="${tx.type === 'credit' ? 'text-green-400' : 'text-red-400'} font-medium">
-                            ${tx.type === 'credit' ? '+' : '-'}${Format.currency(tx.amount)}
+                        <span class="${amountClass} font-medium">
+                            ${amountPrefix}${Format.currency(tx.amount)}
                         </span>
                     </td>
                     <td class="py-3 px-3 md:px-4">
-                        <span class="px-2 py-1 rounded text-xs ${tx.type === 'credit' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">
-                            ${tx.type === 'credit' ? 'Credit' : 'Debit'}
-                        </span>
+                        ${statusBadge}
                     </td>
                     <td class="py-3 px-3 md:px-4 text-gray-400 text-sm hidden lg:table-cell">${Format.date(tx.date)}</td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         // Render mobile cards
         if (mobileContainer) {
-            mobileContainer.innerHTML = transactions.slice(0, 20).map((tx, index) => `
-                <div class="bg-gray-800/50 rounded-lg p-3 mb-3 border border-gray-700">
+            mobileContainer.innerHTML = transactions.slice(0, 20).map((tx, index) => {
+                // Determine status styling
+                const status = tx.status || 'completed';
+                const isPending = status === 'pending';
+                const isFailed = status === 'failed';
+                
+                // Amount styling based on status
+                let amountClass = tx.type === 'credit' ? 'text-green-400' : 'text-red-400';
+                let amountPrefix = tx.type === 'credit' ? '+' : '-';
+                
+                if (isPending) {
+                    amountClass = 'text-yellow-400';
+                } else if (isFailed) {
+                    amountClass = 'text-gray-500 line-through';
+                }
+                
+                // Status badge
+                let statusBadge = '';
+                if (isPending) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-xs bg-yellow-500/20 text-yellow-400">Pending</span>`;
+                } else if (isFailed) {
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-xs bg-red-500/20 text-red-400">Failed</span>`;
+                } else {
+                    statusBadge = `<span class="px-2 py-0.5 rounded text-xs ${tx.type === 'credit' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}">${tx.type === 'credit' ? 'Credit' : 'Debit'}</span>`;
+                }
+                
+                return `
+                <div class="bg-gray-800/50 rounded-lg p-3 mb-3 border border-gray-700 ${isFailed ? 'opacity-60' : ''}">
                     <div class="flex justify-between items-start mb-2">
                         <span class="text-gray-400 text-xs">#${index + 1}</span>
-                        <span class="px-2 py-0.5 rounded text-xs ${tx.type === 'credit' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">
-                            ${tx.type === 'credit' ? 'Credit' : 'Debit'}
-                        </span>
+                        ${statusBadge}
                     </div>
                     <div class="flex justify-between items-center mb-2">
-                        <span class="${tx.type === 'credit' ? 'text-green-400' : 'text-red-400'} text-lg font-bold">
-                            ${tx.type === 'credit' ? '+' : '-'}${Format.currency(tx.amount)}
+                        <span class="${amountClass} text-lg font-bold">
+                            ${amountPrefix}${Format.currency(tx.amount)}
                         </span>
                     </div>
                     <div class="text-xs text-gray-500 truncate mb-1">
@@ -1671,7 +1720,7 @@ const DataEasyApp = (function() {
                         ${Format.date(tx.date)}
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
     }
 
