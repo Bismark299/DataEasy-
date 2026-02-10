@@ -170,7 +170,15 @@ module.exports = (sequelize) => {
             appName: await this.getValue('app_name', 'DataEasy+'),
             supportEmail: await this.getValue('support_email', 'support@dataeasyplus.com'),
             supportPhone: await this.getValue('support_phone', '+233 20 000 0000'),
-            maintenanceMode: await this.getValue('maintenance_mode', false)
+            maintenanceMode: await this.getValue('maintenance_mode', false),
+            sendClaimVisible: await this.getValue('send_claim_visible', true) // Show Send & Claim section on client
+        };
+    };
+
+    // Get client UI settings (for public API)
+    Setting.getClientUISettings = async function() {
+        return {
+            sendClaimVisible: await this.getValue('send_claim_visible', true)
         };
     };
 

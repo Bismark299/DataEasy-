@@ -1757,7 +1757,8 @@ exports.updateAppSettings = async (req, res) => {
             maxDeposit,
             maxLoginAttempts,
             lockoutMinutes,
-            sessionTimeoutHours
+            sessionTimeoutHours,
+            sendClaimVisible
         } = req.body;
 
         const updates = [];
@@ -1832,6 +1833,15 @@ exports.updateAppSettings = async (req, res) => {
             }
             await Setting.setValue('session_timeout_hours', hours, 'number', 'Session timeout in hours');
             updates.push('sessionTimeoutHours');
+        }
+
+        // Client UI settings
+        if (sendClaimVisible !== undefined) {
+            await Setting.setValue('send_claim_visible', sendClaimVisible, 'boolean', 'Show Send & Claim section on client pages');
+            updates.push('sendClaimVisible');
+            logger.info(`Send & Claim visibility ${sendClaimVisible ? 'ENABLED' : 'DISABLED'}`, {
+                admin: req.admin?.username
+            });
         }
 
         // Log the action

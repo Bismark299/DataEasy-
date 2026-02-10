@@ -1967,6 +1967,18 @@ const DataEasyApp = (function() {
     // ==========================================
     // GLOBAL INITIALIZATION
     // ==========================================
+    
+    /**
+     * Update Send & Claim section visibility based on server settings
+     */
+    function updateSendClaimVisibility() {
+        const sendClaimSection = document.getElementById('send-claim-section');
+        if (sendClaimSection) {
+            const visible = DataEasyCart.isSendClaimVisible();
+            sendClaimSection.style.display = visible ? '' : 'none';
+        }
+    }
+    
     async function init() {
         // Detect current page
         const path = window.location.pathname;
@@ -1974,6 +1986,9 @@ const DataEasyApp = (function() {
 
         // Sync packages from API (updates pricing and availability)
         await DataEasyCart.syncPackagesFromAPI();
+        
+        // Apply initial UI settings
+        updateSendClaimVisibility();
 
         // Initialize common components
         initSidebars();
@@ -1984,10 +1999,13 @@ const DataEasyApp = (function() {
         DataEasyAuth.updateAuthUI();
 
         // Listen for package updates to refresh network availability
-        EventBus.on('packages:loaded', () => {
+        EventBus.on('packages:loaded', (data) => {
             if (typeof updateNetworkTabAvailability === 'function') {
                 updateNetworkTabAvailability();
             }
+            
+            // Update Send & Claim visibility based on server settings
+            updateSendClaimVisibility();
         });
 
         // Page-specific initialization

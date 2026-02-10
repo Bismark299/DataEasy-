@@ -51,6 +51,11 @@ const DataEasyCart = (function() {
         AirtelTigo: true
     };
 
+    // UI settings from server (controls what UI elements are visible)
+    let uiSettings = {
+        sendClaimVisible: true
+    };
+
     // ==========================================
     // CACHE HELPERS
     // ==========================================
@@ -779,11 +784,14 @@ const DataEasyCart = (function() {
                     if (cached.networkAvailability) {
                         networkAvailability = { ...networkAvailability, ...cached.networkAvailability };
                     }
+                    if (cached.uiSettings) {
+                        uiSettings = { ...uiSettings, ...cached.uiSettings };
+                    }
                     packagesLoaded = true;
                     packagesLoadError = null;
                     
                     // Emit event for UI refresh
-                    EventBus.emit('packages:loaded', { packages, networkAvailability });
+                    EventBus.emit('packages:loaded', { packages, networkAvailability, uiSettings });
                     
                     // Refresh in background (non-blocking)
                     setTimeout(() => syncPackagesFromAPI(true), 100);
@@ -809,15 +817,21 @@ const DataEasyCart = (function() {
                         console.log('✓ Network availability loaded:', networkAvailability);
                     }
                     
+                    // Update UI settings from server
+                    if (data.uiSettings) {
+                        uiSettings = { ...uiSettings, ...data.uiSettings };
+                        console.log('✓ UI settings loaded:', uiSettings);
+                    }
+                    
                     packagesLoaded = true;
                     packagesLoadError = null;
                     console.log('✓ Packages synced from API (database prices, role:', data.userRole || 'guest', ')');
                     
                     // Cache the result
-                    setCachedPackages({ packages: data.packages, networkAvailability, userRole: data.userRole });
+                    setCachedPackages({ packages: data.packages, networkAvailability, uiSettings, userRole: data.userRole });
                     
-                    // Emit event for UI refresh (includes network availability)
-                    EventBus.emit('packages:loaded', { packages, networkAvailability });
+                    // Emit event for UI refresh (includes network availability and UI settings)
+                    EventBus.emit('packages:loaded', { packages, networkAvailability, uiSettings });
                     return true;
                 } else {
                     throw new Error(data.message || 'Failed to load packages from server');
@@ -860,12 +874,18 @@ const DataEasyCart = (function() {
                     console.log('✓ Network availability loaded:', networkAvailability);
                 }
                 
+                // Update UI settings from server
+                if (data.uiSettings) {
+                    uiSettings = { ...uiSettings, ...data.uiSettings };
+                    console.log('✓ UI settings loaded:', uiSettings);
+                }
+                
                 packagesLoaded = true;
                 packagesLoadError = null;
                 console.log('✓ Packages synced from API (database prices)');
                 
-                // Emit event for UI refresh (includes network availability)
-                EventBus.emit('packages:loaded', { packages, networkAvailability });
+                // Emit event for UI refresh (includes network availability and UI settings)
+                EventBus.emit('packages:loaded', { packages, networkAvailability, uiSettings });
                 return true;
             } else {
                 throw new Error(data.message || 'Failed to load packages from server');
@@ -916,6 +936,20 @@ const DataEasyCart = (function() {
         return networkAvailability[network] !== false;
     }
 
+    /**
+     * Get UI settings from server
+     */
+    function getUISettings() {
+        return { ...uiSettings };
+    }
+
+    /**
+     * Check if Send & Claim section should be visible
+     */
+    function isSendClaimVisible() {
+        return uiSettings.sendClaimVisible !== false;
+    }
+
     // Public API
     return {
         addItem,
@@ -941,6 +975,8 @@ const DataEasyCart = (function() {
         isOutOfStock,
         getNetworkAvailability,
         isNetworkAvailable,
+        getUISettings,
+        isSendClaimVisible,
         arePackagesLoaded,
         getPackagesLoadError,
         clearPackagesCache

@@ -59,10 +59,14 @@ exports.getPackages = async (req, res) => {
         // Get network availability settings
         const networkAvailability = await Setting.getNetworkAvailability();
         
+        // Get client UI settings
+        const uiSettings = await Setting.getClientUISettings();
+        
         res.json({
             success: true,
             packages: allPackages,
             networkAvailability,
+            uiSettings,
             userRole // Include so client knows which pricing they're seeing
         });
     } catch (error) {
