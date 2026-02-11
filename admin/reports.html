@@ -350,13 +350,13 @@
         if (reportType === 'agents') {
             salesSection.classList.add('hidden');
             agentsSection.classList.remove('hidden');
-            pageTitle.textContent = 'Agents Report';
-            navAgents.classList.add('active');
+            if (pageTitle) pageTitle.textContent = 'Agents Report';
+            if (navAgents) navAgents.classList.add('active');
         } else {
             salesSection.classList.remove('hidden');
             agentsSection.classList.add('hidden');
-            pageTitle.textContent = 'Sales Report';
-            navSales.classList.add('active');
+            if (pageTitle) pageTitle.textContent = 'Sales Report';
+            if (navSales) navSales.classList.add('active');
         }
 
         // Set default dates
