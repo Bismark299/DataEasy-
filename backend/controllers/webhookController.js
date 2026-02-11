@@ -33,7 +33,7 @@ exports.handlePaystack = async (req, res) => {
         const payload = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : 
                        (typeof rawBody === 'string' ? rawBody : JSON.stringify(rawBody));
 
-        if (!verifyWebhookSignature(signature, payload)) {
+        if (!verifyWebhookSignature(payload, signature)) {
             console.error('Webhook signature verification failed');
             return res.status(400).json({ error: 'Invalid signature' });
         }

@@ -9,6 +9,7 @@ const { User, Order, Wallet, Transaction, AdminAuditLog, Package, Setting, seque
 const { Op, fn, col, literal } = require('sequelize');
 const { packages, clearPackagesCache } = require('../config/packages');
 const logger = require('../utils/logger');
+const { invalidateCache } = require('../middleware/cache');
 
 // Configuration constants
 const WALLET_ADJUSTMENT_LIMIT = 1000; // Maximum GH₵1000 per adjustment
@@ -1011,6 +1012,7 @@ exports.updatePackage = async (req, res) => {
         // CRITICAL: Clear cache IMMEDIATELY after price update
         // This ensures all subsequent orders use the new price
         clearPackagesCache();
+        invalidateCache('packages'); // Also clear API response cache
         logger.info('Package cache invalidated after update', { packageId: id });
 
         // Log admin action with detailed audit trail
@@ -1105,6 +1107,7 @@ exports.bulkUpdatePackages = async (req, res) => {
 
         // Clear cache
         clearPackagesCache();
+        invalidateCache('packages'); // Also clear API response cache
 
         // Log admin action
         await AdminAuditLog.logAction(req, {
@@ -1167,6 +1170,7 @@ exports.createPackage = async (req, res) => {
 
         // Clear cache
         clearPackagesCache();
+        invalidateCache('packages'); // Also clear API response cache
 
         // Log admin action
         await AdminAuditLog.logAction(req, {
@@ -1224,6 +1228,7 @@ exports.deletePackage = async (req, res) => {
 
         // Clear cache
         clearPackagesCache();
+        invalidateCache('packages'); // Also clear API response cache
 
         // Log admin action
         await AdminAuditLog.logAction(req, {

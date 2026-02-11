@@ -4,9 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DataEasy+ - Bulk Orders</title>
+    
+    <!-- DNS Prefetch for external resources -->
+    <link rel="dns-prefetch" href="//cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="//js.paystack.co">
+    
+    <!-- Preconnect to critical origins -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="assets/css/custom.css" as="style">
+    <link rel="preload" href="assets/js/config.js" as="script">
+    <link rel="preload" href="assets/js/api.js" as="script">
+    <link rel="preload" href="assets/js/app.js" as="script">
+    
+    <!-- Load external resources with async where possible -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+    <script src="https://js.paystack.co/v1/inline.js" async></script>
     <link rel="stylesheet" href="assets/css/custom.css">
     <script src="assets/js/config.js"></script>
     <!-- Early auth check - redirect before page renders -->

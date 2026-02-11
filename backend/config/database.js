@@ -8,13 +8,31 @@ const { Sequelize } = require('sequelize');
 // Parse connection string or use individual env vars
 const databaseUrl = process.env.DATABASE_URL;
 
+// Slow query threshold (milliseconds)
+const SLOW_QUERY_THRESHOLD = parseInt(process.env.SLOW_QUERY_THRESHOLD) || 500;
+
+/**
+ * Custom logging function that tracks slow queries
+ */
+const queryLogger = (sql, timing) => {
+    if (process.env.NODE_ENV === 'development') {
+        console.log(sql);
+    }
+    
+    // Log slow queries in any environment
+    if (timing && timing.duration > SLOW_QUERY_THRESHOLD) {
+        console.warn(`⚠️ SLOW QUERY (${timing.duration}ms):`, sql.substring(0, 200));
+    }
+};
+
 let sequelize;
 
 if (databaseUrl) {
     // Use connection string (for production/Heroku/Railway)
     sequelize = new Sequelize(databaseUrl, {
         dialect: 'postgres',
-        logging: process.env.NODE_ENV === 'development' ? console.log : false,
+        logging: queryLogger,
+        benchmark: true, // Enable timing
         dialectOptions: {
             ssl: process.env.NODE_ENV === 'production' ? {
                 require: true,
@@ -22,26 +40,35 @@ if (databaseUrl) {
             } : false
         },
         pool: {
-            max: 5,
-            min: 0,
+            max: 10,     // Increased for better concurrency
+            min: 2,      // Keep some connections warm
             acquire: 30000,
             idle: 10000
         }
     });
 } else {
     // Use individual environment variables
+    // SECURITY: No default credentials - must be explicitly set
+    if (!process.env.DB_USER || !process.env.DB_PASSWORD) {
+        if (process.env.NODE_ENV === 'production') {
+            throw new Error('DB_USER and DB_PASSWORD must be set in production');
+        }
+        console.warn('⚠️ Using development database defaults. Set DB_USER/DB_PASSWORD for production.');
+    }
+    
     sequelize = new Sequelize(
         process.env.DB_NAME || 'dataeasy_plus',
         process.env.DB_USER || 'postgres',
-        process.env.DB_PASSWORD || 'postgres',
+        process.env.DB_PASSWORD || '',
         {
             host: process.env.DB_HOST || 'localhost',
             port: process.env.DB_PORT || 5432,
             dialect: 'postgres',
-            logging: process.env.NODE_ENV === 'development' ? console.log : false,
+            logging: queryLogger,
+            benchmark: true,
             pool: {
-                max: 5,
-                min: 0,
+                max: 10,
+                min: 2,
                 acquire: 30000,
                 idle: 10000
             }

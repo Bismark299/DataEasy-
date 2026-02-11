@@ -85,8 +85,9 @@ const adminAuth = (req, res, next) => {
 
 /**
  * Generate JWT Token
+ * Default expiry reduced to 4 hours for better security
  */
-const generateToken = (payload, expiresIn = process.env.JWT_EXPIRE || '24h') => {
+const generateToken = (payload, expiresIn = process.env.JWT_EXPIRE || '4h') => {
     return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
 };
 

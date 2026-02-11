@@ -11,12 +11,14 @@ const { protect, optionalAuth } = require('../middleware/auth');
 const { orderValidation, orderIdValidation } = require('../middleware/validation');
 const { orderLimiter } = require('../middleware/rateLimiter');
 const { requireIdempotency } = require('../middleware/idempotency');
+const { cacheConfigs } = require('../middleware/cache');
 
 // PUBLIC routes (no authentication required)
 // Get packages - available to all visitors to show availability
 // Uses optionalAuth to get user role for role-based pricing if logged in
-router.get('/packages', optionalAuth, orderController.getPackages);
-router.get('/packages/:network', optionalAuth, orderController.getPackagesByNetwork);
+// CACHED: Packages don't change often, cache for 5 minutes
+router.get('/packages', optionalAuth, cacheConfigs.packages, orderController.getPackages);
+router.get('/packages/:network', optionalAuth, cacheConfigs.packages, orderController.getPackagesByNetwork);
 
 // Protected routes require authentication
 router.use(protect);

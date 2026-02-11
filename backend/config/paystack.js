@@ -75,12 +75,16 @@ const listTransactions = async (params = {}) => {
 
 /**
  * Verify webhook signature
+ * @param {string} payload - Raw request body as string (NOT parsed JSON)
+ * @param {string} signature - X-Paystack-Signature header value
  */
-const verifyWebhookSignature = (body, signature) => {
+const verifyWebhookSignature = (payload, signature) => {
     const crypto = require('crypto');
+    // IMPORTANT: Use raw payload string, not JSON.stringify
+    // Paystack signs the exact bytes they send
     const hash = crypto
         .createHmac('sha512', PAYSTACK_SECRET_KEY)
-        .update(JSON.stringify(body))
+        .update(typeof payload === 'string' ? payload : JSON.stringify(payload))
         .digest('hex');
     return hash === signature;
 };

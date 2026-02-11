@@ -37,6 +37,30 @@ for (const env of criticalEnvVars) {
     }
 }
 
+// SECURITY: Validate JWT_SECRET strength
+const jwtSecret = process.env.JWT_SECRET;
+if (jwtSecret) {
+    const weakSecrets = [
+        'secret', 'password', 'jwt_secret', 'change_me', 'your-secret',
+        'btopup_super_secret_key_change_in_production_12345',
+        'CHANGE_THIS_GENERATE_64_CHAR_RANDOM_STRING'
+    ];
+    const isWeak = weakSecrets.some(weak => 
+        jwtSecret.toLowerCase().includes(weak.toLowerCase())
+    );
+    
+    if (jwtSecret.length < 32) {
+        console.error('❌ SECURITY: JWT_SECRET must be at least 32 characters');
+        if (isProduction) process.exit(1);
+    } else if (isWeak) {
+        console.error('❌ SECURITY: JWT_SECRET appears to be a placeholder. Generate a secure random key!');
+        console.error('   Run: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+        if (isProduction) process.exit(1);
+    } else {
+        console.log('✅ JWT_SECRET strength: OK');
+    }
+}
+
 for (const env of recommendedEnvVars) {
     if (!process.env[env]) {
         console.warn(`⚠️ Warning: ${env} not set (recommended for production)`);
@@ -307,11 +331,23 @@ app.use('/api/webhook', webhookRoutes);
 const path = require('path');
 const frontendPath = path.join(__dirname, '..');
 
-// Cache settings for static files (1 day for assets, improves load time)
+// Cache settings for static files
+// Use aggressive caching for assets with version/hash in URL
 const staticOptions = {
-    maxAge: isProduction ? '1d' : 0, // Cache for 1 day in production
+    maxAge: isProduction ? '7d' : 0, // Cache for 7 days in production
     etag: true,
-    lastModified: true
+    lastModified: true,
+    immutable: isProduction, // Tell browser these files won't change
+    setHeaders: (res, path) => {
+        // Extra-long cache for fonts and images
+        if (path.match(/\.(woff2?|ttf|eot|otf|ico|png|jpg|jpeg|gif|svg|webp)$/)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 year
+        }
+        // JavaScript and CSS - 7 days
+        else if (path.match(/\.(js|css)$/)) {
+            res.setHeader('Cache-Control', isProduction ? 'public, max-age=604800' : 'no-cache'); // 7 days
+        }
+    }
 };
 
 // Serve static assets (CSS, JS, images) with caching

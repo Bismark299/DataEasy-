@@ -38,10 +38,9 @@ exports.register = async (req, res) => {
         });
 
         if (existingUser) {
+            // Generic error message to prevent account enumeration attacks
             return res.status(400).json({
-                error: existingUser.email === email.toLowerCase()
-                    ? 'Email already registered'
-                    : 'Phone number already registered'
+                error: 'An account with these details already exists'
             });
         }
 
