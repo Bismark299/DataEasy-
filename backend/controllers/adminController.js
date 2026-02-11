@@ -420,6 +420,7 @@ exports.updateItemStatus = async (req, res) => {
 /**
  * Get all users (admin)
  * GET /api/admin/users
+ * OPTIMIZED: Uses aggregated queries instead of N+1 pattern
  */
 exports.getAllUsers = async (req, res) => {
     try {
@@ -436,6 +437,7 @@ exports.getAllUsers = async (req, res) => {
         if (status === 'active') where.isActive = true;
         if (status === 'inactive') where.isActive = false;
 
+        // Get users with wallet in single query
         const { count, rows: users } = await User.findAndCountAll({
             where,
             include: [{ model: Wallet, as: 'wallet', attributes: ['balance'] }],
@@ -445,66 +447,99 @@ exports.getAllUsers = async (req, res) => {
             attributes: { exclude: ['password'] }
         });
 
-        // Get all packages for cost price lookup (for old orders that don't have costPrice)
-        const allPackages = await Package.findAll();
-        const packageCostMap = {};
-        allPackages.forEach(pkg => {
-            packageCostMap[pkg.id] = parseFloat(pkg.costPrice || 0);
+        if (users.length === 0) {
+            return res.json({
+                success: true,
+                users: [],
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total: count,
+                    pages: Math.ceil(count / limit)
+                }
+            });
+        }
+
+        const userIds = users.map(u => u.id);
+
+        // OPTIMIZED: Batch query for total loads (credits) per user
+        const loadsResult = await Transaction.findAll({
+            attributes: [
+                'userId',
+                [fn('SUM', col('amount')), 'totalLoads']
+            ],
+            where: { 
+                userId: { [Op.in]: userIds }, 
+                type: 'credit', 
+                status: 'completed' 
+            },
+            group: ['userId'],
+            raw: true
+        });
+        const loadsMap = {};
+        loadsResult.forEach(r => { loadsMap[r.userId] = parseFloat(r.totalLoads) || 0; });
+
+        // OPTIMIZED: Batch query for total orders (sum) per user
+        const ordersResult = await Order.findAll({
+            attributes: [
+                'userId',
+                [fn('SUM', col('total')), 'totalOrders']
+            ],
+            where: { userId: { [Op.in]: userIds } },
+            group: ['userId'],
+            raw: true
+        });
+        const ordersMap = {};
+        ordersResult.forEach(r => { ordersMap[r.userId] = parseFloat(r.totalOrders) || 0; });
+
+        // OPTIMIZED: Batch query for completed orders (for profit calculation)
+        const completedOrders = await Order.findAll({
+            where: { 
+                userId: { [Op.in]: userIds },
+                deliveryStatus: 'Delivered'
+            },
+            attributes: ['userId', 'items', 'total'],
+            raw: true
         });
 
-        // Get total loads, total orders, data capacity and profit for each user
-        const usersWithStats = await Promise.all(users.map(async (user) => {
-            // Total Loads = Sum of all credit transactions for this user
-            const totalLoads = await Transaction.sum('amount', {
-                where: { userId: user.id, type: 'credit', status: 'completed' }
-            }) || 0;
+        // Get package cost map (single query)
+        const allPackages = await Package.findAll({ attributes: ['id', 'costPrice'], raw: true });
+        const packageCostMap = {};
+        allPackages.forEach(pkg => { packageCostMap[pkg.id] = parseFloat(pkg.costPrice || 0); });
 
-            // Total Orders = Sum of all order amounts for this user (all orders)
-            const totalOrders = await Order.sum('total', {
-                where: { userId: user.id }
-            }) || 0;
+        // Pre-calculate stats per user from completed orders
+        const userStats = {};
+        userIds.forEach(id => {
+            userStats[id] = { totalDataGB: 0, totalCost: 0, totalRevenue: 0 };
+        });
 
-            // Get user's COMPLETED orders only for profit calculation
-            // Profit is only realized on delivered orders
-            const completedOrders = await Order.findAll({
-                where: { 
-                    userId: user.id,
-                    deliveryStatus: 'Delivered'
-                },
-                attributes: ['items', 'total']
-            });
-
-            // Calculate total data capacity (GB), revenue and cost from COMPLETED order items only
-            let totalDataGB = 0;
-            let totalCost = 0;
-            let totalRevenue = 0;
-            
-            completedOrders.forEach(order => {
-                const items = order.items || [];
-                items.forEach(item => {
-                    // Only count delivered items for profit
-                    const itemStatus = (item.deliveryStatus || '').toLowerCase();
-                    if (itemStatus === 'delivered' || itemStatus === 'completed') {
-                        // Extract data amount from item.data field (e.g., "5GB", "500MB")
-                        const dataMatch = item.data?.match(/(\d+(?:\.\d+)?)\s*(GB|MB)/i);
-                        if (dataMatch) {
-                            const amount = parseFloat(dataMatch[1]);
-                            const unit = dataMatch[2].toUpperCase();
-                            totalDataGB += unit === 'GB' ? amount : amount / 1024;
-                        }
-                        
-                        // Add revenue (selling price)
-                        totalRevenue += parseFloat(item.price || 0);
-                        
-                        // Add cost price - use from item if available, else lookup from package
-                        const itemCost = item.costPrice ? parseFloat(item.costPrice) : (packageCostMap[item.packageId] || 0);
-                        totalCost += itemCost;
+        completedOrders.forEach(order => {
+            const items = order.items || [];
+            items.forEach(item => {
+                const itemStatus = (item.deliveryStatus || '').toLowerCase();
+                if (itemStatus === 'delivered' || itemStatus === 'completed') {
+                    // Data capacity
+                    const dataMatch = item.data?.match(/(\d+(?:\.\d+)?)\s*(GB|MB)/i);
+                    if (dataMatch) {
+                        const amount = parseFloat(dataMatch[1]);
+                        const unit = dataMatch[2].toUpperCase();
+                        userStats[order.userId].totalDataGB += unit === 'GB' ? amount : amount / 1024;
                     }
-                });
+                    
+                    // Revenue
+                    userStats[order.userId].totalRevenue += parseFloat(item.price || 0);
+                    
+                    // Cost
+                    const itemCost = item.costPrice ? parseFloat(item.costPrice) : (packageCostMap[item.packageId] || 0);
+                    userStats[order.userId].totalCost += itemCost;
+                }
             });
+        });
 
-            // Profit = Revenue from completed orders - Cost of completed orders
-            const profit = totalRevenue - totalCost;
+        // Build response with pre-calculated stats
+        const usersWithStats = users.map(user => {
+            const stats = userStats[user.id] || { totalDataGB: 0, totalCost: 0, totalRevenue: 0 };
+            const profit = stats.totalRevenue - stats.totalCost;
 
             return {
                 id: user.id,
@@ -517,15 +552,15 @@ exports.getAllUsers = async (req, res) => {
                 isVerified: user.isVerified,
                 walletBalance: user.wallet?.balance || 0,
                 wallet: user.wallet ? { balance: user.wallet.balance } : { balance: 0 },
-                totalLoads: parseFloat(totalLoads),
-                totalOrders: parseFloat(totalOrders),
-                totalDataGB: Math.round(totalDataGB * 100) / 100,
-                totalCost: Math.round(totalCost * 100) / 100,
+                totalLoads: loadsMap[user.id] || 0,
+                totalOrders: ordersMap[user.id] || 0,
+                totalDataGB: Math.round(stats.totalDataGB * 100) / 100,
+                totalCost: Math.round(stats.totalCost * 100) / 100,
                 profit: Math.round(profit * 100) / 100,
                 createdAt: user.createdAt,
                 lastLogin: user.lastLogin
             };
-        }));
+        });
 
         res.json({
             success: true,

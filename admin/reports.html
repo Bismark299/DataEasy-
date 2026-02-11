@@ -415,10 +415,28 @@
         // Package cost map for looking up cost prices
         let packageCostMap = {};
 
+        // Helper function to show empty/error state in table
+        function showEmptyState(tbodyId, colspan, message) {
+            const tbody = document.getElementById(tbodyId);
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="${colspan}" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
+                            <p>${message}</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
         // Load reports data
         async function loadReportsData() {
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
+            
+            // Show loading
+            document.getElementById('loadingOverlay').style.display = 'flex';
             
             try {
                 // First, load packages to get cost prices
@@ -445,12 +463,15 @@
                     });
                 }
 
-                // Load orders for sales report
-                const ordersRes = await fetch(`${API_BASE_URL}/admin/orders?limit=1000`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                // Load orders and users in PARALLEL for faster loading
+                const [ordersRes, usersRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/admin/orders?limit=500`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${API_BASE_URL}/admin/users?limit=200`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
                 
                 if (ordersRes.ok) {
                     const ordersData = await ordersRes.json();
@@ -465,24 +486,21 @@
                     updateSalesReport(filteredOrders);
                 } else {
                     console.error('Failed to load orders:', ordersRes.status);
+                    showEmptyState('sales-table-body', 6, 'Failed to load orders. Please try again.');
                 }
 
-                // Load users for agents report
-                const usersRes = await fetch(`${API_BASE_URL}/admin/users?limit=1000`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
                 if (usersRes.ok) {
                     const usersData = await usersRes.json();
                     const users = usersData.users || [];
                     updateAgentsReport(users);
                 } else {
                     console.error('Failed to load users:', usersRes.status);
+                    showEmptyState('agents-table-body', 5, 'Failed to load agents. Please try again.');
                 }
             } catch (error) {
                 console.error('Error loading reports:', error);
+                showEmptyState('sales-table-body', 6, 'Error loading data. Please refresh.');
+                showEmptyState('agents-table-body', 5, 'Error loading data. Please refresh.');
             } finally {
                 document.getElementById('loadingOverlay').style.display = 'none';
             }
