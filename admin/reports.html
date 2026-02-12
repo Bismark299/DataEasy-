@@ -181,6 +181,9 @@
                     <button id="generate-report-btn" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:opacity-90 transition">
                         <i class="fas fa-sync-alt mr-2"></i>Generate
                     </button>
+                    <button id="export-csv-btn" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                        <i class="fas fa-file-csv mr-2"></i>Export CSV
+                    </button>
                 </div>
             </div>
 
@@ -684,13 +687,16 @@
         }
 
         // Export to CSV
-        document.getElementById('export-csv-btn').addEventListener('click', function() {
-            if (reportType === 'sales') {
-                exportSalesCSV();
-            } else {
-                exportAgentsCSV();
-            }
-        });
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        if (exportCsvBtn) {
+            exportCsvBtn.addEventListener('click', function() {
+                if (reportType === 'sales') {
+                    exportSalesCSV();
+                } else {
+                    exportAgentsCSV();
+                }
+            });
+        }
 
         function exportSalesCSV() {
             if (!window.salesDailyData || window.salesDailyData.length === 0) {
@@ -748,7 +754,10 @@
         }
 
         // Generate button
-        document.getElementById('generate-report-btn').addEventListener('click', loadReportsData);
+        const generateBtn = document.getElementById('generate-report-btn');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', loadReportsData);
+        }
 
         // Toggle Reports submenu
         function toggleReportsMenu() {
