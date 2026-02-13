@@ -586,42 +586,41 @@
    ========================================== */
 
 /* Fix for iOS Safari not rendering text colors properly on icons */
-@supports (-webkit-touch-callout: none) {
-    /* Header navigation icons - force color visibility on iOS */
-    header a,
-    header button,
-    header nav a,
-    header .text-gray-300 {
-        -webkit-text-fill-color: #d1d5db !important;
-        color: #d1d5db !important;
-    }
-    
-    header a:hover,
-    header button:hover,
-    header .hover\:text-white:hover {
-        -webkit-text-fill-color: #ffffff !important;
-        color: #ffffff !important;
-    }
-    
-    /* Ensure Font Awesome icons inherit color on iOS */
+/* Direct fix for Font Awesome icons - do not rely on color inheritance */
+header i.fas,
+header i.fa,
+header i.far,
+header i.fab {
+    color: #d1d5db !important;
+}
+
+/* Ensure visibility on all mobile browsers */
+@media (max-width: 767px) {
     header i.fas,
     header i.fa,
     header i.far,
     header i.fab {
-        -webkit-text-fill-color: inherit !important;
-        color: inherit !important;
+        color: #d1d5db !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+}
+
+@supports (-webkit-touch-callout: none) {
+    /* iOS-specific: Force icon visibility */
+    header i.fas,
+    header i.fa,
+    header i.far,
+    header i.fab {
+        -webkit-text-fill-color: #d1d5db !important;
+        color: #d1d5db !important;
+        opacity: 1 !important;
     }
     
     /* Logo text */
     header .text-white {
         -webkit-text-fill-color: #ffffff !important;
         color: #ffffff !important;
-    }
-    
-    /* MTN yellow color for logo icon */
-    header .text-mtn-yellow {
-        -webkit-text-fill-color: #F5C518 !important;
-        color: #F5C518 !important;
     }
 }
 
