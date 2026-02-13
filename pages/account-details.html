@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://js.paystack.co/v1/inline.js"></script>
-    <link rel="stylesheet" href="../assets/css/custom.css?v=20260213">
+    <link rel="stylesheet" href="../assets/css/custom.css?v=20260213b">
     <script src="../assets/js/config.js"></script>
     <script>
         tailwind.config = {
@@ -183,16 +183,16 @@
             </nav>
 
             <!-- Mobile Icons -->
-            <div class="flex md:hidden items-center gap-4">
-                <a href="#" id="account-btn-mobile" class="text-gray-300 hover:text-white transition">
-                    <i class="fas fa-user" style="color: #d1d5db !important;"></i>
+            <div class="flex md:hidden items-center gap-4" style="z-index: 100; position: relative;">
+                <a href="#" id="account-btn-mobile" class="mobile-header-icon">
+                    <i class="fas fa-user"></i>
                 </a>
-                <a href="#" id="cart-btn-mobile" class="text-gray-300 hover:text-white transition relative">
-                    <i class="fas fa-shopping-cart" style="color: #d1d5db !important;"></i>
+                <a href="#" id="cart-btn-mobile" class="mobile-header-icon relative">
+                    <i class="fas fa-shopping-cart"></i>
                     <span data-cart-count class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" style="display: none;">0</span>
                 </a>
-                <button id="mobile-menu-btn" class="text-gray-300 hover:text-white transition">
-                    <i class="fas fa-bars text-xl" style="color: #d1d5db !important;"></i>
+                <button id="mobile-menu-btn" class="mobile-header-icon">
+                    <i class="fas fa-bars"></i>
                 </button>
             </div>
         </div>

@@ -585,6 +585,43 @@
    iOS SAFARI FIXES
    ========================================== */
 
+/* Mobile header icons - bulletproof styling for all mobile browsers */
+.mobile-header-icon {
+    display: -webkit-flex;
+    display: flex;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    z-index: 100;
+    position: relative;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-header-icon i {
+    font-size: 20px;
+    line-height: 1;
+    color: #d1d5db !important;
+    -webkit-text-fill-color: #d1d5db !important;
+    display: block;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+}
+
+.mobile-header-icon:hover i,
+.mobile-header-icon:active i {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+
 /* Fix for iOS Safari not rendering text colors properly on icons */
 /* Direct fix for Font Awesome icons - do not rely on color inheritance */
 header i.fas,
