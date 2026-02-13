@@ -222,7 +222,7 @@ const DataEasyApp = (function() {
                     <span class="absolute top-3 left-3 border-2 ${style.badgeColor} rounded-full px-3 py-0.5 text-xs font-bold">${style.badge}</span>
                     <p class="${style.text} text-3xl sm:text-4xl font-bold mt-4">${pkg.data}</p>
                 </div>
-                <div class="card-footer p-3 grid grid-cols-3 gap-2 text-center">
+                <div class="card-footer p-2 grid grid-cols-3 gap-1 text-center">
                     <div>
                         <p class="text-sm font-semibold">${Format.currency(pkg.price)}</p>
                         <p class="text-xs text-gray-400">Price</p>
@@ -232,7 +232,7 @@ const DataEasyApp = (function() {
                         <p class="text-xs text-gray-400">Rollover</p>
                     </div>
                     <div>
-                        <p class="text-sm font-semibold">No Expiry</p>
+                        <p class="text-sm font-semibold">∞</p>
                         <p class="text-xs text-gray-400">Duration</p>
                     </div>
                 </div>
