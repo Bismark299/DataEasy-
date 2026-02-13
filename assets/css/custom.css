@@ -581,10 +581,55 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* ==========================================
+   iOS SAFARI FIXES
+   ========================================== */
+
+/* Fix for iOS Safari not rendering text colors properly on icons */
+@supports (-webkit-touch-callout: none) {
+    /* Header navigation icons - force color visibility on iOS */
+    header a,
+    header button,
+    header nav a,
+    header .text-gray-300 {
+        -webkit-text-fill-color: #d1d5db !important;
+        color: #d1d5db !important;
+    }
+    
+    header a:hover,
+    header button:hover,
+    header .hover\:text-white:hover {
+        -webkit-text-fill-color: #ffffff !important;
+        color: #ffffff !important;
+    }
+    
+    /* Ensure Font Awesome icons inherit color on iOS */
+    header i.fas,
+    header i.fa,
+    header i.far,
+    header i.fab {
+        -webkit-text-fill-color: inherit !important;
+        color: inherit !important;
+    }
+    
+    /* Logo text */
+    header .text-white {
+        -webkit-text-fill-color: #ffffff !important;
+        color: #ffffff !important;
+    }
+    
+    /* MTN yellow color for logo icon */
+    header .text-mtn-yellow {
+        -webkit-text-fill-color: #F5C518 !important;
+        color: #F5C518 !important;
+    }
+}
+
 /* Text ellipsis */
 .truncate-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -592,6 +637,7 @@
 .truncate-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
