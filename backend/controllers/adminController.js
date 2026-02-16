@@ -871,6 +871,7 @@ exports.getAllTransactions = async (req, res) => {
                 balanceAfter: tx.balanceAfter,
                 description: tx.description,
                 reference: tx.reference,
+                paymentMethod: tx.paymentMethod,
                 status: tx.status,
                 createdAt: tx.createdAt
             })),
