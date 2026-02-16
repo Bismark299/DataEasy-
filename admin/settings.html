@@ -1047,9 +1047,7 @@
                 document.getElementById('allowSelfBuy').checked = settings.allowSelfBuy !== false;
                 document.getElementById('notifyNewOrder').checked = settings.notifyNewOrder !== false;
                 
-                document.getElementById('enableMTN').checked = settings.enableMTN !== false;
-                document.getElementById('enableTelecel').checked = settings.enableTelecel !== false;
-                document.getElementById('enableAirtelTigo').checked = settings.enableAirtelTigo !== false;
+                // Network availability is loaded separately by loadNetworkAvailability() - don't overwrite here
                 
                 document.getElementById('requireOTP').checked = settings.requireOTP || false;
             } catch (error) {
@@ -1082,9 +1080,7 @@
                     allowSelfBuy: document.getElementById('allowSelfBuy').checked,
                     notifyNewOrder: document.getElementById('notifyNewOrder').checked,
                     
-                    enableMTN: document.getElementById('enableMTN').checked,
-                    enableTelecel: document.getElementById('enableTelecel').checked,
-                    enableAirtelTigo: document.getElementById('enableAirtelTigo').checked,
+                    // Network availability is saved separately via saveNetworkAvailability()
                     
                     requireOTP: document.getElementById('requireOTP').checked,
                     sessionTimeout: parseInt(document.getElementById('sessionTimeout').value),
