@@ -462,7 +462,7 @@ exports.getAllUsers = async (req, res) => {
 
         const userIds = users.map(u => u.id);
 
-        // OPTIMIZED: Batch query for total loads (credits) per user
+        // OPTIMIZED: Batch query for total loads (Paystack deposits + admin credits) per user
         const loadsResult = await Transaction.findAll({
             attributes: [
                 'userId',
@@ -471,7 +471,8 @@ exports.getAllUsers = async (req, res) => {
             where: { 
                 userId: { [Op.in]: userIds }, 
                 type: 'credit', 
-                status: 'completed' 
+                status: 'completed',
+                paymentMethod: { [Op.in]: ['paystack', 'manual'] }  // Deposits + admin credits
             },
             group: ['userId'],
             raw: true
