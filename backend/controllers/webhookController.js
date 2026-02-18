@@ -50,6 +50,10 @@ exports.handlePaystack = async (req, res) => {
                 await handleChargeSuccess(event.data);
                 break;
             
+            case 'charge.failed':
+                await handleChargeFailed(event.data);
+                break;
+            
             case 'transfer.success':
                 await handleTransferSuccess(event.data);
                 break;
@@ -156,6 +160,36 @@ async function handleChargeSuccess(data) {
     } catch (error) {
         await t.rollback();
         console.error('handleChargeSuccess error:', error);
+    }
+}
+
+/**
+ * Handle failed charge (deposit) - mark pending transaction as failed
+ */
+async function handleChargeFailed(data) {
+    try {
+        const { reference, gateway_response } = data;
+        console.log('Charge failed:', reference, gateway_response);
+
+        // Find and update the pending transaction
+        const transaction = await Transaction.findOne({
+            where: { reference, status: 'pending' }
+        });
+
+        if (transaction) {
+            transaction.status = 'failed';
+            transaction.metadata = JSON.stringify({
+                ...JSON.parse(transaction.metadata || '{}'),
+                failureReason: gateway_response || 'Payment failed',
+                failedAt: new Date().toISOString()
+            });
+            await transaction.save();
+            console.log('Transaction marked as failed:', reference);
+        } else {
+            console.log('No pending transaction found for:', reference);
+        }
+    } catch (error) {
+        console.error('handleChargeFailed error:', error);
     }
 }
 

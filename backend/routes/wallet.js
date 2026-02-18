@@ -25,5 +25,6 @@ router.get('/topup/fee', walletController.calculateFee);
 // Topup operations with rate limiting and idempotency protection
 router.post('/topup', topupLimiter, requireIdempotency, topupValidation, walletController.initializeTopup);
 router.get('/topup/verify/:reference', walletController.verifyTopup);
+router.post('/topup/cancel/:reference', walletController.cancelTopup);
 
 module.exports = router;

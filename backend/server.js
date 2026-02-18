@@ -433,6 +433,15 @@ const startServer = async () => {
     } catch (error) {
         console.error('⚠️ Background sync start error:', error.message);
     }
+
+    // Start pending deposit cleaner service
+    try {
+        const pendingDepositCleaner = require('./services/pendingDepositCleaner');
+        pendingDepositCleaner.start();
+        console.log('✅ Pending deposit cleaner service started');
+    } catch (error) {
+        console.error('⚠️ Pending deposit cleaner start error:', error.message);
+    }
     });
 
     // Handle server errors
@@ -448,6 +457,14 @@ const startServer = async () => {
     const gracefulShutdown = async (signal) => {
         console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
         
+        // Stop background services
+        try {
+            const pendingDepositCleaner = require('./services/pendingDepositCleaner');
+            pendingDepositCleaner.stop();
+        } catch (err) {
+            // Ignore if service wasn't started
+        }
+
         // Stop accepting new connections
         server.close(async () => {
             console.log('✅ HTTP server closed');

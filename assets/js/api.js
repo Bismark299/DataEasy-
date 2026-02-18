@@ -307,6 +307,16 @@ const DataEasyAPI = (function() {
 
         async verifyTopup(reference) {
             return await request(`/wallet/topup/verify/${reference}`);
+        },
+
+        /**
+         * Cancel a pending topup (called when user closes popup without completing)
+         * @param {string} reference - Transaction reference
+         */
+        async cancelTopup(reference) {
+            return await request(`/wallet/topup/cancel/${reference}`, {
+                method: 'POST'
+            });
         }
     };
 
@@ -719,6 +729,10 @@ const DataEasyAPI = (function() {
                 },
                 onClose: function() {
                     console.log('🚪 Paystack popup closed');
+                    // Cancel the pending transaction since user didn't complete payment
+                    Wallet.cancelTopup(backendReference)
+                        .then(() => console.log('✅ Pending transaction cancelled'))
+                        .catch(err => console.error('❌ Failed to cancel pending transaction:', err));
                     if (onClose) onClose();
                 }
             });

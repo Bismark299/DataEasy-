@@ -306,3 +306,50 @@ exports.verifyTopup = async (req, res) => {
         res.status(500).json({ error: 'Failed to verify payment' });
     }
 };
+
+/**
+ * Cancel a pending deposit (when user closes popup without completing)
+ * POST /api/wallet/topup/cancel/:reference
+ */
+exports.cancelTopup = async (req, res) => {
+    try {
+        const { reference } = req.params;
+        logger.debug('Cancelling topup', { reference, userId: req.user.id });
+
+        // Find the pending transaction belonging to this user
+        const transaction = await Transaction.findOne({
+            where: {
+                reference,
+                userId: req.user.id,
+                status: 'pending'
+            }
+        });
+
+        if (!transaction) {
+            // Transaction not found or already completed/failed - that's fine
+            return res.json({
+                success: true,
+                message: 'Transaction already processed or not found'
+            });
+        }
+
+        // Mark as cancelled
+        transaction.status = 'failed';
+        transaction.metadata = JSON.stringify({
+            ...JSON.parse(transaction.metadata || '{}'),
+            cancelledByUser: true,
+            cancelledAt: new Date().toISOString()
+        });
+        await transaction.save();
+
+        logger.debug('Topup cancelled by user', { reference, userId: req.user.id });
+
+        res.json({
+            success: true,
+            message: 'Payment cancelled'
+        });
+    } catch (error) {
+        logger.error('Cancel topup error', { error: error.message, reference: req.params?.reference });
+        res.status(500).json({ error: 'Failed to cancel payment' });
+    }
+};
