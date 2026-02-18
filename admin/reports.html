@@ -651,14 +651,11 @@
                 `;
             } else {
                 tbody.innerHTML = users.map((user, index) => {
-                    // Wallet Loads = Total loads from API (credits to wallet)
+                    // Wallet Loads = Total loads from API (paystack + admin credits)
                     const walletLoads = parseFloat(user.totalLoads || 0);
                     
                     // Total Orders = Sum of all orders placed by user
                     const totalOrders = parseFloat(user.totalOrders || 0);
-                    
-                    // Calculate net wallet loads (loads - orders spent)
-                    const netWalletLoads = walletLoads - totalOrders;
                     
                     // Data capacity from API
                     const dataCapacity = parseFloat(user.totalDataGB || 0);
@@ -673,7 +670,7 @@
                             <td class="px-6 py-4 text-sm text-blue-600 font-medium">
                                 ${esc(user.fullName.toUpperCase())} (${esc(user.agentCode || 'N/A')})
                             </td>
-                            <td class="px-6 py-4 text-sm text-gray-800 text-center">${esc(netWalletLoads.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}))}</td>
+                            <td class="px-6 py-4 text-sm text-gray-800 text-center">${esc(walletLoads.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}))}</td>
                             <td class="px-6 py-4 text-sm text-gray-800 text-center font-medium">${esc(totalOrders.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}))}</td>
                             <td class="px-6 py-4 text-sm text-gray-800 text-center">${esc(dataCapacity)} GB</td>
                             <td class="px-6 py-4 text-sm text-center font-semibold bg-slate-900 text-white">${esc(profit.toFixed(2))}</td>
@@ -734,12 +731,11 @@
             window.agentsData.forEach(user => {
                 const walletLoads = parseFloat(user.totalLoads || 0);
                 const totalOrders = parseFloat(user.totalOrders || 0);
-                const netWalletLoads = walletLoads - totalOrders;
                 const dataCapacity = parseFloat(user.totalDataGB || 0);
                 const profit = parseFloat(user.profit || 0);
                 const agentName = `${user.fullName.toUpperCase()} (${user.agentCode || 'N/A'})`;
                 
-                csv += `"${agentName}","${netWalletLoads.toFixed(2)}","${totalOrders.toFixed(2)}","${dataCapacity} GB","${profit.toFixed(2)}"\n`;
+                csv += `"${agentName}","${walletLoads.toFixed(2)}","${totalOrders.toFixed(2)}","${dataCapacity} GB","${profit.toFixed(2)}"\n`;
             });
 
             downloadCSV(csv, 'agents-report.csv');
