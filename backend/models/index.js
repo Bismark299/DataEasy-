@@ -13,7 +13,7 @@ const IdempotencyKey = require('./IdempotencyKey');
 const Package = require('./Package');
 const Setting = require('./Setting')(sequelize);
 const ProviderTransaction = require('./ProviderTransaction');
-const MoMoDeposit = require('./MoMoDeposit');
+// const MoMoDeposit = require('./MoMoDeposit'); // Temporarily disabled
 
 // Define associations
 
@@ -82,15 +82,15 @@ ProviderTransaction.belongsTo(User, {
     as: 'user'
 });
 
-// User has many MoMoDeposits
-User.hasMany(MoMoDeposit, {
-    foreignKey: 'userId',
-    as: 'momoDeposits'
-});
-MoMoDeposit.belongsTo(User, {
-    foreignKey: 'userId',
-    as: 'user'
-});
+// User has many MoMoDeposits - Temporarily disabled
+// User.hasMany(MoMoDeposit, {
+//     foreignKey: 'userId',
+//     as: 'momoDeposits'
+// });
+// MoMoDeposit.belongsTo(User, {
+//     foreignKey: 'userId',
+//     as: 'user'
+// });
 
 module.exports = {
     sequelize,
@@ -102,6 +102,6 @@ module.exports = {
     IdempotencyKey,
     Package,
     Setting,
-    ProviderTransaction,
-    MoMoDeposit
+    ProviderTransaction
+    // MoMoDeposit - Temporarily disabled
 };

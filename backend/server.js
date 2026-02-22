@@ -87,7 +87,7 @@ const orderRoutes = require('./routes/orders');
 const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const webhookRoutes = require('./routes/webhook');
-const momoRoutes = require('./routes/momo');
+// const momoRoutes = require('./routes/momo'); // Temporarily disabled
 
 console.log('✅ Routes loaded successfully');
 
@@ -325,7 +325,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhook', webhookRoutes);
-app.use('/api/momo', momoRoutes);
+// app.use('/api/momo', momoRoutes); // Temporarily disabled
 
 // ==========================================
 // SERVE STATIC FRONTEND FILES
