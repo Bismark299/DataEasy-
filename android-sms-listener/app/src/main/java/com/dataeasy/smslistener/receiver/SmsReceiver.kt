@@ -249,26 +249,31 @@ class SmsReceiver : BroadcastReceiver() {
                         // Show message preview in notification
                         showDebugNotification(context, "MSG: ${body.take(60)}...")
                         
-                        // ============ DEBUG MODE: SAVE ALL SMS ============
-                        // Create a transaction for EVERY SMS so we can see what's coming in
-                        val debugTransaction = MoMoTransaction(
-                            transactionId = "DEBUG${timestamp}${body.hashCode().toString().takeLast(4)}",
-                            amount = extractAmountSimple(body) ?: 0.0,
-                            senderPhone = sender,
-                            reference = extractReferenceSimple(body),
+                        // Extract fields using simple reliable patterns
+                        val amount = extractAmountSimple(body) ?: 0.0
+                        val transactionId = extractTransactionIdSimple(body) ?: "AUTO${timestamp}"
+                        val reference = extractReferenceSimple(body)
+                        val senderName = extractSenderSimple(body) ?: sender
+                        
+                        Log.i(TAG, "✅ Extracted: Amount=$amount, TxnID=$transactionId, Ref=$reference, Sender=$senderName")
+                        
+                        // Create transaction
+                        val transaction = MoMoTransaction(
+                            transactionId = transactionId,
+                            amount = amount,
+                            senderPhone = senderName,
+                            reference = reference,
                             rawMessage = body,
                             smsSender = sender,
                             receivedAt = timestamp,
                             status = MoMoTransaction.Status.PENDING
                         )
                         
-                        Log.i(TAG, "✅ DEBUG: Saving ALL SMS - Amount=${debugTransaction.amount}, Ref=${debugTransaction.reference}")
-                        showDebugNotification(context, "💾 SAVING: GHS ${debugTransaction.amount} - ${debugTransaction.reference ?: "No ref"}")
+                        showDebugNotification(context, "💾 GHS $amount | ${reference ?: "No ref"} | ID:${transactionId.take(8)}...")
                         
-                        // Save directly without the strict parser
-                        SmsListenerService.processTransaction(context, debugTransaction)
+                        // Save and send to server
+                        SmsListenerService.processTransaction(context, transaction)
                         showDebugNotification(context, "📤 Sending to server...")
-                        // ============ END DEBUG MODE ============
                         
                     } catch (e: Exception) {
                         // Log but continue with next message - don't let one failure stop others
@@ -311,11 +316,12 @@ class SmsReceiver : BroadcastReceiver() {
     }
     
     /**
-     * Simple amount extraction for debug mode - just find any number that looks like money
+     * Simple amount extraction - find "GHS X.XX" or "for GHS X.XX"
+     * Based on: /(\d+(\.\d+)?)/
      */
     private fun extractAmountSimple(body: String): Double? {
-        // Look for GHS/GHC followed by numbers
-        val ghsPattern = Regex("GH[SC]\\s*([\\d,]+\\.?\\d*)", RegexOption.IGNORE_CASE)
+        // Best: "for GHS 1.00" or "GHS 1.00"
+        val ghsPattern = Regex("GH[SC]\\s*([\\d,]+\\.\\d{2})", RegexOption.IGNORE_CASE)
         ghsPattern.find(body)?.let { match ->
             val amountStr = match.groupValues[1].replace(",", "")
             try {
@@ -323,12 +329,11 @@ class SmsReceiver : BroadcastReceiver() {
             } catch (e: Exception) { }
         }
         
-        // Look for numbers followed by GHS/GHC
-        val reversePattern = Regex("([\\d,]+\\.\\d{2})\\s*GH[SC]", RegexOption.IGNORE_CASE)
-        reversePattern.find(body)?.let { match ->
-            val amountStr = match.groupValues[1].replace(",", "")
+        // Fallback: any decimal number (like Node.js example)
+        val simplePattern = Regex("(\\d+\\.\\d{2})")
+        simplePattern.find(body)?.let { match ->
             try {
-                return amountStr.toDouble()
+                return match.groupValues[1].toDouble()
             } catch (e: Exception) { }
         }
         
@@ -336,10 +341,67 @@ class SmsReceiver : BroadcastReceiver() {
     }
     
     /**
-     * Simple reference extraction for debug mode - look for BT-XXXX pattern
+     * Simple transaction ID extraction
+     * Based on: /ID[:\s]?(\w+)/i
+     */
+    private fun extractTransactionIdSimple(body: String): String? {
+        // MTN format: "Transaction ID: 75785045813"
+        val txnPattern = Regex("Transaction\\s*ID[:\\s]+([\\w]+)", RegexOption.IGNORE_CASE)
+        txnPattern.find(body)?.let { match ->
+            return match.groupValues[1]
+        }
+        
+        // Fallback: "ID: XXXXX" or "ID:XXXXX"
+        val idPattern = Regex("ID[:\\s]+([\\w]{8,})", RegexOption.IGNORE_CASE)
+        idPattern.find(body)?.let { match ->
+            return match.groupValues[1]
+        }
+        
+        return null
+    }
+    
+    /**
+     * Simple reference extraction - look for BT-XXXX pattern
      */
     private fun extractReferenceSimple(body: String): String? {
-        val refPattern = Regex("\\b(BT-\\d{4})\\b", RegexOption.IGNORE_CASE)
-        return refPattern.find(body)?.groupValues?.get(1)?.uppercase()
+        // "Reference: BT-2224"
+        val refPattern = Regex("Reference[:\\s]+([\\w-]+)", RegexOption.IGNORE_CASE)
+        refPattern.find(body)?.let { match ->
+            val ref = match.groupValues[1]
+            // Check if it's an agent code
+            if (ref.uppercase().startsWith("BT")) {
+                return ref.uppercase()
+            }
+            return ref
+        }
+        
+        // Direct BT-XXXX pattern anywhere in message
+        val btPattern = Regex("\\b(BT-?\\d{4})\\b", RegexOption.IGNORE_CASE)
+        btPattern.find(body)?.let { match ->
+            val code = match.groupValues[1].uppercase()
+            // Normalize to BT-XXXX format
+            return if (code.contains("-")) code else "BT-${code.substring(2)}"
+        }
+        
+        return null
+    }
+    
+    /**
+     * Extract sender name from "from NAME  Current" pattern
+     */
+    private fun extractSenderSimple(body: String): String? {
+        // "from SYLVESTER KARIKARI  Current Balance"
+        val namePattern = Regex("from\\s+([A-Z][A-Za-z\\s]+?)\\s{2,}", RegexOption.IGNORE_CASE)
+        namePattern.find(body)?.let { match ->
+            return match.groupValues[1].trim()
+        }
+        
+        // "from NAME Current Balance"
+        val namePattern2 = Regex("from\\s+([A-Z][A-Za-z\\s]+?)\\s+Current", RegexOption.IGNORE_CASE)
+        namePattern2.find(body)?.let { match ->
+            return match.groupValues[1].trim()
+        }
+        
+        return null
     }
 }
