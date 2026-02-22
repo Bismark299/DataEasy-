@@ -81,6 +81,10 @@ interface TransactionDao {
     @Query("UPDATE transactions SET status = 'PENDING', retryCount = 0, lastError = NULL WHERE id = :id")
     suspend fun resetToPending(id: Long)
     
+    /** Reset ALL failed transactions to PENDING (for retry all) */
+    @Query("UPDATE transactions SET status = 'PENDING', retryCount = 0, lastError = NULL WHERE status = 'FAILED'")
+    suspend fun resetAllFailedToPending(): Int
+    
     // ==================== DELETES ====================
     
     /** Delete old successful transactions (cleanup) */

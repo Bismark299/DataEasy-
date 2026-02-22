@@ -13,6 +13,7 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.dataeasy.momolistener.R
+import com.dataeasy.momolistener.sms.SmsObserver
 import com.dataeasy.momolistener.ui.MainActivity
 import com.dataeasy.momolistener.worker.TransactionUploadWorker
 
@@ -75,6 +76,10 @@ class ListenerService : Service() {
         // Acquire wake lock for reliability (optional)
         acquireWakeLock()
         
+        // Register SMS ContentObserver (more reliable than BroadcastReceiver)
+        SmsObserver.register(this)
+        Log.i(TAG, "SMS Observer registered for reliable detection")
+        
         // Ensure periodic upload worker is scheduled
         TransactionUploadWorker.enqueuePeriodicWork(this)
         
@@ -85,6 +90,10 @@ class ListenerService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.w(TAG, "Service destroyed")
+        
+        // Unregister SMS Observer
+        SmsObserver.unregister(this)
+        
         releaseWakeLock()
     }
     

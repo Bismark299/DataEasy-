@@ -256,7 +256,18 @@ class MainActivity : AppCompatActivity() {
      */
     private fun retryFailed() {
         Toast.makeText(this, "Retrying failed uploads...", Toast.LENGTH_SHORT).show()
-        TransactionUploadWorker.enqueueImmediate(this)
+        
+        // First reset all failed transactions to pending
+        lifecycleScope.launch {
+            val count = withContext(Dispatchers.IO) {
+                MoMoListenerApp.getInstance().repository.resetAllFailed()
+            }
+            if (count > 0) {
+                Toast.makeText(this@MainActivity, "Reset $count failed → retrying", Toast.LENGTH_SHORT).show()
+            }
+            // Then trigger upload
+            TransactionUploadWorker.enqueueImmediate(this@MainActivity)
+        }
     }
     
     /**

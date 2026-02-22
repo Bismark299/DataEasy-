@@ -75,6 +75,15 @@ class TransactionRepository(private val database: AppDatabase) {
     }
     
     /**
+     * Reset all failed transactions back to pending for retry
+     */
+    suspend fun resetAllFailed(): Int {
+        val count = dao.resetAllFailedToPending()
+        Log.i(TAG, "Reset $count failed transactions to PENDING")
+        return count
+    }
+    
+    /**
      * Get status counts for dashboard
      */
     suspend fun getStatusCounts(): Map<String, Int> {
