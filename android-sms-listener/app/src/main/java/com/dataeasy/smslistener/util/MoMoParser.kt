@@ -11,57 +11,87 @@ import java.util.regex.Pattern
  * - Transaction ID
  * - Amount received
  * - Sender phone number
- * - Reference/Message (used for username matching)
+ * - Reference/Message (used for username matching via Agent Code BT-XXXX)
  * 
- * Sample MoMo SMS formats:
+ * ===== SUPPORTED MTN GHANA MOMO FORMATS =====
  * 
- * MTN Ghana Format 1:
+ * Format 1 (Standard Receive Money):
  * "You have received GHS 50.00 from 0241234567. Transaction ID: 123456789012. Your new balance is GHS 100.00"
  * 
- * MTN Ghana Format 2:
- * "Cash In of GHS 100.00 received from 0551234567. Ref: username123. Trans ID: 987654321012. Balance: GHS 200.00"
+ * Format 2 (Cash In with Reference):
+ * "Cash In of GHS 100.00 received from 0551234567. Ref: BT-1234. Trans ID: 987654321012. Balance: GHS 200.00"
  * 
- * Telecel Ghana:
- * "You have received GHS 25.00 from 0201234567. Reference: myusername. ID: TXN123456789"
+ * Format 3 (Agent Deposit):
+ * "You have received GHS 75.00 from Agent 0241234567.Ref:BT-5678.TxnID:MTN123456789.Bal:GHS150.00"
  * 
- * AirtelTigo:
- * "Deposit of GHS 75.00 received from 0271234567 with message: testuser. Transaction ID: AT123456789"
+ * Format 4 (Merchant Payment Received):
+ * "Payment of GHS 30.00 received from 0551112222. Message: BT-9999. ID: PAY987654321"
+ * 
+ * Format 5 (International Format):
+ * "You have received GHS 200.00 from +233241234567. Reference: BT-0001. Transaction ID: INT123456789"
+ * 
+ * Format 6 (Short Format):
+ * "Received GHS50.00 from 0241234567. ID:123456789012"
+ * 
+ * Format 7 (Credit Alert):
+ * "Credit Alert: GHS 100.00 credited to your wallet from 0551234567. Narration: BT-1111. Ref: TXN123456"
+ * 
+ * ===== AGENT CODE MATCHING =====
+ * Users add their Agent Code (BT-XXXX) as the reference/message when sending
+ * This allows automatic matching of deposits to user accounts
  */
 object MoMoParser {
     
     private const val TAG = "MoMoParser"
     
-    // Regex patterns for different MoMo message formats
+    // ========== REGEX PATTERNS FOR DATA EXTRACTION ==========
     
     // Amount patterns: "GHS 50.00", "GHS50.00", "GHC 50.00", "50.00 GHS"
     private val AMOUNT_PATTERNS = listOf(
         Pattern.compile("GH[SC]\\s*([\\d,]+\\.?\\d*)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("([\\d,]+\\.?\\d*)\\s*GH[SC]", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("received\\s+([\\d,]+\\.?\\d*)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("of\\s+([\\d,]+\\.?\\d*)", Pattern.CASE_INSENSITIVE)
+        Pattern.compile("(?:received|credited|of)\\s+([\\d,]+\\.\\d{2})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(?:GH[SC])?\\s*([\\d]{1,3}(?:,?\\d{3})*\\.\\d{2})\\s*(?:GH[SC])?", Pattern.CASE_INSENSITIVE)
     )
     
-    // Transaction ID patterns
+    // Transaction ID patterns (various MTN formats)
     private val TRANSACTION_ID_PATTERNS = listOf(
-        Pattern.compile("Trans(?:action)?\\s*(?:ID)?[:\\s]+([A-Za-z0-9]+)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("ID[:\\s]+([A-Za-z0-9]{8,})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("Ref(?:erence)?[:\\s]+([A-Za-z0-9]+)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("TXN[:\\s]*([A-Za-z0-9]+)", Pattern.CASE_INSENSITIVE)
+        // Standard formats
+        Pattern.compile("Trans(?:action)?\\s*(?:ID)?[:\\s]*([A-Za-z0-9]{8,20})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("TxnID[:\\s]*([A-Za-z0-9]{8,20})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("Txn\\s*ID[:\\s]*([A-Za-z0-9]{8,20})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bID[:\\s]+([A-Za-z0-9]{10,20})\\b", Pattern.CASE_INSENSITIVE),
+        // Short formats
+        Pattern.compile("ID:([A-Za-z0-9]{10,20})", Pattern.CASE_INSENSITIVE),
+        // With prefixes
+        Pattern.compile("(MTN[A-Za-z0-9]{10,15})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(PAY[A-Za-z0-9]{10,15})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(TXN[A-Za-z0-9]{10,15})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(INT[A-Za-z0-9]{10,15})", Pattern.CASE_INSENSITIVE)
     )
     
-    // Sender phone number patterns (Ghana formats)
+    // Sender phone number patterns (Ghana formats: 024, 054, 055, 059, etc.)
     private val PHONE_PATTERNS = listOf(
-        Pattern.compile("from\\s+(\\+?233[0-9]{9}|0[0-9]{9})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(\\+?233[0-9]{9}|0[235][0-9]{8})"),
-        Pattern.compile("from\\s+([0-9]{10,})", Pattern.CASE_INSENSITIVE)
+        Pattern.compile("from\\s+(\\+?233[0-9]{9})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("from\\s+(0[235][0-9]{8})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("from\\s+Agent\\s+(0[235][0-9]{8})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(\\+233[0-9]{9})"),
+        Pattern.compile("\\b(0[235][0-9]{8})\\b")
     )
     
-    // Reference/Message patterns (for username matching)
+    // Reference/Message patterns (for Agent Code BT-XXXX matching)
     private val REFERENCE_PATTERNS = listOf(
-        Pattern.compile("Ref(?:erence)?[:\\s]+([\\w]+)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("message[:\\s]+([\\w]+)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("with\\s+message[:\\s]+([\\w]+)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("narration[:\\s]+([\\w]+)", Pattern.CASE_INSENSITIVE)
+        // Agent Code is highest priority
+        Pattern.compile("\\b(BT-\\d{4})\\b", Pattern.CASE_INSENSITIVE),
+        // Reference variations
+        Pattern.compile("Ref[:\\s]+([\\w-]+)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("Reference[:\\s]+([\\w-]+)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("Message[:\\s]+([\\w-]+)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("Narration[:\\s]+([\\w-]+)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("with\\s+message[:\\s]+([\\w-]+)", Pattern.CASE_INSENSITIVE),
+        // Short formats (no space after colon)
+        Pattern.compile("Ref:([\\w-]+)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("Msg:([\\w-]+)", Pattern.CASE_INSENSITIVE)
     )
     
     /**
@@ -73,54 +103,64 @@ object MoMoParser {
      * @return MoMoTransaction if parsing successful, null otherwise
      */
     fun parse(body: String, sender: String, timestamp: Long): MoMoTransaction? {
-        Log.d(TAG, "Parsing SMS: $body")
+        Log.i(TAG, "========== PARSING MOMO SMS ==========")
+        Log.d(TAG, "Body: $body")
+        Log.d(TAG, "Sender: $sender")
         
-        // Skip if this is clearly not a deposit (e.g., "You sent", "You paid", "Withdrawal")
         val lowerBody = body.lowercase()
-        if (lowerBody.contains("you sent") || 
-            lowerBody.contains("you paid") ||
-            lowerBody.contains("you have sent") ||
-            lowerBody.contains("withdrawal") ||
-            lowerBody.contains("withdrawn") ||
-            lowerBody.contains("deducted") ||
-            lowerBody.contains("transferred to")) {
-            Log.d(TAG, "Skipping non-deposit message")
+        
+        // ===== STEP 1: Validate this is a deposit message =====
+        // Skip if this is clearly not a deposit (outgoing transaction)
+        val nonDepositKeywords = listOf(
+            "you sent", "you paid", "you have sent", "withdrawal", "withdrawn",
+            "deducted", "transferred to", "payment to", "airtime", "data bundle"
+        )
+        if (nonDepositKeywords.any { lowerBody.contains(it) }) {
+            Log.i(TAG, "❌ REJECTED: Contains non-deposit keywords")
             return null
         }
         
         // Must contain deposit keywords
-        if (!lowerBody.contains("received") && 
-            !lowerBody.contains("cash in") &&
-            !lowerBody.contains("deposit") &&
-            !lowerBody.contains("credited")) {
-            Log.d(TAG, "No deposit keywords found")
+        val depositKeywords = listOf("received", "cash in", "deposit", "credited", "credit alert")
+        if (!depositKeywords.any { lowerBody.contains(it) }) {
+            Log.i(TAG, "❌ REJECTED: No deposit keywords found")
             return null
         }
         
-        // Extract amount
+        // ===== STEP 2: Extract Amount (REQUIRED) =====
         val amount = extractAmount(body)
         if (amount == null || amount <= 0) {
-            Log.w(TAG, "Could not extract valid amount")
+            Log.w(TAG, "❌ REJECTED: Could not extract valid amount")
             return null
         }
+        Log.i(TAG, "✅ Amount: GHS ${"%.2f".format(amount)}")
         
-        // Extract transaction ID
+        // ===== STEP 3: Extract Transaction ID (REQUIRED for deduplication) =====
         val transactionId = extractTransactionId(body)
         if (transactionId == null) {
-            Log.w(TAG, "Could not extract transaction ID")
+            Log.w(TAG, "❌ REJECTED: Could not extract transaction ID")
             return null
         }
+        Log.i(TAG, "✅ Transaction ID: $transactionId")
         
-        // Extract sender phone (optional but useful)
-        val senderPhone = extractPhone(body)
+        // ===== STEP 4: Extract Sender Phone (OPTIONAL) =====
+        val senderPhone = extractPhone(body) ?: "Unknown"
+        Log.i(TAG, "ℹ️ Sender Phone: $senderPhone")
         
-        // Extract reference (USERNAME for matching)
+        // ===== STEP 5: Extract Reference/Agent Code (CRITICAL for user matching) =====
         val reference = extractReference(body)
+        if (reference != null) {
+            Log.i(TAG, "✅ Reference/Agent Code: $reference")
+        } else {
+            Log.w(TAG, "⚠️ No reference found - will need manual matching")
+        }
+        
+        Log.i(TAG, "========== PARSE SUCCESS ==========")
         
         return MoMoTransaction(
             transactionId = transactionId,
             amount = amount,
-            senderPhone = senderPhone ?: "Unknown",
+            senderPhone = senderPhone,
             reference = reference,
             rawMessage = body,
             smsSender = sender,
@@ -185,34 +225,53 @@ object MoMoParser {
     }
     
     private fun extractReference(body: String): String? {
-        // PRIORITY 1: Look for Agent Code pattern (BT-XXXX)
-        val agentCodePattern = Pattern.compile("\\b(BT-\\d{4})\\b", Pattern.CASE_INSENSITIVE)
-        val agentMatcher = agentCodePattern.matcher(body)
-        if (agentMatcher.find()) {
-            val agentCode = agentMatcher.group(1)?.uppercase()
-            if (agentCode != null) {
-                Log.d(TAG, "Extracted agent code: $agentCode")
+        // ===== PRIORITY 1: Look for Agent Code pattern (BT-XXXX) anywhere in message =====
+        // This is the MOST IMPORTANT extraction for automatic user matching
+        val agentCodePatterns = listOf(
+            Pattern.compile("\\b(BT-\\d{4})\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("(BT\\d{4})", Pattern.CASE_INSENSITIVE),  // Without hyphen
+            Pattern.compile("\\b(BT[-_]?\\d{4})\\b", Pattern.CASE_INSENSITIVE)  // With hyphen or underscore
+        )
+        
+        for (pattern in agentCodePatterns) {
+            val matcher = pattern.matcher(body)
+            if (matcher.find()) {
+                var agentCode = matcher.group(1)?.uppercase() ?: continue
+                // Normalize: ensure format is BT-XXXX
+                if (!agentCode.contains("-")) {
+                    agentCode = "BT-${agentCode.substring(2)}"
+                }
+                Log.i(TAG, "✅ Found Agent Code: $agentCode")
                 return agentCode
             }
         }
         
-        // PRIORITY 2: Try standard reference patterns
+        // ===== PRIORITY 2: Try standard reference patterns =====
         for (pattern in REFERENCE_PATTERNS) {
             val matcher = pattern.matcher(body)
             if (matcher.find()) {
-                val ref = matcher.group(1)
+                val ref = matcher.group(1)?.trim()
                 if (ref != null && ref.length >= 3) {
                     // Check if this ref contains an agent code
-                    val innerAgentMatch = agentCodePattern.matcher(ref)
-                    if (innerAgentMatch.find()) {
-                        Log.d(TAG, "Extracted agent code from ref: ${innerAgentMatch.group(1)?.uppercase()}")
-                        return innerAgentMatch.group(1)?.uppercase()
+                    for (agentPattern in agentCodePatterns) {
+                        val innerMatcher = agentPattern.matcher(ref)
+                        if (innerMatcher.find()) {
+                            var agentCode = innerMatcher.group(1)?.uppercase() ?: continue
+                            if (!agentCode.contains("-")) {
+                                agentCode = "BT-${agentCode.substring(2)}"
+                            }
+                            Log.i(TAG, "✅ Found Agent Code in reference: $agentCode")
+                            return agentCode
+                        }
                     }
-                    Log.d(TAG, "Extracted reference: $ref")
+                    // Return the reference as-is if no agent code found
+                    Log.d(TAG, "Found reference (no agent code): $ref")
                     return ref
                 }
             }
         }
+        
+        Log.d(TAG, "No reference/agent code found in message")
         return null
     }
     

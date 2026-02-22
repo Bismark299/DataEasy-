@@ -19,16 +19,22 @@ class BootReceiver : BroadcastReceiver() {
     
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED ||
+            intent.action == Intent.ACTION_MY_PACKAGE_REPLACED ||
             intent.action == "android.intent.action.QUICKBOOT_POWERON") {
             
-            Log.i(TAG, "Device boot completed, starting SMS listener service")
+            Log.i(TAG, "Boot/update detected (${intent.action}), starting SMS listener service")
             
-            val serviceIntent = Intent(context, SmsListenerService::class.java)
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
+            try {
+                val serviceIntent = Intent(context, SmsListenerService::class.java)
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
+                } else {
+                    context.startService(serviceIntent)
+                }
+                Log.i(TAG, "Service start command sent successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start service", e)
             }
         }
     }

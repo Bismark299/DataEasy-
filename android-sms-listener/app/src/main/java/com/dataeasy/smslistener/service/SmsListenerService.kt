@@ -41,25 +41,49 @@ class SmsListenerService : Service() {
         
         /**
          * Process a new transaction (called from SmsReceiver)
+         * IMPORTANT: Save to DB first, then send asynchronously - never block the receiver!
          */
         suspend fun processTransaction(context: Context, transaction: MoMoTransaction) {
-            val app = MoMoListenerApp.getInstance()
-            val dao = app.database.momoTransactionDao()
-            
-            // Check for duplicate
-            if (dao.existsByTransactionId(transaction.transactionId) > 0) {
-                Log.w(TAG, "Duplicate transaction: ${transaction.transactionId}")
-                return
-            }
-            
-            // Save to database
-            val id = dao.insert(transaction)
-            Log.i(TAG, "Saved transaction: ${transaction.transactionId}, id=$id")
-            
-            // Try to send immediately
-            if (id > 0) {
-                val savedTx = transaction.copy(id = id)
-                sendToServer(savedTx)
+            try {
+                val app = MoMoListenerApp.getInstance()
+                val dao = app.database.momoTransactionDao()
+                
+                // Check for duplicate
+                val existingCount = try {
+                    dao.existsByTransactionId(transaction.transactionId)
+                } catch (e: Exception) {
+                    Log.e(TAG, "DB error checking duplicate", e)
+                    0 // Continue anyway
+                }
+                
+                if (existingCount > 0) {
+                    Log.w(TAG, "Duplicate transaction: ${transaction.transactionId}")
+                    return
+                }
+                
+                // Save to database FIRST (queue it)
+                val id = try {
+                    dao.insert(transaction)
+                } catch (e: Exception) {
+                    Log.e(TAG, "DB error inserting transaction", e)
+                    return // Can't proceed without saving
+                }
+                
+                Log.i(TAG, "✅ Saved transaction to queue: ${transaction.transactionId}, id=$id")
+                
+                // Try to send immediately (but don't block if it fails - retry loop will handle it)
+                if (id > 0) {
+                    try {
+                        val savedTx = transaction.copy(id = id)
+                        sendToServer(savedTx)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error sending (will retry later): ${e.message}")
+                        // Transaction is already saved, retry loop will pick it up
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Unexpected error in processTransaction", e)
+                // Don't rethrow - we don't want to crash the receiver
             }
         }
         
@@ -67,9 +91,15 @@ class SmsListenerService : Service() {
          * Log unparsed SMS for debugging
          */
         suspend fun logUnparsedSms(context: Context, sender: String, body: String, timestamp: Long) {
-            val app = MoMoListenerApp.getInstance()
-            val dao = app.database.unparsedSmsDao()
-            dao.insert(UnparsedSms(sender = sender, body = body, receivedAt = timestamp))
+            try {
+                val app = MoMoListenerApp.getInstance()
+                val dao = app.database.unparsedSmsDao()
+                dao.insert(UnparsedSms(sender = sender, body = body, receivedAt = timestamp))
+                Log.i(TAG, "📝 Logged unparsed SMS from: $sender")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to log unparsed SMS", e)
+                // Don't rethrow - this is just logging
+            }
         }
         
         /**
@@ -169,14 +199,14 @@ class SmsListenerService : Service() {
     
     override fun onCreate() {
         super.onCreate()
-        Log.i(TAG, "Service onCreate")
+        Log.i(TAG, "🚀 Service onCreate - starting MoMo listener")
         isRunning.set(true)
         acquireWakeLock()
         startRetryLoop()
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.i(TAG, "Service onStartCommand")
+        Log.i(TAG, "📱 Service onStartCommand (already running: ${isRunning.get()})")
         startForeground(NOTIFICATION_ID, createNotification())
         return START_STICKY // Restart if killed
     }
@@ -187,7 +217,47 @@ class SmsListenerService : Service() {
         retryJob?.cancel()
         serviceScope.cancel()
         releaseWakeLock()
+        
+        // Restart the service if it gets killed
+        scheduleRestart()
+        
         super.onDestroy()
+    }
+    
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.i(TAG, "Task removed, scheduling restart")
+        scheduleRestart()
+        super.onTaskRemoved(rootIntent)
+    }
+    
+    private fun scheduleRestart() {
+        try {
+            val restartIntent = Intent(applicationContext, SmsListenerService::class.java)
+            val pendingIntent = PendingIntent.getService(
+                applicationContext,
+                1,
+                restartIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    System.currentTimeMillis() + 1000,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    System.currentTimeMillis() + 1000,
+                    pendingIntent
+                )
+            }
+            Log.i(TAG, "Scheduled service restart")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to schedule restart", e)
+        }
     }
     
     override fun onBind(intent: Intent?): IBinder? = null
@@ -236,11 +306,16 @@ class SmsListenerService : Service() {
     
     /**
      * Retry loop for failed transactions
+     * This runs continuously while the service is alive
      */
     private fun startRetryLoop() {
+        Log.i(TAG, "🔄 Starting retry loop (interval: ${RETRY_INTERVAL_MS / 1000}s)")
         retryJob = serviceScope.launch {
+            var loopCount = 0
             while (isActive) {
+                loopCount++
                 try {
+                    Log.d(TAG, "🔄 Retry loop iteration #$loopCount")
                     retryFailedTransactions()
                     cleanupOldRecords()
                 } catch (e: Exception) {
@@ -248,34 +323,43 @@ class SmsListenerService : Service() {
                 }
                 delay(RETRY_INTERVAL_MS)
             }
+            Log.w(TAG, "⚠️ Retry loop ended after $loopCount iterations")
         }
     }
     
     private suspend fun retryFailedTransactions() {
-        val app = MoMoListenerApp.getInstance()
-        val dao = app.database.momoTransactionDao()
-        
-        val failedTransactions = dao.getByStatuses(
-            listOf(MoMoTransaction.Status.PENDING, MoMoTransaction.Status.FAILED)
-        )
-        
-        for (tx in failedTransactions) {
-            if (tx.retryCount >= MAX_RETRIES) {
-                // Mark as permanent error
-                dao.updateStatus(
-                    id = tx.id,
-                    status = MoMoTransaction.Status.ERROR,
-                    response = "Max retries exceeded",
-                    sentAt = null
-                )
-                continue
+        try {
+            val app = MoMoListenerApp.getInstance()
+            val dao = app.database.momoTransactionDao()
+            
+            val failedTransactions = dao.getByStatuses(
+                listOf(MoMoTransaction.Status.PENDING, MoMoTransaction.Status.FAILED)
+            )
+            
+            if (failedTransactions.isNotEmpty()) {
+                Log.i(TAG, "📤 Found ${failedTransactions.size} transaction(s) to retry")
             }
-            
-            Log.i(TAG, "Retrying transaction: ${tx.transactionId} (attempt ${tx.retryCount + 1})")
-            sendToServer(tx)
-            
-            // Small delay between retries
-            delay(2000)
+        
+            for (tx in failedTransactions) {
+                if (tx.retryCount >= MAX_RETRIES) {
+                    // Mark as permanent error
+                    dao.updateStatus(
+                        id = tx.id,
+                        status = MoMoTransaction.Status.ERROR,
+                        response = "Max retries exceeded",
+                        sentAt = null
+                    )
+                    continue
+                }
+                
+                Log.i(TAG, "🔄 Retrying transaction: ${tx.transactionId} (attempt ${tx.retryCount + 1})")
+                sendToServer(tx)
+                
+                // Small delay between retries
+                delay(2000)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in retryFailedTransactions", e)
         }
     }
     
