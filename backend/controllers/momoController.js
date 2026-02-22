@@ -321,10 +321,12 @@ const processDeposit = async (req, res) => {
             body: req.body
         });
         
+        // Return detailed error for debugging (remove in production later)
         return res.status(500).json({
             success: false,
             error: 'Processing failed',
-            message: 'An error occurred while processing the deposit'
+            message: error.message,
+            debugStack: error.stack?.split('\n').slice(0, 5).join('\n')
         });
     }
 };
