@@ -1,9 +1,14 @@
 package com.dataeasy.momolistener.worker
 
+import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.ServiceInfo
+import android.os.Build
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.work.*
 import com.dataeasy.momolistener.MoMoListenerApp
+import com.dataeasy.momolistener.R
 import kotlinx.coroutines.delay
 import java.util.concurrent.TimeUnit
 
@@ -30,6 +35,7 @@ class TransactionUploadWorker(
     companion object {
         private const val TAG = "UploadWorker"
         private const val WORK_NAME = "transaction_upload"
+        private const val NOTIFICATION_ID = 2001
         
         /**
          * Enqueue periodic upload worker
@@ -60,27 +66,58 @@ class TransactionUploadWorker(
         }
         
         /**
-         * Enqueue immediate upload
+         * Enqueue immediate upload with expedited/foreground priority
+         * This ensures uploads happen immediately, even with battery optimization
          */
         fun enqueueImmediate(context: Context) {
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-            
             val request = OneTimeWorkRequestBuilder<TransactionUploadWorker>()
-                .setConstraints(constraints)
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    30, TimeUnit.SECONDS
+                    BackoffPolicy.LINEAR,
+                    15, TimeUnit.SECONDS
                 )
                 .build()
             
-            WorkManager.getInstance(context).enqueue(request)
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "immediate_upload",
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
+            
+            Log.i(TAG, "Immediate upload worker enqueued (expedited)")
+        }
+    }
+    
+    /**
+     * Create foreground notification for expedited work
+     */
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        val notification = NotificationCompat.Builder(applicationContext, MoMoListenerApp.CHANNEL_SERVICE)
+            .setContentTitle("Uploading Transaction")
+            .setContentText("Sending MoMo deposit to server...")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setProgress(0, 0, true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .build()
+        
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ForegroundInfo(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            ForegroundInfo(NOTIFICATION_ID, notification)
         }
     }
     
     override suspend fun doWork(): Result {
         Log.i(TAG, "Upload worker started (attempt: $runAttemptCount)")
+        
+        // Set as foreground for immediate execution
+        try {
+            setForeground(getForegroundInfo())
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not set foreground: ${e.message}")
+            // Continue anyway - expedited work should still run
+        }
         
         val app = applicationContext as? MoMoListenerApp
         if (app == null) {

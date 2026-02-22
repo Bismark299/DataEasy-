@@ -110,17 +110,26 @@ class TransactionRepository(private val database: AppDatabase) {
             if (response.isSuccessful) {
                 val body = response.body()
                 
+                // SUCCESS cases:
+                // 1. success=true (credited or unmatched but received)
+                // 2. duplicate=true (already processed)
                 if (body?.success == true || body?.duplicate == true) {
-                    // SUCCESS - transaction processed (or already processed)
+                    // Determine the response message
+                    val responseMsg = when {
+                        body?.duplicate == true -> "Duplicate - already processed"
+                        body?.username != null -> "Credited to ${body.username}"
+                        else -> body?.message ?: "Received (unmatched)"
+                    }
+                    
                     dao.markSuccess(
                         id = entity.id,
-                        response = body.message ?: "Success",
+                        response = responseMsg,
                         processedAt = System.currentTimeMillis()
                     )
-                    Log.i(TAG, "Upload successful: ${entity.transactionId}")
+                    Log.i(TAG, "Upload successful: ${entity.transactionId} - $responseMsg")
                     ApiResult.Success(body)
                 } else {
-                    // Server returned error in body
+                    // Server returned error in body (shouldn't happen with new API)
                     val error = body?.error ?: "Unknown server error"
                     handleUploadError(entity, error)
                     ApiResult.Error(response.code(), error)

@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -54,12 +55,21 @@ class ListenerService : Service() {
         
         try {
             // Start as foreground service with notification
-            startForeground(NOTIFICATION_ID, createNotification())
+            // Android 14+ requires specifying foreground service type
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, createNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIFICATION_ID, createNotification())
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start foreground: ${e.message}", e)
             // Try to recover by creating channel
             createNotificationChannel()
-            startForeground(NOTIFICATION_ID, createNotification())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, createNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIFICATION_ID, createNotification())
+            }
         }
         
         // Acquire wake lock for reliability (optional)

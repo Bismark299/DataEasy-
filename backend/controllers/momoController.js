@@ -221,11 +221,15 @@ const processDeposit = async (req, res) => {
                 senderPhone
             });
             
+            // Return success: true because the deposit WAS successfully received and saved
+            // The Android app should mark this as SUCCESS (deposit recorded for manual review)
             return res.status(200).json({
-                success: false,
+                success: true,
+                matched: false,
                 error: 'User not found',
-                message: `No user found with reference: ${reference || 'none'}. Deposit saved for manual review.`,
-                depositId: deposit.id
+                message: `Deposit saved. No user found with reference: ${reference || 'none'}. Saved for manual review.`,
+                depositId: deposit.id,
+                status: 'unmatched'
             });
         }
         

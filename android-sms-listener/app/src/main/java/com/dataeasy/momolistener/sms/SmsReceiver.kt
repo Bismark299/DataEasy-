@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import com.dataeasy.momolistener.MoMoListenerApp
 import com.dataeasy.momolistener.domain.model.ParseResult
 import com.dataeasy.momolistener.worker.TransactionUploadWorker
@@ -126,11 +124,11 @@ class SmsReceiver : BroadcastReceiver() {
     
     /**
      * Enqueue WorkManager to upload pending transactions
+     * Uses expedited work for immediate execution
      */
     private fun enqueueUploadWorker(context: Context) {
-        val uploadRequest = OneTimeWorkRequestBuilder<TransactionUploadWorker>()
-            .build()
-        
-        WorkManager.getInstance(context).enqueue(uploadRequest)
+        // Use expedited work for immediate upload
+        TransactionUploadWorker.enqueueImmediate(context)
+        Log.i(TAG, "Upload worker enqueued (expedited)")
     }
 }

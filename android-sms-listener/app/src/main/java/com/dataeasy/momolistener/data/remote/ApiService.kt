@@ -43,9 +43,12 @@ data class ApiResponse(
     val success: Boolean,
     val message: String?,
     val error: String?,
-    val username: String?,      // User that was credited
+    val username: String?,      // User that was credited (null if unmatched)
     val newBalance: Double?,    // User's new balance
-    val duplicate: Boolean? = false  // True if already processed
+    val duplicate: Boolean? = false,  // True if already processed
+    val matched: Boolean? = true,     // False if user not found
+    val status: String? = null,       // Deposit status (credited, unmatched, etc.)
+    val depositId: String? = null     // Server deposit ID
 )
 
 /**
@@ -69,9 +72,10 @@ object ApiClient {
             val client = OkHttpClient.Builder()
                 .addInterceptor(authInterceptor())
                 .addInterceptor(loggingInterceptor())
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
+                // Increased timeouts for Render cold starts (can take 30-60 seconds)
+                .connectTimeout(90, TimeUnit.SECONDS)
+                .readTimeout(90, TimeUnit.SECONDS)
+                .writeTimeout(90, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
                 .build()
             
