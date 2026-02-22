@@ -406,10 +406,8 @@ const PORT = process.env.PORT || 5000;
 
 // Initialize database before starting server
 const startServer = async () => {
-    // Wait for database to be ready
-    await initDatabase();
-    
-    const server = app.listen(PORT, async () => {
+    // Start listening FIRST so Render detects the port
+    const server = app.listen(PORT, '0.0.0.0', async () => {
         console.log(`
     ╔═══════════════════════════════════════════╗
     ║     DataEasy+ API Server                  ║
@@ -418,32 +416,35 @@ const startServer = async () => {
     ╚═══════════════════════════════════════════╝
         `);
         console.log('✅ Server is ready and listening');
-    
-    // Run price integrity validation on startup
-    try {
-        const { runStartupValidation } = require('./utils/priceIntegrity');
-        await runStartupValidation(false); // Don't fail server, just log warnings
-    } catch (error) {
-        console.error('⚠️ Price integrity check error:', error.message);
-    }
+        
+        // Initialize database AFTER port is open
+        await initDatabase();
+        
+        // Run price integrity validation on startup
+        try {
+            const { runStartupValidation } = require('./utils/priceIntegrity');
+            await runStartupValidation(false); // Don't fail server, just log warnings
+        } catch (error) {
+            console.error('⚠️ Price integrity check error:', error.message);
+        }
 
-    // Start background MCBIS order sync service
-    try {
-        const { startBackgroundSync } = require('./services/orderStatusPoller');
-        await startBackgroundSync();
-        console.log('✅ Background MCBIS sync service started');
-    } catch (error) {
-        console.error('⚠️ Background sync start error:', error.message);
-    }
+        // Start background MCBIS order sync service
+        try {
+            const { startBackgroundSync } = require('./services/orderStatusPoller');
+            await startBackgroundSync();
+            console.log('✅ Background MCBIS sync service started');
+        } catch (error) {
+            console.error('⚠️ Background sync start error:', error.message);
+        }
 
-    // Start pending deposit cleaner service
-    try {
-        const pendingDepositCleaner = require('./services/pendingDepositCleaner');
-        pendingDepositCleaner.start();
-        console.log('✅ Pending deposit cleaner service started');
-    } catch (error) {
-        console.error('⚠️ Pending deposit cleaner start error:', error.message);
-    }
+        // Start pending deposit cleaner service
+        try {
+            const pendingDepositCleaner = require('./services/pendingDepositCleaner');
+            pendingDepositCleaner.start();
+            console.log('✅ Pending deposit cleaner service started');
+        } catch (error) {
+            console.error('⚠️ Pending deposit cleaner start error:', error.message);
+        }
     });
 
     // Handle server errors
