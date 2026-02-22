@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="#1a1a2e"
+    tools:context=".MainActivity">
+
+    <!-- Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MoMo SMS Listener"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#ffffff"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Auto-deposit system for DataEasy+"
+        android:textSize="14sp"
+        android:textColor="#888888"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Status Card -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="#16213e"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Initializing..."
+                android:textSize="16sp"
+                android:textColor="#00ff88"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/statsText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Total: 0 | Sent: 0 | Pending: 0"
+                android:textSize="12sp"
+                android:textColor="#aaaaaa"
+                android:gravity="center"
+                android:layout_marginTop="8dp" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Control Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <Button
+            android:id="@+id/startButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="▶ Start"
+            android:enabled="false"
+            android:backgroundTint="#00aa55"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/stopButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⏹ Stop"
+            android:enabled="false"
+            android:backgroundTint="#aa3333"
+            android:layout_marginStart="8dp" />
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/batteryOptButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🔋 Disable Battery Optimization"
+        android:backgroundTint="#444466"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Transaction List Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Recent Transactions"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#ffffff"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Transaction List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        tools:listitem="@layout/item_transaction" />
+
+</LinearLayout>

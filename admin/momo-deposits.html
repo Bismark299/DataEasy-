@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoMo Deposits - Admin | DataEasy+</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-gray-800 transform -translate-x-full md:translate-x-0 transition-transform z-50">
+        <div class="p-4 border-b border-gray-700">
+            <h1 class="text-xl font-bold text-blue-400">DataEasy+ Admin</h1>
+        </div>
+        <nav class="p-4">
+            <ul class="space-y-2">
+                <li><a href="index.html" class="block px-4 py-2 rounded hover:bg-gray-700"><i class="fas fa-tachometer-alt mr-2"></i> Dashboard</a></li>
+                <li><a href="orders.html" class="block px-4 py-2 rounded hover:bg-gray-700"><i class="fas fa-shopping-cart mr-2"></i> Orders</a></li>
+                <li><a href="users.html" class="block px-4 py-2 rounded hover:bg-gray-700"><i class="fas fa-users mr-2"></i> Users</a></li>
+                <li><a href="wallet.html" class="block px-4 py-2 rounded hover:bg-gray-700"><i class="fas fa-wallet mr-2"></i> Wallets</a></li>
+                <li><a href="momo-deposits.html" class="block px-4 py-2 rounded bg-blue-600"><i class="fas fa-mobile-alt mr-2"></i> MoMo Deposits</a></li>
+                <li><a href="packages.html" class="block px-4 py-2 rounded hover:bg-gray-700"><i class="fas fa-box mr-2"></i> Packages</a></li>
+                <li><a href="reports.html" class="block px-4 py-2 rounded hover:bg-gray-700"><i class="fas fa-chart-bar mr-2"></i> Reports</a></li>
+                <li><a href="settings.html" class="block px-4 py-2 rounded hover:bg-gray-700"><i class="fas fa-cog mr-2"></i> Settings</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="md:ml-64 min-h-screen">
+        <!-- Top Bar -->
+        <header class="bg-gray-800 p-4 flex justify-between items-center sticky top-0 z-40">
+            <button id="sidebarToggle" class="md:hidden text-white">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <h2 class="text-lg font-semibold">MoMo Deposits</h2>
+            <div class="flex items-center space-x-4">
+                <span id="adminName" class="text-gray-300">Admin</span>
+                <button id="logoutBtn" class="bg-red-600 px-4 py-2 rounded hover:bg-red-700">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="p-6">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Total Deposits</p>
+                            <p class="text-2xl font-bold" id="totalDeposits">0</p>
+                        </div>
+                        <i class="fas fa-mobile-alt text-3xl text-blue-400"></i>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Credited</p>
+                            <p class="text-2xl font-bold text-green-400" id="creditedDeposits">0</p>
+                        </div>
+                        <i class="fas fa-check-circle text-3xl text-green-400"></i>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Unmatched</p>
+                            <p class="text-2xl font-bold text-yellow-400" id="unmatchedDeposits">0</p>
+                        </div>
+                        <i class="fas fa-question-circle text-3xl text-yellow-400"></i>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Total Amount</p>
+                            <p class="text-2xl font-bold text-blue-400" id="totalAmount">GHS 0.00</p>
+                        </div>
+                        <i class="fas fa-money-bill-wave text-3xl text-blue-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="bg-gray-800 rounded-lg p-4 mb-6">
+                <div class="flex flex-wrap gap-4 items-center">
+                    <select id="statusFilter" class="bg-gray-700 text-white px-4 py-2 rounded">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="credited">Credited</option>
+                        <option value="unmatched">Unmatched</option>
+                        <option value="error">Error</option>
+                    </select>
+                    <button id="refreshBtn" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">
+                        <i class="fas fa-sync-alt mr-2"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Deposits Table -->
+            <div class="bg-gray-800 rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Date</th>
+                                <th class="px-4 py-3 text-left">Transaction ID</th>
+                                <th class="px-4 py-3 text-left">Amount</th>
+                                <th class="px-4 py-3 text-left">Sender</th>
+                                <th class="px-4 py-3 text-left">Reference</th>
+                                <th class="px-4 py-3 text-left">User</th>
+                                <th class="px-4 py-3 text-left">Status</th>
+                                <th class="px-4 py-3 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="depositsTable" class="divide-y divide-gray-700">
+                            <tr>
+                                <td colspan="8" class="px-4 py-8 text-center text-gray-400">
+                                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                    <p>Loading deposits...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="p-4 flex justify-between items-center border-t border-gray-700">
+                    <span id="pageInfo" class="text-gray-400">Page 1 of 1</span>
+                    <div class="space-x-2">
+                        <button id="prevPage" class="bg-gray-700 px-4 py-2 rounded hover:bg-gray-600 disabled:opacity-50" disabled>
+                            <i class="fas fa-chevron-left"></i> Prev
+                        </button>
+                        <button id="nextPage" class="bg-gray-700 px-4 py-2 rounded hover:bg-gray-600 disabled:opacity-50" disabled>
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Credit Modal -->
+    <div id="creditModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">Credit Deposit to User</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-400 mb-2">Deposit Info</label>
+                    <div id="depositInfo" class="bg-gray-700 p-3 rounded text-sm"></div>
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-2">Search User</label>
+                    <input type="text" id="userSearch" class="w-full bg-gray-700 text-white px-4 py-2 rounded" placeholder="Search by name, email, phone, or agent code">
+                </div>
+                <div id="userSearchResults" class="max-h-40 overflow-y-auto"></div>
+                <input type="hidden" id="selectedUserId">
+                <input type="hidden" id="selectedDepositId">
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button id="cancelCredit" class="bg-gray-600 px-4 py-2 rounded hover:bg-gray-700">Cancel</button>
+                <button id="confirmCredit" class="bg-green-600 px-4 py-2 rounded hover:bg-green-700" disabled>
+                    <i class="fas fa-check mr-2"></i> Credit User
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Modal -->
+    <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-lg w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">Original SMS Message</h3>
+            <div id="messageContent" class="bg-gray-700 p-4 rounded text-sm whitespace-pre-wrap"></div>
+            <div class="flex justify-end mt-6">
+                <button id="closeMessage" class="bg-gray-600 px-4 py-2 rounded hover:bg-gray-700">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/admin-common.js"></script>
+    <script>
+        // State
+        let currentPage = 1;
+        let totalPages = 1;
+        let deposits = [];
+
+        // Load deposits
+        async function loadDeposits() {
+            const status = document.getElementById('statusFilter').value;
+            const url = new URL(`${API_BASE_URL}/api/momo/deposits`);
+            url.searchParams.append('page', currentPage);
+            url.searchParams.append('limit', 20);
+            if (status) url.searchParams.append('status', status);
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load deposits');
+
+                const data = await response.json();
+                deposits = data.deposits;
+                totalPages = data.pagination.pages;
+                currentPage = data.pagination.page;
+
+                renderDeposits();
+                updatePagination();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading deposits:', error);
+                document.getElementById('depositsTable').innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-red-400">
+                            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                            <p>Failed to load deposits. Please try again.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Render deposits table
+        function renderDeposits() {
+            const tbody = document.getElementById('depositsTable');
+
+            if (deposits.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-400">
+                            <i class="fas fa-inbox text-2xl mb-2"></i>
+                            <p>No deposits found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = deposits.map(deposit => {
+                const statusClass = {
+                    'credited': 'bg-green-600',
+                    'pending': 'bg-blue-600',
+                    'unmatched': 'bg-yellow-600',
+                    'error': 'bg-red-600',
+                    'duplicate': 'bg-gray-600'
+                }[deposit.status] || 'bg-gray-600';
+
+                return `
+                    <tr class="hover:bg-gray-700">
+                        <td class="px-4 py-3 text-sm">${new Date(deposit.createdAt).toLocaleString()}</td>
+                        <td class="px-4 py-3 font-mono text-sm">${deposit.transactionId}</td>
+                        <td class="px-4 py-3 font-bold text-green-400">GHS ${parseFloat(deposit.amount).toFixed(2)}</td>
+                        <td class="px-4 py-3 text-sm">${deposit.senderPhone}</td>
+                        <td class="px-4 py-3 text-sm">${deposit.reference || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${deposit.user ? deposit.user.fullName : '-'}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 rounded text-xs ${statusClass}">${deposit.status}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex space-x-2">
+                                <button onclick="viewMessage('${deposit.id}')" class="text-blue-400 hover:text-blue-300" title="View SMS">
+                                    <i class="fas fa-envelope"></i>
+                                </button>
+                                ${deposit.status === 'unmatched' ? `
+                                    <button onclick="openCreditModal('${deposit.id}')" class="text-green-400 hover:text-green-300" title="Credit to User">
+                                        <i class="fas fa-user-plus"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update stats
+        function updateStats() {
+            const total = deposits.length;
+            const credited = deposits.filter(d => d.status === 'credited').length;
+            const unmatched = deposits.filter(d => d.status === 'unmatched').length;
+            const totalAmount = deposits.reduce((sum, d) => sum + parseFloat(d.amount), 0);
+
+            document.getElementById('totalDeposits').textContent = total;
+            document.getElementById('creditedDeposits').textContent = credited;
+            document.getElementById('unmatchedDeposits').textContent = unmatched;
+            document.getElementById('totalAmount').textContent = `GHS ${totalAmount.toFixed(2)}`;
+        }
+
+        // Update pagination
+        function updatePagination() {
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prevPage').disabled = currentPage <= 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+        }
+
+        // View original message
+        function viewMessage(depositId) {
+            const deposit = deposits.find(d => d.id === depositId);
+            if (deposit) {
+                document.getElementById('messageContent').textContent = deposit.rawMessage || 'No message available';
+                document.getElementById('messageModal').classList.remove('hidden');
+                document.getElementById('messageModal').classList.add('flex');
+            }
+        }
+
+        // Open credit modal
+        function openCreditModal(depositId) {
+            const deposit = deposits.find(d => d.id === depositId);
+            if (!deposit) return;
+
+            document.getElementById('depositInfo').innerHTML = `
+                <p><strong>Amount:</strong> GHS ${parseFloat(deposit.amount).toFixed(2)}</p>
+                <p><strong>Transaction ID:</strong> ${deposit.transactionId}</p>
+                <p><strong>Reference:</strong> ${deposit.reference || 'None'}</p>
+                <p><strong>Sender:</strong> ${deposit.senderPhone}</p>
+            `;
+            document.getElementById('selectedDepositId').value = depositId;
+            document.getElementById('selectedUserId').value = '';
+            document.getElementById('userSearch').value = '';
+            document.getElementById('userSearchResults').innerHTML = '';
+            document.getElementById('confirmCredit').disabled = true;
+
+            document.getElementById('creditModal').classList.remove('hidden');
+            document.getElementById('creditModal').classList.add('flex');
+        }
+
+        // Search users
+        let searchTimeout;
+        document.getElementById('userSearch').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                document.getElementById('userSearchResults').innerHTML = '';
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/admin/users?search=${encodeURIComponent(query)}&limit=5`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                        }
+                    });
+
+                    if (!response.ok) throw new Error('Search failed');
+
+                    const data = await response.json();
+                    const users = data.users || [];
+
+                    document.getElementById('userSearchResults').innerHTML = users.map(user => `
+                        <div class="p-2 hover:bg-gray-600 cursor-pointer rounded" onclick="selectUser('${user.id}', '${user.fullName}')">
+                            <p class="font-semibold">${user.fullName}</p>
+                            <p class="text-sm text-gray-400">${user.email} | ${user.phone}</p>
+                            ${user.agentCode ? `<p class="text-sm text-blue-400">${user.agentCode}</p>` : ''}
+                        </div>
+                    `).join('') || '<p class="text-gray-400 p-2">No users found</p>';
+                } catch (error) {
+                    console.error('Search error:', error);
+                }
+            }, 300);
+        });
+
+        // Select user
+        function selectUser(userId, userName) {
+            document.getElementById('selectedUserId').value = userId;
+            document.getElementById('userSearch').value = userName;
+            document.getElementById('userSearchResults').innerHTML = `
+                <div class="p-2 bg-green-600 rounded">
+                    <i class="fas fa-check mr-2"></i> Selected: ${userName}
+                </div>
+            `;
+            document.getElementById('confirmCredit').disabled = false;
+        }
+
+        // Confirm credit
+        document.getElementById('confirmCredit').addEventListener('click', async () => {
+            const depositId = document.getElementById('selectedDepositId').value;
+            const userId = document.getElementById('selectedUserId').value;
+
+            if (!depositId || !userId) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/momo/deposits/${depositId}/credit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+                    },
+                    body: JSON.stringify({ userId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    alert(`Success! ${data.message}`);
+                    document.getElementById('creditModal').classList.add('hidden');
+                    document.getElementById('creditModal').classList.remove('flex');
+                    loadDeposits();
+                } else {
+                    alert(`Error: ${data.error || 'Failed to credit deposit'}`);
+                }
+            } catch (error) {
+                console.error('Credit error:', error);
+                alert('Failed to credit deposit. Please try again.');
+            }
+        });
+
+        // Close modals
+        document.getElementById('cancelCredit').addEventListener('click', () => {
+            document.getElementById('creditModal').classList.add('hidden');
+            document.getElementById('creditModal').classList.remove('flex');
+        });
+
+        document.getElementById('closeMessage').addEventListener('click', () => {
+            document.getElementById('messageModal').classList.add('hidden');
+            document.getElementById('messageModal').classList.remove('flex');
+        });
+
+        // Filter change
+        document.getElementById('statusFilter').addEventListener('change', () => {
+            currentPage = 1;
+            loadDeposits();
+        });
+
+        // Refresh
+        document.getElementById('refreshBtn').addEventListener('click', loadDeposits);
+
+        // Pagination
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                loadDeposits();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadDeposits();
+            }
+        });
+
+        // Initialize
+        loadDeposits();
+    </script>
+</body>
+</html>
