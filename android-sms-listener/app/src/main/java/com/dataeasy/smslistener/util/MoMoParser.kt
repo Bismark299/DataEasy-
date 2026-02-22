@@ -46,35 +46,40 @@ object MoMoParser {
     
     // ========== REGEX PATTERNS FOR DATA EXTRACTION ==========
     
-    // Amount patterns: "GHS 50.00", "GHS50.00", "GHC 50.00", "50.00 GHS"
+    // Amount patterns: "for GHS 1.00", "GHS 50.00", "GHS50.00", "GHC 50.00"
     private val AMOUNT_PATTERNS = listOf(
-        Pattern.compile("GH[SC]\\s*([\\d,]+\\.?\\d*)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("([\\d,]+\\.?\\d*)\\s*GH[SC]", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?:received|credited|of)\\s+([\\d,]+\\.\\d{2})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?:GH[SC])?\\s*([\\d]{1,3}(?:,?\\d{3})*\\.\\d{2})\\s*(?:GH[SC])?", Pattern.CASE_INSENSITIVE)
+        // "for GHS 1.00" - most specific for MTN format
+        Pattern.compile("for\\s+GH[SC]\\s*([\\d,]+\\.\\d{2})", Pattern.CASE_INSENSITIVE),
+        // Standard "GHS 50.00" or "GHS50.00"
+        Pattern.compile("GH[SC]\\s*([\\d,]+\\.\\d{2})", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("([\\d,]+\\.\\d{2})\\s*GH[SC]", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("(?:received|credited|of)\\s+([\\d,]+\\.\\d{2})", Pattern.CASE_INSENSITIVE)
     )
     
     // Transaction ID patterns (various MTN formats)
+    // Your format: "Transaction ID: 75785045813"
     private val TRANSACTION_ID_PATTERNS = listOf(
-        // Standard formats
-        Pattern.compile("Trans(?:action)?\\s*(?:ID)?[:\\s]*([A-Za-z0-9]{8,20})", Pattern.CASE_INSENSITIVE),
+        // Exact MTN format: "Transaction ID: 75785045813"
+        Pattern.compile("Transaction\\s*ID[:\\s]+([0-9]{10,15})", Pattern.CASE_INSENSITIVE),
+        // Variations
+        Pattern.compile("Trans\\s*ID[:\\s]*([A-Za-z0-9]{8,20})", Pattern.CASE_INSENSITIVE),
         Pattern.compile("TxnID[:\\s]*([A-Za-z0-9]{8,20})", Pattern.CASE_INSENSITIVE),
         Pattern.compile("Txn\\s*ID[:\\s]*([A-Za-z0-9]{8,20})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\bID[:\\s]+([A-Za-z0-9]{10,20})\\b", Pattern.CASE_INSENSITIVE),
-        // Short formats
-        Pattern.compile("ID:([A-Za-z0-9]{10,20})", Pattern.CASE_INSENSITIVE),
-        // With prefixes
-        Pattern.compile("(MTN[A-Za-z0-9]{10,15})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(PAY[A-Za-z0-9]{10,15})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(TXN[A-Za-z0-9]{10,15})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(INT[A-Za-z0-9]{10,15})", Pattern.CASE_INSENSITIVE)
+        Pattern.compile("\\bID[:\\s]+([0-9]{10,15})\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("ID:\\s*([0-9]{10,15})", Pattern.CASE_INSENSITIVE)
     )
     
-    // Sender phone number patterns (Ghana formats: 024, 054, 055, 059, etc.)
+    // Sender patterns - MTN shows NAMES not phone numbers
+    // Your format: "from SYLVESTER KARIKARI"
+    private val SENDER_NAME_PATTERN = Pattern.compile(
+        "from\\s+([A-Z][A-Z\\s]+?)\\s{2,}|from\\s+([A-Z][A-Z\\s]+?)\\s+Current",
+        Pattern.CASE_INSENSITIVE
+    )
+    
+    // Sender phone number patterns (fallback if name not found)
     private val PHONE_PATTERNS = listOf(
         Pattern.compile("from\\s+(\\+?233[0-9]{9})", Pattern.CASE_INSENSITIVE),
         Pattern.compile("from\\s+(0[235][0-9]{8})", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("from\\s+Agent\\s+(0[235][0-9]{8})", Pattern.CASE_INSENSITIVE),
         Pattern.compile("(\\+233[0-9]{9})"),
         Pattern.compile("\\b(0[235][0-9]{8})\\b")
     )
@@ -213,6 +218,30 @@ object MoMoParser {
     }
     
     private fun extractPhone(body: String): String? {
+        // First try to extract sender NAME (MTN shows names, not phone numbers)
+        // Format: "from SYLVESTER KARIKARI  Current Balance"
+        val namePattern = Pattern.compile("from\\s+([A-Z][A-Za-z\\s]+?)\\s{2,}", Pattern.CASE_INSENSITIVE)
+        val nameMatcher = namePattern.matcher(body)
+        if (nameMatcher.find()) {
+            val name = nameMatcher.group(1)?.trim()
+            if (name != null && name.length >= 3) {
+                Log.d(TAG, "Extracted sender name: $name")
+                return name
+            }
+        }
+        
+        // Fallback: extract from "from NAME Current Balance"
+        val namePattern2 = Pattern.compile("from\\s+([A-Z][A-Za-z\\s]+?)\\s+Current", Pattern.CASE_INSENSITIVE)
+        val nameMatcher2 = namePattern2.matcher(body)
+        if (nameMatcher2.find()) {
+            val name = nameMatcher2.group(1)?.trim()
+            if (name != null && name.length >= 3) {
+                Log.d(TAG, "Extracted sender name (alt): $name")
+                return name
+            }
+        }
+        
+        // Fallback to phone number patterns
         for (pattern in PHONE_PATTERNS) {
             val matcher = pattern.matcher(body)
             if (matcher.find()) {
