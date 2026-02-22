@@ -33,6 +33,8 @@ services:
         sync: false # Set manually - your MCBIS API key
       - key: MCBIS_API_URL
         sync: false # Set manually - your MCBIS API URL
+      - key: SMS_LISTENER_TOKEN
+        sync: false # Secret token for MoMo SMS listener app authentication
 
   # Frontend Static Site
   - type: web

@@ -1,128 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    android:background="#1a1a2e"
-    tools:context=".MainActivity">
+    tools:context=".ui.MainActivity">
 
     <!-- Header -->
     <TextView
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="MoMo SMS Listener"
+        android:text="MoMo Listener"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:textColor="#ffffff"
-        android:gravity="center"
+        android:textColor="@color/primary"
         android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Auto-deposit system for DataEasy+"
-        android:textSize="14sp"
-        android:textColor="#888888"
-        android:gravity="center"
-        android:layout_marginBottom="16dp" />
 
     <!-- Status Card -->
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        app:cardBackgroundColor="#16213e"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="4dp">
-
+        android:layout_marginBottom="12dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="2dp"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+        
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
-
+            android:padding="12dp">
+            
             <TextView
                 android:id="@+id/statusText"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Initializing..."
+                android:text="⏳ Checking permissions..."
                 android:textSize="16sp"
-                android:textColor="#00ff88"
-                android:gravity="center" />
-
+                android:textColor="@color/on_surface" />
+            
             <TextView
                 android:id="@+id/statsText"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Total: 0 | Sent: 0 | Pending: 0"
-                android:textSize="12sp"
-                android:textColor="#aaaaaa"
-                android:gravity="center"
-                android:layout_marginTop="8dp" />
-
+                android:text="Total: 0 | ✅ 0 | ⏳ 0 | ❌ 0"
+                android:textSize="14sp"
+                android:textColor="@color/on_surface_secondary"
+                android:layout_marginTop="4dp" />
         </LinearLayout>
-
     </androidx.cardview.widget.CardView>
 
-    <!-- Control Buttons -->
+    <!-- Control Buttons Row 1 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+        
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStart"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="▶ Start"
+            android:enabled="false"
+            style="@style/Widget.MaterialComponents.Button" />
+        
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStop"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="⏹ Stop"
+            android:enabled="false"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+    </LinearLayout>
+
+    <!-- Control Buttons Row 2 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginBottom="16dp">
-
-        <Button
-            android:id="@+id/startButton"
+        
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSync"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="▶ Start"
-            android:enabled="false"
-            android:backgroundTint="#00aa55"
-            android:layout_marginEnd="8dp" />
-
-        <Button
-            android:id="@+id/stopButton"
+            android:layout_marginEnd="4dp"
+            android:text="🔄 Sync Inbox"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+        
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRetry"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="⏹ Stop"
-            android:enabled="false"
-            android:backgroundTint="#aa3333"
-            android:layout_marginStart="8dp" />
-
+            android:layout_marginHorizontal="4dp"
+            android:text="🔁 Retry"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
+        
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBattery"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="🔋 Battery"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/batteryOptButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="🔋 Disable Battery Optimization"
-        android:backgroundTint="#444466"
-        android:layout_marginBottom="8dp" />
-
-    <Button
-        android:id="@+id/syncButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="🔄 Sync MoMo Messages"
-        android:backgroundTint="#0066aa"
-        android:layout_marginBottom="16dp" />
-
-    <!-- Transaction List Header -->
+    <!-- Transactions List -->
     <TextView
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Recent Transactions"
-        android:textSize="16sp"
+        android:textSize="18sp"
         android:textStyle="bold"
-        android:textColor="#ffffff"
+        android:textColor="@color/on_surface"
         android:layout_marginBottom="8dp" />
-
-    <!-- Transaction List -->
+    
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"

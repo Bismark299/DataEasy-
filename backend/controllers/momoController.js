@@ -94,11 +94,14 @@ const processDeposit = async (req, res) => {
         
         if (existingDeposit) {
             await t.rollback();
-            logger.warn('MoMo deposit: Duplicate transaction', { transactionId });
-            return res.status(409).json({
-                success: false,
-                error: 'Duplicate transaction',
-                message: 'This transaction has already been processed'
+            logger.info('MoMo deposit: Duplicate transaction (idempotent)', { transactionId });
+            // Return 200 OK for idempotency - client can mark as success
+            return res.status(200).json({
+                success: true,
+                duplicate: true,
+                message: 'Transaction already processed',
+                depositId: existingDeposit.id,
+                status: existingDeposit.status
             });
         }
         

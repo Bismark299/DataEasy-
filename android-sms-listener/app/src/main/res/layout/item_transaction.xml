@@ -4,7 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
-    app:cardBackgroundColor="#16213e"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp">
 
@@ -15,58 +14,52 @@
         android:padding="12dp">
 
         <!-- Amount -->
-        <LinearLayout
+        <TextView
+            android:id="@+id/amountText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginEnd="12dp">
-
-            <TextView
-                android:id="@+id/amountText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="GHS 50.00"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#00ff88" />
-
-            <TextView
-                android:id="@+id/timeText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="12/02 14:30"
-                android:textSize="11sp"
-                android:textColor="#666666" />
-
-        </LinearLayout>
+            android:text="GHS 0.00"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:minWidth="90dp" />
 
         <!-- Details -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
 
             <TextView
                 android:id="@+id/statusText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✅ SENT"
+                android:text="⏳ PENDING"
                 android:textSize="12sp"
-                android:textColor="#ffffff" />
+                android:textColor="@color/on_surface" />
 
             <TextView
                 android:id="@+id/detailsText"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ID: 123456789 | Ref: username"
+                android:text="ID: ABC123..."
                 android:textSize="11sp"
-                android:textColor="#888888"
+                android:textColor="@color/on_surface_secondary"
                 android:maxLines="3"
                 android:ellipsize="end" />
-
         </LinearLayout>
 
-    </LinearLayout>
+        <!-- Time -->
+        <TextView
+            android:id="@+id/timeText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="12:34"
+            android:textSize="12sp"
+            android:textColor="@color/on_surface_secondary"
+            android:layout_gravity="top" />
 
+    </LinearLayout>
 </androidx.cardview.widget.CardView>
