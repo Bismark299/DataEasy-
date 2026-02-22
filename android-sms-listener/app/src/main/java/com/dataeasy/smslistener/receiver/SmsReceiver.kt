@@ -1,11 +1,14 @@
 package com.dataeasy.smslistener.receiver
 
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.PowerManager
 import android.provider.Telephony
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import com.dataeasy.smslistener.MoMoListenerApp
 import com.dataeasy.smslistener.data.MoMoTransaction
 import com.dataeasy.smslistener.service.SmsListenerService
 import com.dataeasy.smslistener.util.MoMoParser
@@ -77,12 +80,18 @@ class SmsReceiver : BroadcastReceiver() {
         Log.i(TAG, "Action: ${intent.action}")
         Log.i(TAG, "═══════════════════════════════════════════════")
         
+        // Show DEBUG notification for ANY broadcast (to verify receiver is working)
+        showDebugNotification(context, "Broadcast received: ${intent.action}")
+        
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
             Log.d(TAG, "Ignoring non-SMS intent")
             return
         }
         
         Log.i(TAG, "✅ SMS_RECEIVED_ACTION - Processing...")
+        
+        // Show notification that SMS was detected
+        showDebugNotification(context, "SMS Detected! Processing...")
         
         // Acquire wake lock to ensure processing completes
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -115,34 +124,23 @@ class SmsReceiver : BroadcastReceiver() {
             
             for (smsMessage in messages) {
                 val sender = smsMessage.displayOriginatingAddress ?: ""
-                val senderLower = sender.lowercase()
                 val body = smsMessage.messageBody ?: ""
-                val bodyLower = body.lowercase()
                 val timestamp = smsMessage.timestampMillis
                 
-                // LOG EVERY SMS FOR DEBUGGING
+                // LOG EVERY SMS
                 Log.i(TAG, "╔═══════════════════════════════════════════════════╗")
                 Log.i(TAG, "║          📱 SMS MESSAGE RECEIVED                  ║")
                 Log.i(TAG, "╠═══════════════════════════════════════════════════╣")
                 Log.i(TAG, "║ Sender: '$sender'")
-                Log.i(TAG, "║ Body length: ${body.length} chars")
-                Log.i(TAG, "║ Body preview: ${body.take(100)}...")
+                Log.i(TAG, "║ Body: ${body.take(150)}")
                 Log.i(TAG, "╚═══════════════════════════════════════════════════╝")
                 
-                // FOR DEBUGGING: Process ANY SMS that contains "GHS" or comes from MoMo-like sender
-                val containsGHS = bodyLower.contains("ghs") || bodyLower.contains("ghc")
-                val containsMoMoKeywords = bodyLower.contains("momo") || bodyLower.contains("mobile money") || bodyLower.contains("received")
-                val isMoMo = isMoMoSender(senderLower)
+                // Show notification for EVERY SMS (for debugging)
+                showDebugNotification(context, "SMS from: $sender")
                 
-                Log.i(TAG, "🔍 Analysis: containsGHS=$containsGHS, containsMoMoKeywords=$containsMoMoKeywords, isMoMoSender=$isMoMo")
-                
-                // Process if ANY of these are true (for debugging purposes)
-                if (containsGHS || containsMoMoKeywords || isMoMo) {
-                    Log.i(TAG, "✅ PROCESSING this SMS (matched criteria)")
-                    momoMessages.add(Triple(sender, body, timestamp))
-                } else {
-                    Log.i(TAG, "⏭️ SKIPPING - no match criteria")
-                }
+                // PROCESS ALL SMS FOR NOW (no filtering) - we'll add filters back later
+                Log.i(TAG, "✅ Adding to process queue")
+                momoMessages.add(Triple(sender, body, timestamp))
             }
             
             if (momoMessages.isEmpty()) {
@@ -271,6 +269,30 @@ class SmsReceiver : BroadcastReceiver() {
                 releaseAndFinish(wakeLock, pendingResult)
                 Log.d(TAG, "Released wake lock and finished pending result")
             }
+        }
+    }
+    
+    /**
+     * Show a debug notification to verify receiver is working
+     * This helps diagnose if the broadcast receiver is being triggered at all
+     */
+    private fun showDebugNotification(context: Context, message: String) {
+        try {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            
+            val notification = NotificationCompat.Builder(context, MoMoListenerApp.ALERT_CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("📨 MoMo Listener Debug")
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .build()
+            
+            // Use timestamp as unique ID so multiple notifications can show
+            notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+            Log.i(TAG, "Debug notification shown: $message")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to show debug notification", e)
         }
     }
 }
