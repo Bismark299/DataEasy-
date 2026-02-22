@@ -126,7 +126,7 @@ class SmsListenerService : Service() {
                     // Success!
                     dao.updateStatus(
                         id = transaction.id,
-                        status = MoMoTransaction.Status.SENT,
+                        statusName = MoMoTransaction.Status.SENT.name,
                         response = response.body()?.message ?: "Success",
                         sentAt = System.currentTimeMillis()
                     )
@@ -149,7 +149,7 @@ class SmsListenerService : Service() {
                     if (response.code() == 409 || response.body()?.error?.contains("duplicate", true) == true) {
                         dao.updateStatus(
                             id = transaction.id,
-                            status = MoMoTransaction.Status.ERROR,
+                            statusName = MoMoTransaction.Status.ERROR.name,
                             response = errorMsg,
                             sentAt = null
                         )
@@ -157,7 +157,7 @@ class SmsListenerService : Service() {
                         // Temporary error, will retry
                         dao.incrementRetry(
                             id = transaction.id,
-                            status = MoMoTransaction.Status.FAILED,
+                            statusName = MoMoTransaction.Status.FAILED.name,
                             lastAttempt = System.currentTimeMillis()
                         )
                     }
@@ -169,7 +169,7 @@ class SmsListenerService : Service() {
                 // Network error, mark for retry
                 dao.incrementRetry(
                     id = transaction.id,
-                    status = MoMoTransaction.Status.FAILED,
+                    statusName = MoMoTransaction.Status.FAILED.name,
                     lastAttempt = System.currentTimeMillis()
                 )
             }
@@ -355,8 +355,8 @@ class SmsListenerService : Service() {
             val app = MoMoListenerApp.getInstance()
             val dao = app.database.momoTransactionDao()
             
-            val failedTransactions = dao.getByStatuses(
-                listOf(MoMoTransaction.Status.PENDING, MoMoTransaction.Status.FAILED)
+            val failedTransactions = dao.getByStatusNames(
+                listOf(MoMoTransaction.Status.PENDING.name, MoMoTransaction.Status.FAILED.name)
             )
             
             if (failedTransactions.isNotEmpty()) {
@@ -368,7 +368,7 @@ class SmsListenerService : Service() {
                     // Mark as permanent error
                     dao.updateStatus(
                         id = tx.id,
-                        status = MoMoTransaction.Status.ERROR,
+                        statusName = MoMoTransaction.Status.ERROR.name,
                         response = "Max retries exceeded",
                         sentAt = null
                     )
@@ -392,7 +392,7 @@ class SmsListenerService : Service() {
         // Delete successfully sent transactions older than 7 days
         val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
         val deleted = app.database.momoTransactionDao().deleteOldSent(
-            MoMoTransaction.Status.SENT,
+            MoMoTransaction.Status.SENT.name,
             sevenDaysAgo
         )
         if (deleted > 0) {

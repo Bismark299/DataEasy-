@@ -9,11 +9,11 @@ interface MoMoTransactionDao {
     @Query("SELECT * FROM momo_transactions ORDER BY receivedAt DESC")
     fun getAllTransactions(): Flow<List<MoMoTransaction>>
     
-    @Query("SELECT * FROM momo_transactions WHERE status = :status ORDER BY receivedAt ASC")
-    suspend fun getByStatus(status: MoMoTransaction.Status): List<MoMoTransaction>
+    @Query("SELECT * FROM momo_transactions WHERE status = :statusName ORDER BY receivedAt ASC")
+    suspend fun getByStatusName(statusName: String): List<MoMoTransaction>
     
-    @Query("SELECT * FROM momo_transactions WHERE status IN (:statuses) ORDER BY receivedAt ASC")
-    suspend fun getByStatuses(statuses: List<MoMoTransaction.Status>): List<MoMoTransaction>
+    @Query("SELECT * FROM momo_transactions WHERE status IN (:statusNames) ORDER BY receivedAt ASC")
+    suspend fun getByStatusNames(statusNames: List<String>): List<MoMoTransaction>
     
     @Query("SELECT * FROM momo_transactions WHERE transactionId = :txId LIMIT 1")
     suspend fun getByTransactionId(txId: String): MoMoTransaction?
@@ -27,20 +27,20 @@ interface MoMoTransactionDao {
     @Update
     suspend fun update(transaction: MoMoTransaction)
     
-    @Query("UPDATE momo_transactions SET status = :status, serverResponse = :response, sentAt = :sentAt WHERE id = :id")
-    suspend fun updateStatus(id: Long, status: MoMoTransaction.Status, response: String?, sentAt: Long?)
+    @Query("UPDATE momo_transactions SET status = :statusName, serverResponse = :response, sentAt = :sentAt WHERE id = :id")
+    suspend fun updateStatus(id: Long, statusName: String, response: String?, sentAt: Long?)
     
-    @Query("UPDATE momo_transactions SET status = :status, retryCount = retryCount + 1, lastAttemptAt = :lastAttempt WHERE id = :id")
-    suspend fun incrementRetry(id: Long, status: MoMoTransaction.Status, lastAttempt: Long)
+    @Query("UPDATE momo_transactions SET status = :statusName, retryCount = retryCount + 1, lastAttemptAt = :lastAttempt WHERE id = :id")
+    suspend fun incrementRetry(id: Long, statusName: String, lastAttempt: Long)
     
-    @Query("SELECT COUNT(*) FROM momo_transactions WHERE status = :status")
-    suspend fun countByStatus(status: MoMoTransaction.Status): Int
+    @Query("SELECT COUNT(*) FROM momo_transactions WHERE status = :statusName")
+    suspend fun countByStatusName(statusName: String): Int
     
     @Query("SELECT COUNT(*) FROM momo_transactions")
     suspend fun countAll(): Int
     
-    @Query("DELETE FROM momo_transactions WHERE status = :status AND sentAt < :before")
-    suspend fun deleteOldSent(status: MoMoTransaction.Status, before: Long): Int
+    @Query("DELETE FROM momo_transactions WHERE status = :statusName AND sentAt < :before")
+    suspend fun deleteOldSent(statusName: String, before: Long): Int
 }
 
 @Dao
