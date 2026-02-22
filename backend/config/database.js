@@ -287,6 +287,25 @@ const fixMissingColumns = async () => {
             "sortOrder" INTEGER DEFAULT 0,
             "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )`,
+        `CREATE TABLE IF NOT EXISTS momo_deposits (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            "transactionId" VARCHAR(50) NOT NULL UNIQUE,
+            amount DECIMAL(12,2) NOT NULL,
+            "senderPhone" VARCHAR(20) NOT NULL,
+            "senderName" VARCHAR(100),
+            reference VARCHAR(100),
+            "rawMessage" TEXT,
+            status VARCHAR(20) DEFAULT 'pending',
+            "matchedBy" VARCHAR(50),
+            "userId" UUID REFERENCES users(id),
+            "creditedAt" TIMESTAMP WITH TIME ZONE,
+            "walletTransactionId" UUID,
+            "processedBy" UUID,
+            notes TEXT,
+            "deviceInfo" JSONB DEFAULT '{}',
+            "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         )`
     ];
     
