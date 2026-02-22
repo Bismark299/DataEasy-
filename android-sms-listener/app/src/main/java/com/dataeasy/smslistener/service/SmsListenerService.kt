@@ -111,6 +111,7 @@ class SmsListenerService : Service() {
             
             try {
                 Log.i(TAG, "Sending to server: ${transaction.transactionId}")
+                showDebugNotification("📤 API Call: ${transaction.transactionId.take(10)}...")
                 
                 val response = ApiClient.service.reportDeposit(
                     transactionId = transaction.transactionId,
@@ -130,6 +131,7 @@ class SmsListenerService : Service() {
                         sentAt = System.currentTimeMillis()
                     )
                     Log.i(TAG, "Transaction sent successfully: ${transaction.transactionId}")
+                    showDebugNotification("✅ API SUCCESS: ${response.body()?.message ?: "Sent!"}")
                     
                     // Show notification
                     showDepositNotification(
@@ -141,6 +143,7 @@ class SmsListenerService : Service() {
                     // Server rejected
                     val errorMsg = response.body()?.error ?: response.errorBody()?.string() ?: "Unknown error"
                     Log.e(TAG, "Server rejected: $errorMsg")
+                    showDebugNotification("❌ API ERROR: ${response.code()} - ${errorMsg.take(40)}")
                     
                     // Check if permanent error (duplicate, invalid user, etc.)
                     if (response.code() == 409 || response.body()?.error?.contains("duplicate", true) == true) {
@@ -161,6 +164,7 @@ class SmsListenerService : Service() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Network error sending transaction", e)
+                showDebugNotification("❌ NETWORK ERROR: ${e.message?.take(40)}")
                 
                 // Network error, mark for retry
                 dao.incrementRetry(
@@ -168,6 +172,25 @@ class SmsListenerService : Service() {
                     status = MoMoTransaction.Status.FAILED,
                     lastAttempt = System.currentTimeMillis()
                 )
+            }
+        }
+        
+        private fun showDebugNotification(message: String) {
+            try {
+                val app = MoMoListenerApp.getInstance()
+                val notificationManager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                
+                val notification = NotificationCompat.Builder(app, MoMoListenerApp.ALERT_CHANNEL_ID)
+                    .setSmallIcon(android.R.drawable.ic_dialog_info)
+                    .setContentTitle("MoMo Debug")
+                    .setContentText(message)
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setAutoCancel(true)
+                    .build()
+                
+                notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to show debug notification", e)
             }
         }
         

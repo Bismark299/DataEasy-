@@ -135,13 +135,15 @@ object MoMoParser {
         }
         Log.i(TAG, "✅ Amount: GHS ${"%.2f".format(amount)}")
         
-        // ===== STEP 3: Extract Transaction ID (REQUIRED for deduplication) =====
-        val transactionId = extractTransactionId(body)
+        // ===== STEP 3: Extract Transaction ID (generate if not found) =====
+        var transactionId = extractTransactionId(body)
         if (transactionId == null) {
-            Log.w(TAG, "❌ REJECTED: Could not extract transaction ID")
-            return null
+            // Generate a fallback transaction ID from timestamp + partial hash
+            transactionId = "AUTO${timestamp}${body.hashCode().toString().takeLast(4)}"
+            Log.w(TAG, "⚠️ No transaction ID found, generated: $transactionId")
+        } else {
+            Log.i(TAG, "✅ Transaction ID: $transactionId")
         }
-        Log.i(TAG, "✅ Transaction ID: $transactionId")
         
         // ===== STEP 4: Extract Sender Phone (OPTIONAL) =====
         val senderPhone = extractPhone(body) ?: "Unknown"

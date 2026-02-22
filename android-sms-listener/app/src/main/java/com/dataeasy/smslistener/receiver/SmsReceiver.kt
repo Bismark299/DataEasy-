@@ -246,16 +246,30 @@ class SmsReceiver : BroadcastReceiver() {
                     Log.i(TAG, "Processing message ${index + 1}/${messages.size}")
                     
                     try {
-                        // Parse the MoMo message
-                        val transaction = MoMoParser.parse(body, sender, timestamp)
+                        // Show message preview in notification
+                        showDebugNotification(context, "MSG: ${body.take(60)}...")
                         
-                        if (transaction != null) {
-                            Log.i(TAG, "✅ Parsed: ID=${transaction.transactionId}, Amount=${transaction.amount}")
-                            SmsListenerService.processTransaction(context, transaction)
-                        } else {
-                            Log.w(TAG, "⚠️ Could not parse MoMo message, logging for review")
-                            SmsListenerService.logUnparsedSms(context, sender, body, timestamp)
-                        }
+                        // ============ DEBUG MODE: SAVE ALL SMS ============
+                        // Create a transaction for EVERY SMS so we can see what's coming in
+                        val debugTransaction = MoMoTransaction(
+                            transactionId = "DEBUG${timestamp}${body.hashCode().toString().takeLast(4)}",
+                            amount = extractAmountSimple(body) ?: 0.0,
+                            senderPhone = sender,
+                            reference = extractReferenceSimple(body),
+                            rawMessage = body,
+                            smsSender = sender,
+                            receivedAt = timestamp,
+                            status = MoMoTransaction.Status.PENDING
+                        )
+                        
+                        Log.i(TAG, "✅ DEBUG: Saving ALL SMS - Amount=${debugTransaction.amount}, Ref=${debugTransaction.reference}")
+                        showDebugNotification(context, "💾 SAVING: GHS ${debugTransaction.amount} - ${debugTransaction.reference ?: "No ref"}")
+                        
+                        // Save directly without the strict parser
+                        SmsListenerService.processTransaction(context, debugTransaction)
+                        showDebugNotification(context, "📤 Sending to server...")
+                        // ============ END DEBUG MODE ============
+                        
                     } catch (e: Exception) {
                         // Log but continue with next message - don't let one failure stop others
                         Log.e(TAG, "❌ Error processing message ${index + 1}, continuing with next", e)
@@ -294,5 +308,38 @@ class SmsReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to show debug notification", e)
         }
+    }
+    
+    /**
+     * Simple amount extraction for debug mode - just find any number that looks like money
+     */
+    private fun extractAmountSimple(body: String): Double? {
+        // Look for GHS/GHC followed by numbers
+        val ghsPattern = Regex("GH[SC]\\s*([\\d,]+\\.?\\d*)", RegexOption.IGNORE_CASE)
+        ghsPattern.find(body)?.let { match ->
+            val amountStr = match.groupValues[1].replace(",", "")
+            try {
+                return amountStr.toDouble()
+            } catch (e: Exception) { }
+        }
+        
+        // Look for numbers followed by GHS/GHC
+        val reversePattern = Regex("([\\d,]+\\.\\d{2})\\s*GH[SC]", RegexOption.IGNORE_CASE)
+        reversePattern.find(body)?.let { match ->
+            val amountStr = match.groupValues[1].replace(",", "")
+            try {
+                return amountStr.toDouble()
+            } catch (e: Exception) { }
+        }
+        
+        return null
+    }
+    
+    /**
+     * Simple reference extraction for debug mode - look for BT-XXXX pattern
+     */
+    private fun extractReferenceSimple(body: String): String? {
+        val refPattern = Regex("\\b(BT-\\d{4})\\b", RegexOption.IGNORE_CASE)
+        return refPattern.find(body)?.groupValues?.get(1)?.uppercase()
     }
 }
