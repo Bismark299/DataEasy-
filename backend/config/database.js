@@ -293,16 +293,13 @@ const fixMissingColumns = async () => {
             "transactionId" VARCHAR(50) NOT NULL UNIQUE,
             amount DECIMAL(12,2) NOT NULL,
             "senderPhone" VARCHAR(20) NOT NULL,
-            "senderName" VARCHAR(100),
             reference VARCHAR(100),
             "rawMessage" TEXT,
-            status VARCHAR(20) DEFAULT 'pending',
-            "matchedBy" VARCHAR(50),
             "userId" UUID REFERENCES users(id),
-            "creditedAt" TIMESTAMP WITH TIME ZONE,
+            status VARCHAR(20) DEFAULT 'pending',
+            "statusMessage" VARCHAR(500),
             "walletTransactionId" UUID,
-            "processedBy" UUID,
-            notes TEXT,
+            "smsReceivedAt" TIMESTAMP WITH TIME ZONE,
             "deviceInfo" JSONB DEFAULT '{}',
             "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -339,6 +336,12 @@ const fixMissingColumns = async () => {
         `ALTER TABLE packages ADD COLUMN IF NOT EXISTS "superDealerPrice" DECIMAL(10,2)`,
         `ALTER TABLE packages ADD COLUMN IF NOT EXISTS "dealerPrice" DECIMAL(10,2)`,
         `ALTER TABLE packages ADD COLUMN IF NOT EXISTS "superAgentPrice" DECIMAL(10,2)`,
+        
+        // MoMo deposits table - ensure all columns exist
+        `ALTER TABLE momo_deposits ADD COLUMN IF NOT EXISTS "statusMessage" VARCHAR(500)`,
+        `ALTER TABLE momo_deposits ADD COLUMN IF NOT EXISTS "smsReceivedAt" TIMESTAMP WITH TIME ZONE`,
+        `ALTER TABLE momo_deposits ADD COLUMN IF NOT EXISTS "walletTransactionId" UUID`,
+        `ALTER TABLE momo_deposits ADD COLUMN IF NOT EXISTS "deviceInfo" JSONB DEFAULT '{}'`,
     ];
     
     let fixed = 0;
