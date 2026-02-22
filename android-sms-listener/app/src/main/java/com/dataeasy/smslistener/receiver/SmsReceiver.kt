@@ -72,14 +72,17 @@ class SmsReceiver : BroadcastReceiver() {
     
     override fun onReceive(context: Context, intent: Intent) {
         // Log EVERY call to onReceive
-        Log.i(TAG, "📨 onReceive called! Action: ${intent.action}")
+        Log.i(TAG, "═══════════════════════════════════════════════")
+        Log.i(TAG, "📨 SMS BROADCAST RECEIVED!")
+        Log.i(TAG, "Action: ${intent.action}")
+        Log.i(TAG, "═══════════════════════════════════════════════")
         
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) {
             Log.d(TAG, "Ignoring non-SMS intent")
             return
         }
         
-        Log.i(TAG, "✅ SMS_RECEIVED_ACTION broadcast triggered")
+        Log.i(TAG, "✅ SMS_RECEIVED_ACTION - Processing...")
         
         // Acquire wake lock to ensure processing completes
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -99,7 +102,7 @@ class SmsReceiver : BroadcastReceiver() {
         
         try {
             val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-            Log.i(TAG, "📬 Received ${messages?.size ?: 0} SMS message(s)")
+            Log.i(TAG, "📬 Got ${messages?.size ?: 0} SMS message(s) from intent")
             
             if (messages == null || messages.isEmpty()) {
                 Log.w(TAG, "No messages in intent")
@@ -107,39 +110,38 @@ class SmsReceiver : BroadcastReceiver() {
                 return
             }
             
-            // Collect all MoMo messages to process
+            // Process ALL messages (for debugging - process everything)
             val momoMessages = mutableListOf<Triple<String, String, Long>>()
             
             for (smsMessage in messages) {
-                val sender = smsMessage.displayOriginatingAddress?.lowercase() ?: ""
+                val sender = smsMessage.displayOriginatingAddress ?: ""
+                val senderLower = sender.lowercase()
                 val body = smsMessage.messageBody ?: ""
+                val bodyLower = body.lowercase()
                 val timestamp = smsMessage.timestampMillis
                 
                 // LOG EVERY SMS FOR DEBUGGING
-                Log.i(TAG, "═══════════════════════════════════════")
-                Log.i(TAG, "📱 SMS RECEIVED!")
-                Log.i(TAG, "📤 Sender: '$sender'")
-                Log.i(TAG, "📝 Body: $body")
-                Log.i(TAG, "═══════════════════════════════════════")
+                Log.i(TAG, "╔═══════════════════════════════════════════════════╗")
+                Log.i(TAG, "║          📱 SMS MESSAGE RECEIVED                  ║")
+                Log.i(TAG, "╠═══════════════════════════════════════════════════╣")
+                Log.i(TAG, "║ Sender: '$sender'")
+                Log.i(TAG, "║ Body length: ${body.length} chars")
+                Log.i(TAG, "║ Body preview: ${body.take(100)}...")
+                Log.i(TAG, "╚═══════════════════════════════════════════════════╝")
                 
-                // Check if this is a MoMo message (2-layer validation)
-                if (isMoMoSender(sender)) {
-                    // Also validate message content for extra security
-                    if (isValidMoMoDepositMessage(body)) {
-                        Log.i(TAG, "💰 Valid MoMo deposit SMS from: $sender")
-                        momoMessages.add(Triple(sender, body, timestamp))
-                    } else {
-                        Log.i(TAG, "📋 MoMo sender but not a deposit message, logging anyway")
-                        // Still log it for debugging/review
-                        momoMessages.add(Triple(sender, body, timestamp))
-                    }
+                // FOR DEBUGGING: Process ANY SMS that contains "GHS" or comes from MoMo-like sender
+                val containsGHS = bodyLower.contains("ghs") || bodyLower.contains("ghc")
+                val containsMoMoKeywords = bodyLower.contains("momo") || bodyLower.contains("mobile money") || bodyLower.contains("received")
+                val isMoMo = isMoMoSender(senderLower)
+                
+                Log.i(TAG, "🔍 Analysis: containsGHS=$containsGHS, containsMoMoKeywords=$containsMoMoKeywords, isMoMoSender=$isMoMo")
+                
+                // Process if ANY of these are true (for debugging purposes)
+                if (containsGHS || containsMoMoKeywords || isMoMo) {
+                    Log.i(TAG, "✅ PROCESSING this SMS (matched criteria)")
+                    momoMessages.add(Triple(sender, body, timestamp))
                 } else {
-                    Log.i(TAG, "❌ Not a recognized MoMo sender: '$sender'")
-                    // For debugging: still process if it contains MoMo-like content
-                    if (body.lowercase().contains("momo") || body.lowercase().contains("mobile money") || body.lowercase().contains("ghs")) {
-                        Log.i(TAG, "🔍 Message contains MoMo keywords, processing anyway for debug")
-                        momoMessages.add(Triple(sender, body, timestamp))
-                    }
+                    Log.i(TAG, "⏭️ SKIPPING - no match criteria")
                 }
             }
             
