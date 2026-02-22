@@ -31,7 +31,9 @@ object SmsParser {
     // Valid MoMo sender addresses (lowercase for comparison)
     private val MOMO_SENDERS = setOf(
         "mobilemoney", "momo", "mtn", "mtnmomo", "mtn momo",
-        "mobile money", "1515", "170"
+        "mobile money", "1515", "170", "mtn mobile money",
+        "mpesa", "vodafone cash", "vodafonecash", "airtel money",
+        "airtelmoney", "tigo cash", "tigocash", "at money", "atmoney"
     )
     
     // Keywords indicating a deposit (must contain at least one)
@@ -103,10 +105,17 @@ object SmsParser {
     fun parse(sender: String, body: String, timestamp: Long): ParseResult {
         Log.d(TAG, "Parsing SMS from: $sender")
         
-        // Step 1: Validate sender is MoMo
-        if (!isMoMoSender(sender)) {
-            Log.d(TAG, "Not a MoMo sender: $sender")
+        // Step 1: Validate sender OR content looks like MoMo
+        val isKnownSender = isMoMoSender(sender)
+        val contentLooksMoMo = looksLikeMoMoDeposit(body)
+        
+        if (!isKnownSender && !contentLooksMoMo) {
+            Log.d(TAG, "Not a MoMo message - sender: $sender, content check: $contentLooksMoMo")
             return ParseResult.NotMoMoMessage(sender)
+        }
+        
+        if (!isKnownSender && contentLooksMoMo) {
+            Log.i(TAG, "Unknown sender '$sender' but content looks like MoMo - processing anyway")
         }
         
         val lowerBody = body.lowercase()
@@ -167,7 +176,24 @@ object SmsParser {
     
     private fun isMoMoSender(sender: String): Boolean {
         val lower = sender.lowercase().trim()
+        // Check if sender matches known MoMo senders
         return MOMO_SENDERS.any { lower.contains(it) }
+    }
+    
+    /**
+     * Check if message CONTENT looks like a MoMo deposit
+     * This is a fallback when sender doesn't match known list
+     */
+    private fun looksLikeMoMoDeposit(body: String): Boolean {
+        val lower = body.lowercase()
+        // Must have amount in GHS
+        val hasAmount = lower.contains("ghs") || lower.contains("ghc")
+        // Must have deposit indicator
+        val hasDeposit = DEPOSIT_KEYWORDS.any { lower.contains(it) }
+        // Must have transaction ID
+        val hasTransactionId = lower.contains("transaction id") || lower.contains("transaction")
+        
+        return hasAmount && hasDeposit && hasTransactionId
     }
     
     private fun extractAmount(body: String): Double? {
