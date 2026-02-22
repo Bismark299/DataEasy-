@@ -112,7 +112,7 @@ const processDeposit = async (req, res) => {
             senderPhone: senderPhone || 'Unknown',
             reference: reference || null,
             rawMessage: rawMessage || null,
-            smsReceivedAt: receivedAt ? new Date(receivedAt) : null,
+            smsReceivedAt: receivedAt ? new Date(parseInt(receivedAt, 10)) : null,
             status: 'pending',
             deviceInfo: {
                 ip: req.ip,
