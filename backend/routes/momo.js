@@ -11,7 +11,7 @@ const {
     getDeposits,
     manualCredit
 } = require('../controllers/momoController');
-const { protect } = require('../middleware/auth');
+const { adminAuth } = require('../middleware/auth');
 
 /**
  * Public endpoint for SMS listener app
@@ -22,26 +22,15 @@ const { protect } = require('../middleware/auth');
 router.post('/deposit', authenticateListener, processDeposit);
 
 /**
- * Admin endpoints (require user auth + admin check)
+ * Admin endpoints (require admin auth)
  */
 
 // Get all deposits (with pagination and filters)
 // GET /api/momo/deposits?status=unmatched&page=1&limit=50
-router.get('/deposits', protect, async (req, res, next) => {
-    // Check if admin (you may have middleware for this)
-    if (req.user.role !== 'super-dealer' && !req.admin) {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-    getDeposits(req, res, next);
-});
+router.get('/deposits', adminAuth, getDeposits);
 
 // Manually credit a deposit to a user
 // POST /api/momo/deposits/:id/credit
-router.post('/deposits/:id/credit', protect, async (req, res, next) => {
-    if (req.user.role !== 'super-dealer' && !req.admin) {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-    manualCredit(req, res, next);
-});
+router.post('/deposits/:id/credit', adminAuth, manualCredit);
 
 module.exports = router;
