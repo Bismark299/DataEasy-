@@ -115,7 +115,12 @@ class SmsReceiver : BroadcastReceiver() {
                 val body = smsMessage.messageBody ?: ""
                 val timestamp = smsMessage.timestampMillis
                 
-                Log.i(TAG, "📱 SMS from: '$sender' (length: ${body.length})")
+                // LOG EVERY SMS FOR DEBUGGING
+                Log.i(TAG, "═══════════════════════════════════════")
+                Log.i(TAG, "📱 SMS RECEIVED!")
+                Log.i(TAG, "📤 Sender: '$sender'")
+                Log.i(TAG, "📝 Body: $body")
+                Log.i(TAG, "═══════════════════════════════════════")
                 
                 // Check if this is a MoMo message (2-layer validation)
                 if (isMoMoSender(sender)) {
@@ -129,7 +134,12 @@ class SmsReceiver : BroadcastReceiver() {
                         momoMessages.add(Triple(sender, body, timestamp))
                     }
                 } else {
-                    Log.d(TAG, "Not a MoMo sender, skipping: $sender")
+                    Log.i(TAG, "❌ Not a recognized MoMo sender: '$sender'")
+                    // For debugging: still process if it contains MoMo-like content
+                    if (body.lowercase().contains("momo") || body.lowercase().contains("mobile money") || body.lowercase().contains("ghs")) {
+                        Log.i(TAG, "🔍 Message contains MoMo keywords, processing anyway for debug")
+                        momoMessages.add(Triple(sender, body, timestamp))
+                    }
                 }
             }
             
