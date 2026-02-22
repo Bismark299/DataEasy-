@@ -93,6 +93,10 @@ console.log('✅ Routes loaded successfully');
 
 const app = express();
 
+// Trust proxy - required for rate limiting behind Render's reverse proxy
+// This tells Express to trust X-Forwarded-For headers from the first proxy
+app.set('trust proxy', 1);
+
 // Enable gzip compression for all responses (significantly reduces payload size)
 app.use(compression({
     level: 6, // Balanced compression level
