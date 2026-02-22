@@ -309,7 +309,7 @@
             const status = document.getElementById('statusFilter').value;
             const search = document.getElementById('searchInput').value;
             
-            let url = `${API_BASE_URL}/api/momo/deposits?page=${currentPage}&limit=20`;
+            let url = `${API_BASE_URL}/momo/deposits?page=${currentPage}&limit=20`;
             if (status) url += `&status=${status}`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
 
@@ -474,7 +474,7 @@
 
             searchTimeout = setTimeout(async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/admin/users?search=${encodeURIComponent(query)}&limit=5`, {
+                    const response = await fetch(`${API_BASE_URL}/admin/users?search=${encodeURIComponent(query)}&limit=5`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }
@@ -523,7 +523,7 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/momo/deposits/${depositId}/credit`, {
+                const response = await fetch(`${API_BASE_URL}/momo/deposits/${depositId}/credit`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
