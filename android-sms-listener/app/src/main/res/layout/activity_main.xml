@@ -102,6 +102,14 @@
         android:layout_height="wrap_content"
         android:text="🔋 Disable Battery Optimization"
         android:backgroundTint="#444466"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/syncButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🔄 Sync MoMo Messages"
+        android:backgroundTint="#0066aa"
         android:layout_marginBottom="16dp" />
 
     <!-- Transaction List Header -->

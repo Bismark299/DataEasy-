@@ -3,11 +3,14 @@ package com.dataeasy.smslistener
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.provider.Telephony
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -23,8 +26,10 @@ import android.widget.Button
 import android.widget.TextView
 import com.dataeasy.smslistener.data.MoMoTransaction
 import com.dataeasy.smslistener.service.SmsListenerService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -84,6 +89,10 @@ class MainActivity : AppCompatActivity() {
         
         findViewById<Button>(R.id.batteryOptButton).setOnClickListener {
             requestBatteryOptimizationExemption()
+        }
+        
+        findViewById<Button>(R.id.syncButton).setOnClickListener {
+            syncMoMoMessages()
         }
     }
     
@@ -168,6 +177,161 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Already exempt from battery optimization", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+    
+    /**
+     * Sync MoMo messages from SMS inbox
+     * Reads recent SMS from MobileMoney sender and processes them
+     */
+    private fun syncMoMoMessages() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) 
+            != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "SMS permission required", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        Toast.makeText(this, "🔄 Syncing MoMo messages...", Toast.LENGTH_SHORT).show()
+        statusText.text = "🔄 Syncing..."
+        
+        lifecycleScope.launch {
+            try {
+                val count = withContext(Dispatchers.IO) {
+                    readAndProcessMoMoSms()
+                }
+                
+                statusText.text = "✅ Synced $count MoMo message(s)"
+                Toast.makeText(this@MainActivity, "Found $count MoMo message(s)", Toast.LENGTH_SHORT).show()
+                
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Sync failed", e)
+                statusText.text = "❌ Sync failed: ${e.message}"
+                Toast.makeText(this@MainActivity, "Sync failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    
+    /**
+     * Read SMS messages from inbox and process MoMo deposits
+     */
+    private suspend fun readAndProcessMoMoSms(): Int {
+        var processedCount = 0
+        
+        // MoMo sender addresses to look for
+        val momoSenders = listOf("mobilemoney", "momo", "mtn", "1515")
+        
+        // Query last 100 SMS messages
+        val cursor: Cursor? = contentResolver.query(
+            Telephony.Sms.Inbox.CONTENT_URI,
+            arrayOf(
+                Telephony.Sms._ID,
+                Telephony.Sms.ADDRESS,
+                Telephony.Sms.BODY,
+                Telephony.Sms.DATE
+            ),
+            null,
+            null,
+            "${Telephony.Sms.DATE} DESC LIMIT 100"
+        )
+        
+        cursor?.use {
+            val addressIndex = it.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
+            val bodyIndex = it.getColumnIndexOrThrow(Telephony.Sms.BODY)
+            val dateIndex = it.getColumnIndexOrThrow(Telephony.Sms.DATE)
+            
+            while (it.moveToNext()) {
+                val address = it.getString(addressIndex) ?: continue
+                val body = it.getString(bodyIndex) ?: continue
+                val date = it.getLong(dateIndex)
+                
+                // Check if from MoMo sender
+                val lowerAddress = address.lowercase()
+                if (momoSenders.none { sender -> lowerAddress.contains(sender) }) {
+                    continue
+                }
+                
+                // Check if it's a deposit message (contains "received" or similar)
+                val lowerBody = body.lowercase()
+                if (!lowerBody.contains("received") && !lowerBody.contains("payment received")) {
+                    continue
+                }
+                
+                Log.i("MainActivity", "Found MoMo message: ${body.take(50)}...")
+                
+                // Extract and process
+                val amount = extractAmount(body)
+                val transactionId = extractTransactionId(body) ?: "SYNC${date}"
+                val reference = extractReference(body)
+                val senderName = extractSender(body) ?: address
+                
+                // Check if already processed
+                val dao = MoMoListenerApp.getInstance().database.momoTransactionDao()
+                if (dao.existsByTransactionId(transactionId) > 0) {
+                    Log.d("MainActivity", "Already processed: $transactionId")
+                    continue
+                }
+                
+                // Create transaction
+                val transaction = MoMoTransaction(
+                    transactionId = transactionId,
+                    amount = amount ?: 0.0,
+                    senderPhone = senderName,
+                    reference = reference,
+                    rawMessage = body,
+                    smsSender = address,
+                    receivedAt = date,
+                    status = MoMoTransaction.Status.PENDING
+                )
+                
+                // Process it
+                SmsListenerService.processTransaction(this@MainActivity, transaction)
+                processedCount++
+                
+                Log.i("MainActivity", "Synced: $transactionId, Amount=$amount, Ref=$reference")
+            }
+        }
+        
+        return processedCount
+    }
+    
+    // Simple extraction helpers (same as SmsReceiver)
+    private fun extractAmount(body: String): Double? {
+        val pattern = Regex("GH[SC]\\s*([\\d,]+\\.\\d{2})", RegexOption.IGNORE_CASE)
+        pattern.find(body)?.let { match ->
+            return match.groupValues[1].replace(",", "").toDoubleOrNull()
+        }
+        val simple = Regex("(\\d+\\.\\d{2})")
+        simple.find(body)?.let { return it.groupValues[1].toDoubleOrNull() }
+        return null
+    }
+    
+    private fun extractTransactionId(body: String): String? {
+        val pattern = Regex("Transaction\\s*ID[:\\s]+([\\w]+)", RegexOption.IGNORE_CASE)
+        pattern.find(body)?.let { return it.groupValues[1] }
+        val idPattern = Regex("ID[:\\s]+([\\w]{8,})", RegexOption.IGNORE_CASE)
+        idPattern.find(body)?.let { return it.groupValues[1] }
+        return null
+    }
+    
+    private fun extractReference(body: String): String? {
+        val refPattern = Regex("Reference[:\\s]+([\\w-]+)", RegexOption.IGNORE_CASE)
+        refPattern.find(body)?.let { 
+            val ref = it.groupValues[1]
+            return if (ref.uppercase().startsWith("BT")) ref.uppercase() else ref
+        }
+        val btPattern = Regex("\\b(BT-?\\d{4})\\b", RegexOption.IGNORE_CASE)
+        btPattern.find(body)?.let { 
+            val code = it.groupValues[1].uppercase()
+            return if (code.contains("-")) code else "BT-${code.substring(2)}"
+        }
+        return null
+    }
+    
+    private fun extractSender(body: String): String? {
+        val pattern = Regex("from\\s+([A-Z][A-Za-z\\s]+?)\\s{2,}", RegexOption.IGNORE_CASE)
+        pattern.find(body)?.let { return it.groupValues[1].trim() }
+        val pattern2 = Regex("from\\s+([A-Z][A-Za-z\\s]+?)\\s+Current", RegexOption.IGNORE_CASE)
+        pattern2.find(body)?.let { return it.groupValues[1].trim() }
+        return null
     }
     
     private fun observeTransactions() {
