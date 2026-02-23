@@ -516,7 +516,7 @@ const DataEasyCart = (function() {
                             ${item.network}
                         </span>
                     </div>
-                    <button class="text-gray-500 hover:text-red-400 transition" onclick="DataEasyCart.removeItem('${item.id}')">
+                    <button class="text-gray-500 hover:text-red-400 transition" data-action="remove-item" data-item-id="${item.id}">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -541,11 +541,11 @@ const DataEasyCart = (function() {
                 
                 <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-700">
                     <div class="flex items-center gap-2">
-                        <button class="w-7 h-7 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition" onclick="DataEasyCart.updateQuantity('${item.id}', ${item.quantity - 1})">
+                        <button class="w-7 h-7 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition" data-action="decrease-qty" data-item-id="${item.id}" data-qty="${item.quantity - 1}">
                             <i class="fas fa-minus text-xs"></i>
                         </button>
                         <span class="text-white font-medium w-8 text-center">${item.quantity}</span>
-                        <button class="w-7 h-7 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition" onclick="DataEasyCart.updateQuantity('${item.id}', ${item.quantity + 1})">
+                        <button class="w-7 h-7 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center transition" data-action="increase-qty" data-item-id="${item.id}" data-qty="${item.quantity + 1}">
                             <i class="fas fa-plus text-xs"></i>
                         </button>
                     </div>
@@ -553,6 +553,23 @@ const DataEasyCart = (function() {
                 </div>
             </div>
         `).join('');
+
+        // Re-attach event delegation for cart action buttons (use replaceWith trick to remove old listeners)
+        // Actually use a persistent listener on the container that's set up once
+        if (!container._cartDelegationAttached) {
+            container.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-action]');
+                if (!btn) return;
+                const action = btn.dataset.action;
+                const itemId = btn.dataset.itemId;
+                if (action === 'remove-item' && itemId) {
+                    removeItem(itemId);
+                } else if ((action === 'decrease-qty' || action === 'increase-qty') && itemId) {
+                    updateQuantity(itemId, parseInt(btn.dataset.qty));
+                }
+            });
+            container._cartDelegationAttached = true;
+        }
     }
 
     // ==========================================

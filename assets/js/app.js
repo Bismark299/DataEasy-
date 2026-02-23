@@ -391,6 +391,29 @@ const DataEasyApp = (function() {
         }
 
         const network = networks[0];
+
+        // Check if the entire network is out of stock
+        if (!DataEasyCart.isNetworkAvailable(network)) {
+            Toast.error(`${network} is currently out of stock. Cannot add to cart.`);
+            return;
+        }
+
+        // Check which specific packages are out of stock before adding
+        const outOfStockPackages = new Set();
+        state.parsedNumbers.valid.forEach(item => {
+            const networkPrefix = item.network === 'MTN' ? 'mtn' : (item.network === 'AirtelTigo' ? 'at' : 'tc');
+            const packageId = `${networkPrefix}-${item.dataSize}gb`;
+            if (DataEasyCart.isOutOfStock(packageId)) {
+                outOfStockPackages.add(`${item.network} ${item.dataSize}GB`);
+            }
+        });
+
+        if (outOfStockPackages.size > 0) {
+            const pkgList = [...outOfStockPackages].join(', ');
+            Toast.error(`Out of stock: ${pkgList}. Remove those entries and try again.`);
+            return;
+        }
+
         let addedCount = 0;
         let failedCount = 0;
 
@@ -434,6 +457,25 @@ const DataEasyApp = (function() {
         state.parsedNumbers = BulkParser.parse(text);
         const summary = BulkParser.getSummary(state.parsedNumbers);
 
+        // Check for out-of-stock items among valid entries
+        const oosItems = [];
+        if (state.parsedNumbers.valid.length > 0) {
+            const oosNetworks = new Set();
+            const oosPackages = new Set();
+            state.parsedNumbers.valid.forEach(item => {
+                if (!DataEasyCart.isNetworkAvailable(item.network)) {
+                    oosNetworks.add(item.network);
+                }
+                const pfx = item.network === 'MTN' ? 'mtn' : (item.network === 'AirtelTigo' ? 'at' : 'tc');
+                const pkgId = `${pfx}-${item.dataSize}gb`;
+                if (DataEasyCart.isOutOfStock(pkgId)) {
+                    oosPackages.add(`${item.network} ${item.dataSize}GB`);
+                }
+            });
+            if (oosNetworks.size > 0) oosItems.push(...[...oosNetworks].map(n => `${n} (entire network)`));
+            if (oosPackages.size > 0) oosItems.push(...oosPackages);
+        }
+
         // Update UI
         if (resultsContainer) {
             if (summary.total === 0) {
@@ -447,6 +489,15 @@ const DataEasyApp = (function() {
                         <i class="fas fa-chart-pie text-blue-400"></i>
                         Analysis Results
                     </h4>
+
+                    ${oosItems.length > 0 ? `
+                        <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
+                            <p class="text-red-400 text-sm font-semibold flex items-center gap-2 mb-1">
+                                <i class="fas fa-exclamation-triangle"></i> Out of Stock Detected
+                            </p>
+                            <p class="text-red-300 text-xs">${oosItems.join(', ')} — these cannot be added to cart. Remove them before proceeding.</p>
+                        </div>
+                    ` : ''}
                     
                     <div class="grid grid-cols-4 gap-3 mb-4">
                         <div class="bg-green-500/10 rounded-lg p-3 text-center border border-green-500/30">
@@ -471,11 +522,13 @@ const DataEasyApp = (function() {
                         <div class="space-y-2 mb-3">
                             <p class="text-gray-400 text-sm">By Network:</p>
                             <div class="flex flex-wrap gap-2">
-                                ${Object.entries(summary.networks).map(([network, count]) => `
-                                    <span class="px-3 py-1 rounded-full text-sm font-medium" style="background-color: ${Network.getColor(network).bg}; color: ${Network.getColor(network).text}">
-                                        ${network}: ${count}
+                                ${Object.entries(summary.networks).map(([network, count]) => {
+                                    const networkOOS = !DataEasyCart.isNetworkAvailable(network);
+                                    return `
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium ${networkOOS ? 'opacity-60 line-through' : ''}" style="background-color: ${Network.getColor(network).bg}; color: ${Network.getColor(network).text}">
+                                        ${network}: ${count} ${networkOOS ? '(Out of Stock)' : ''}
                                     </span>
-                                `).join('')}
+                                `}).join('')}
                             </div>
                         </div>
                     ` : ''}
@@ -484,11 +537,18 @@ const DataEasyApp = (function() {
                         <div class="space-y-2 mb-3">
                             <p class="text-gray-400 text-sm">By Data Size:</p>
                             <div class="flex flex-wrap gap-2">
-                                ${Object.entries(summary.dataSizes).sort((a,b) => parseInt(a[0]) - parseInt(b[0])).map(([size, count]) => `
-                                    <span class="px-3 py-1 rounded-full text-sm font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                                        ${size}GB: ${count}
+                                ${Object.entries(summary.dataSizes).sort((a,b) => parseInt(a[0]) - parseInt(b[0])).map(([size, count]) => {
+                                    // Check if any package with this data size is out of stock
+                                    const sizeOOS = state.parsedNumbers.valid.some(item => {
+                                        if (String(item.dataSize) !== String(size)) return false;
+                                        const pfx = item.network === 'MTN' ? 'mtn' : (item.network === 'AirtelTigo' ? 'at' : 'tc');
+                                        return DataEasyCart.isOutOfStock(`${pfx}-${item.dataSize}gb`);
+                                    });
+                                    return `
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium ${sizeOOS ? 'bg-red-500/20 text-red-400 border border-red-500/30 line-through' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'}">
+                                        ${size}GB: ${count} ${sizeOOS ? '(Out of Stock)' : ''}
                                     </span>
-                                `).join('')}
+                                `}).join('')}
                             </div>
                         </div>
                     ` : ''}
@@ -500,13 +560,16 @@ const DataEasyApp = (function() {
                                 Valid Entries:
                             </p>
                             <div class="max-h-32 overflow-y-auto space-y-1">
-                                ${state.parsedNumbers.valid.slice(0, 20).map(item => `
-                                    <div class="flex justify-between items-center px-2 py-1 bg-green-500/10 rounded text-xs">
-                                        <span class="text-gray-300">${item.formatted}</span>
+                                ${state.parsedNumbers.valid.slice(0, 20).map(item => {
+                                    const pfx = item.network === 'MTN' ? 'mtn' : (item.network === 'AirtelTigo' ? 'at' : 'tc');
+                                    const itemOOS = DataEasyCart.isOutOfStock(`${pfx}-${item.dataSize}gb`);
+                                    return `
+                                    <div class="flex justify-between items-center px-2 py-1 ${itemOOS ? 'bg-red-500/10 opacity-60' : 'bg-green-500/10'} rounded text-xs">
+                                        <span class="text-gray-300 ${itemOOS ? 'line-through' : ''}">${item.formatted}</span>
                                         <span class="text-gray-400">${item.network}</span>
-                                        <span class="text-green-400 font-medium">${item.dataSize}GB</span>
+                                        <span class="${itemOOS ? 'text-red-400' : 'text-green-400'} font-medium">${item.dataSize}GB ${itemOOS ? '⛔' : ''}</span>
                                     </div>
-                                `).join('')}
+                                `}).join('')}
                                 ${state.parsedNumbers.valid.length > 20 ? `<p class="text-gray-500 text-xs text-center py-1">+${state.parsedNumbers.valid.length - 20} more entries</p>` : ''}
                             </div>
                         </div>
@@ -537,6 +600,18 @@ const DataEasyApp = (function() {
         const validCountEl = document.getElementById('valid-numbers-count');
         if (validCountEl) {
             validCountEl.textContent = summary.valid;
+        }
+
+        // Disable/enable add-to-cart button based on out-of-stock status
+        const addBtn = document.getElementById('bulk-add-btn');
+        if (addBtn) {
+            if (oosItems.length > 0) {
+                addBtn.disabled = true;
+                addBtn.title = 'Cannot add — some packages are out of stock';
+            } else {
+                addBtn.disabled = summary.valid === 0;
+                addBtn.title = '';
+            }
         }
     }
 

@@ -90,10 +90,12 @@ const DataEasyUtils = (function() {
             toast.innerHTML = `
                 <span class="text-lg">${icons[type]}</span>
                 <p class="flex-1 text-sm font-medium">${message}</p>
-                <button class="text-white/80 hover:text-white transition" onclick="this.parentElement.remove()">
+                <button class="text-white/80 hover:text-white transition toast-close-btn">
                     <i class="fas fa-times"></i>
                 </button>
             `;
+
+            toast.querySelector('.toast-close-btn').addEventListener('click', () => toast.remove());
 
             this.container.appendChild(toast);
 

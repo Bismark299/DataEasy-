@@ -435,7 +435,7 @@
                             <p class="text-gray-400 text-xs">${session?.role || 'admin'}</p>
                         </div>
                     </div>
-                    <button onclick="DataEasyAdmin.logout()" class="w-full px-4 py-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition flex items-center justify-center gap-2">
+                    <button data-action="admin-logout" class="w-full px-4 py-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition flex items-center justify-center gap-2">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </button>
@@ -878,10 +878,10 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button class="flex-1 px-3 py-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition text-sm" onclick="DataEasyAdmin.adjustWallet('${user.id || user._id}', '${user.email}')">
+                        <button class="flex-1 px-3 py-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition text-sm" data-action="adjust-wallet" data-user-id="${user.id || user._id}" data-user-email="${user.email}">
                             <i class="fas fa-wallet mr-1"></i> Adjust
                         </button>
-                        <button class="flex-1 px-3 py-2 bg-gray-600/20 text-gray-400 rounded-lg hover:bg-gray-600/30 transition text-sm" onclick="DataEasyAdmin.viewUserOrders('${user.email}')">
+                        <button class="flex-1 px-3 py-2 bg-gray-600/20 text-gray-400 rounded-lg hover:bg-gray-600/30 transition text-sm" data-action="view-user-orders" data-user-email="${user.email}">
                             <i class="fas fa-history mr-1"></i> Orders
                         </button>
                     </div>
@@ -1274,6 +1274,22 @@
         Toast.success('Logged out successfully');
         window.location.href = '../pages/login';
     }
+
+    // ==========================================
+    // GLOBAL EVENT DELEGATION (CSP-safe)
+    // ==========================================
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        if (action === 'admin-logout') {
+            logout();
+        } else if (action === 'adjust-wallet') {
+            adjustWallet(btn.dataset.userId, btn.dataset.userEmail);
+        } else if (action === 'view-user-orders') {
+            viewUserOrders(btn.dataset.userEmail);
+        }
+    });
 
     // ==========================================
     // PUBLIC API
