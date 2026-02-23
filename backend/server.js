@@ -420,6 +420,37 @@ const startServer = async () => {
         // Initialize database AFTER port is open
         await initDatabase();
         
+        // Run startup migrations (safe, idempotent)
+        try {
+            const { sequelize } = require('./config/database');
+            
+            // Add 'momo' to paymentMethod enum if not exists
+            await sequelize.query(`
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_enum 
+                        WHERE enumlabel = 'momo' 
+                        AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'enum_transactions_paymentMethod')
+                    ) THEN
+                        ALTER TYPE "enum_transactions_paymentMethod" ADD VALUE 'momo';
+                    END IF;
+                END $$;
+            `).catch(() => {}); // Ignore if already exists or type doesn't exist yet
+            
+            // Update existing MoMo transactions from 'manual' to 'momo'
+            await sequelize.query(`
+                UPDATE transactions 
+                SET "paymentMethod" = 'momo' 
+                WHERE "paymentMethod" = 'manual' 
+                AND (description LIKE 'MoMo%' OR reference LIKE 'MOMO-%');
+            `).catch(() => {});
+            
+            console.log('✅ Startup migrations completed');
+        } catch (error) {
+            console.log('⚠️ Startup migrations skipped:', error.message);
+        }
+        
         // Run price integrity validation on startup
         try {
             const { runStartupValidation } = require('./utils/priceIntegrity');
