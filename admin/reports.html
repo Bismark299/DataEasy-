@@ -45,27 +45,27 @@
         
         <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
         <nav class="flex-1 px-3 overflow-y-auto">
-            <a href="index.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Dashboard">
+            <a href="index" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Dashboard">
                 <i class="fas fa-th-large w-5"></i>
                 <span class="sidebar-text">Dashboard</span>
             </a>
-            <a href="users.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Users">
+            <a href="users" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Users">
                 <i class="fas fa-users w-5"></i>
                 <span class="sidebar-text">Users</span>
             </a>
-            <a href="orders.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Orders">
+            <a href="orders" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Orders">
                 <i class="fas fa-shopping-cart w-5"></i>
                 <span class="sidebar-text">Orders</span>
             </a>
-            <a href="wallet.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Wallet">
+            <a href="wallet" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Wallet">
                 <i class="fas fa-wallet w-5"></i>
                 <span class="sidebar-text">Wallet</span>
             </a>
-            <a href="momo-deposits.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="MoMo Deposits">
+            <a href="momo-deposits" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="MoMo Deposits">
                 <i class="fas fa-mobile-alt w-5"></i>
                 <span class="sidebar-text">MoMo Deposits</span>
             </a>
-            <a href="packages.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Packages">
+            <a href="packages" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Packages">
                 <i class="fas fa-cube w-5"></i>
                 <span class="sidebar-text">Packages</span>
             </a>
@@ -78,17 +78,17 @@
                     <i class="fas fa-chevron-down w-4 text-xs transition-transform rotate-180 sidebar-text" id="reports-arrow"></i>
                 </button>
                 <div id="reports-submenu" class="pl-4">
-                    <a href="reports.html?type=sales" id="nav-sales" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Sales">
+                    <a href="reports?type=sales" id="nav-sales" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Sales">
                         <i class="fas fa-shopping-cart w-4"></i>
                         <span class="sidebar-text">Sales</span>
                     </a>
-                    <a href="reports.html?type=agents" id="nav-agents" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Agents">
+                    <a href="reports?type=agents" id="nav-agents" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Agents">
                         <i class="fas fa-user-tie w-4"></i>
                         <span class="sidebar-text">Agents</span>
                     </a>
                 </div>
             </div>
-            <a href="settings.html" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Settings">
+            <a href="settings" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Settings">
                 <i class="fas fa-cog w-5"></i>
                 <span class="sidebar-text">Settings</span>
             </a>
@@ -145,7 +145,7 @@
                                 <p class="text-xs text-blue-500 mt-1" id="profileRole">Super Admin</p>
                             </div>
                             <div class="p-2">
-                                <a href="settings.html" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
+                                <a href="settings" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
                                     <i class="fas fa-cog w-5"></i> Settings
                                 </a>
                                 <button id="dropdownLogoutBtn" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
@@ -285,7 +285,7 @@
         function logout() {
             localStorage.removeItem('dataeasy_admin_token');
             localStorage.removeItem('dataeasy_admin');
-            window.location.href = '../pages/login.html';
+            window.location.href = '../pages/login';
         }
 
         // Set greeting based on time of day
@@ -392,13 +392,13 @@
         document.getElementById('logoutBtn')?.addEventListener('click', () => {
             localStorage.removeItem('dataeasy_admin_token');
             localStorage.removeItem('dataeasy_admin');
-            window.location.href = '../pages/login.html';
+            window.location.href = '../pages/login';
         });
 
         // Check admin auth
         const token = localStorage.getItem('dataeasy_admin_token');
         if (!token) {
-            window.location.href = '../pages/login.html';
+            window.location.href = '../pages/login';
         }
 
         // Display admin name

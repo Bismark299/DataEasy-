@@ -99,7 +99,7 @@
         
         const session = getAdminSession();
         if (!session) {
-            window.location.href = '../pages/login.html?redirect=admin';
+            window.location.href = '../pages/login?redirect=admin';
             return false;
         }
         return session;
@@ -390,19 +390,19 @@
         const currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
         
         const menuItems = [
-            { id: 'index', icon: 'fas fa-chart-line', label: 'Dashboard', href: 'index.html' },
-            { id: 'orders', icon: 'fas fa-shopping-bag', label: 'Orders', href: 'orders.html' },
-            { id: 'users', icon: 'fas fa-users', label: 'Users', href: 'users.html' },
-            { id: 'packages', icon: 'fas fa-box', label: 'Packages', href: 'packages.html' },
-            { id: 'transactions', icon: 'fas fa-wallet', label: 'Transactions', href: 'transactions.html' },
-            { id: 'settings', icon: 'fas fa-cog', label: 'Settings', href: 'settings.html' }
+            { id: 'index', icon: 'fas fa-chart-line', label: 'Dashboard', href: 'index' },
+            { id: 'orders', icon: 'fas fa-shopping-bag', label: 'Orders', href: 'orders' },
+            { id: 'users', icon: 'fas fa-users', label: 'Users', href: 'users' },
+            { id: 'packages', icon: 'fas fa-box', label: 'Packages', href: 'packages' },
+            { id: 'transactions', icon: 'fas fa-wallet', label: 'Transactions', href: 'transactions' },
+            { id: 'settings', icon: 'fas fa-cog', label: 'Settings', href: 'settings' }
         ];
 
         return `
             <aside id="admin-sidebar" class="fixed left-0 top-0 h-full w-64 bg-gray-900 border-r border-gray-700 z-40 transform transition-transform duration-300 lg:translate-x-0 -translate-x-full">
                 <!-- Logo -->
                 <div class="p-4 border-b border-gray-700">
-                    <a href="index.html" class="flex items-center gap-3">
+                    <a href="index" class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                             <i class="fas fa-bolt text-white text-lg"></i>
                         </div>
@@ -455,7 +455,7 @@
                         <h1 class="text-white text-xl font-semibold">${title}</h1>
                     </div>
                     <div class="flex items-center gap-4">
-                        <a href="../index.html" class="text-gray-400 hover:text-white text-sm flex items-center gap-2">
+                        <a href="../index" class="text-gray-400 hover:text-white text-sm flex items-center gap-2">
                             <i class="fas fa-external-link-alt"></i>
                             <span class="hidden sm:inline">View Site</span>
                         </a>
@@ -498,7 +498,7 @@
             <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 <div class="p-4 border-b border-gray-700 flex items-center justify-between">
                     <h3 class="text-white font-semibold">Recent Orders</h3>
-                    <a href="orders.html" class="text-blue-400 text-sm hover:underline">View All</a>
+                    <a href="orders" class="text-blue-400 text-sm hover:underline">View All</a>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full">
@@ -1272,7 +1272,7 @@
     function logout() {
         clearAdminSession();
         Toast.success('Logged out successfully');
-        window.location.href = '../pages/login.html';
+        window.location.href = '../pages/login';
     }
 
     // ==========================================

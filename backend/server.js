@@ -362,19 +362,19 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-app.get('/ad.html', (req, res) => {
+app.get('/ad', (req, res) => {
     res.sendFile(path.join(frontendPath, 'ad.html'));
 });
 
-// Serve pages/*.html routes
+// Serve pages/ clean URL routes
 app.get('/pages/:page', (req, res) => {
-    const pagePath = path.join(frontendPath, 'pages', req.params.page);
+    const pagePath = path.join(frontendPath, 'pages', req.params.page + '.html');
     res.sendFile(pagePath);
 });
 
-// Serve admin/*.html routes
+// Serve admin/ clean URL routes
 app.get('/admin/:page', (req, res) => {
-    const pagePath = path.join(frontendPath, 'admin', req.params.page);
+    const pagePath = path.join(frontendPath, 'admin', req.params.page + '.html');
     res.sendFile(pagePath);
 });
 

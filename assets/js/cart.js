@@ -590,7 +590,7 @@ const DataEasyCart = (function() {
         const user = Storage.get('user');
         if (!user) {
             Toast.warning('Please login to continue');
-            window.location.href = 'pages/login.html';
+            window.location.href = 'pages/login';
             return null;
         }
 

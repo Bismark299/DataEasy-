@@ -249,7 +249,7 @@ const DataEasyAuth = (function() {
 
         // Redirect to login
         setTimeout(() => {
-            window.location.href = getBasePath() + 'pages/login.html';
+            window.location.href = getBasePath() + 'pages/login';
         }, 500);
     }
 
@@ -454,7 +454,7 @@ const DataEasyAuth = (function() {
     function requireAuth() {
         if (!isAuthenticated()) {
             Toast.warning('Please login to continue');
-            window.location.href = getBasePath() + 'pages/login.html';
+            window.location.href = getBasePath() + 'pages/login';
             return false;
         }
         return true;
@@ -465,7 +465,7 @@ const DataEasyAuth = (function() {
      */
     function redirectIfAuthenticated() {
         if (isAuthenticated()) {
-            window.location.href = getBasePath() + 'index.html';
+            window.location.href = getBasePath() + 'index';
             return true;
         }
         return false;
@@ -616,13 +616,13 @@ const DataEasyAuth = (function() {
                 // Check if admin login
                 if (result.isAdmin) {
                     setTimeout(() => {
-                        window.location.href = '../admin/index.html';
+                        window.location.href = '../admin/index';
                     }, 500);
                     return;
                 }
 
                 // Redirect to homepage or intended page for regular users
-                const redirect = new URLSearchParams(window.location.search).get('redirect') || '../index.html';
+                const redirect = new URLSearchParams(window.location.search).get('redirect') || '../index';
                 setTimeout(() => {
                     window.location.href = redirect;
                 }, 500);
@@ -696,7 +696,7 @@ const DataEasyAuth = (function() {
 
             if (result.success) {
                 setTimeout(() => {
-                    window.location.href = 'login.html';
+                    window.location.href = 'login';
                 }, 1000);
             }
         });

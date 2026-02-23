@@ -48,8 +48,12 @@ services:
         value: public, max-age=0, must-revalidate
     routes:
       - type: rewrite
+        source: /api/*
+        destination: /index.html
+      - type: rewrite
         source: /*
         destination: /index.html
+    cleanUrls: true
 
 databases:
   - name: dataeasy-db

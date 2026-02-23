@@ -685,7 +685,7 @@ const DataEasyApp = (function() {
                 if (!DataEasyAuth.isAuthenticated()) {
                     Toast.warning('Please login to continue');
                     const isInPagesFolder = window.location.pathname.includes('/pages/');
-                    const loginPath = isInPagesFolder ? 'login.html' : 'pages/login.html';
+                    const loginPath = isInPagesFolder ? 'login' : 'pages/login';
                     window.location.href = loginPath + '?redirect=' + encodeURIComponent(window.location.href);
                     return;
                 }
@@ -715,8 +715,8 @@ const DataEasyApp = (function() {
                                 // Detect if we're in a subpage and adjust redirect path
                                 const isInPagesFolder = window.location.pathname.includes('/pages/');
                                 const orderDetailsPath = isInPagesFolder 
-                                    ? `order-details.html?id=${order.id}&new=true`
-                                    : `pages/order-details.html?id=${order.id}&new=true`;
+                                    ? `order-details?id=${order.id}&new=true`
+                                    : `pages/order-details?id=${order.id}&new=true`;
 
                                 // Show success and redirect
                                 setTimeout(() => {
@@ -987,7 +987,7 @@ const DataEasyApp = (function() {
                             <td class="py-4 px-3 md:px-4 text-white">${Format.currency(order.total)} <span class="text-gray-400 text-sm">for ${itemCount} items</span></td>
                             <td class="py-4 px-3 md:px-4 text-sm">${deliveryDisplay}</td>
                             <td class="py-4 px-3 md:px-4">
-                                <a href="order-details.html?id=${order.id}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded transition inline-block">View</a>
+                                <a href="order-details?id=${order.id}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded transition inline-block">View</a>
                                 <button class="export-single-order-btn bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-1.5 rounded transition ml-1" data-order-id="${order.id}">Export</button>
                             </td>
                         </tr>
@@ -1018,7 +1018,7 @@ const DataEasyApp = (function() {
                             <div class="divide-y divide-gray-700">
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">ORDER ID:</span>
-                                    <a href="order-details.html?id=${order.id}" class="text-blue-400 hover:text-blue-300 font-medium">${order.id}</a>
+                                    <a href="order-details?id=${order.id}" class="text-blue-400 hover:text-blue-300 font-medium">${order.id}</a>
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">DATE:</span>
@@ -1039,7 +1039,7 @@ const DataEasyApp = (function() {
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">ACTIONS:</span>
                                     <div class="flex gap-2">
-                                        <a href="order-details.html?id=${order.id}" class="px-4 py-1.5 border border-blue-500 text-blue-400 text-sm rounded hover:bg-blue-500/10 transition">View</a>
+                                        <a href="order-details?id=${order.id}" class="px-4 py-1.5 border border-blue-500 text-blue-400 text-sm rounded hover:bg-blue-500/10 transition">View</a>
                                         <button class="export-single-order-btn px-4 py-1.5 border border-blue-500 text-blue-400 text-sm rounded hover:bg-blue-500/10 transition" data-order-id="${order.id}">Export</button>
                                     </div>
                                 </div>

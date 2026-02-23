@@ -18,7 +18,7 @@ const AdminCommon = (function() {
     function checkAdminAuth() {
         const token = localStorage.getItem('dataeasy_admin_token');
         if (!token) {
-            window.location.href = '../pages/login.html';
+            window.location.href = '../pages/login';
             return false;
         }
         return true;
@@ -30,7 +30,7 @@ const AdminCommon = (function() {
     function logout() {
         localStorage.removeItem('dataeasy_admin_token');
         localStorage.removeItem('dataeasy_admin');
-        window.location.href = '../pages/login.html';
+        window.location.href = '../pages/login';
     }
 
     // ==========================================
