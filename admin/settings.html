@@ -262,6 +262,45 @@
                             <input type="text" id="paystackKey" placeholder="pk_live_xxxxx" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                         </div>
                         
+                        <!-- MoMo Payment Settings -->
+                        <div class="pt-4 mt-4 border-t border-gray-200">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                                <i class="fas fa-mobile-alt text-yellow-500"></i> MoMo Payment Settings
+                            </h4>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                                <p class="text-xs text-yellow-700">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    These settings will be displayed to clients on the wallet page for making MoMo deposits.
+                                </p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="flex items-center justify-between py-2">
+                                    <div>
+                                        <label class="font-semibold text-gray-800 text-sm block">Enable MoMo</label>
+                                        <span class="text-xs text-gray-500">Show MoMo deposit option</span>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="momoEnabled" checked class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                                    </label>
+                                </div>
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between py-2">
+                                    <div class="mb-2 sm:mb-0">
+                                        <label class="font-semibold text-gray-800 text-sm block">MoMo Number</label>
+                                        <span class="text-xs text-gray-500">Phone number to receive deposits</span>
+                                    </div>
+                                    <input type="text" id="momoNumber" value="0555546229" placeholder="0XX XXX XXXX" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none">
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between py-2 mt-2">
+                                <div class="mb-2 sm:mb-0">
+                                    <label class="font-semibold text-gray-800 text-sm block">MoMo Account Name</label>
+                                    <span class="text-xs text-gray-500">Name displayed to clients</span>
+                                </div>
+                                <input type="text" id="momoName" value="Bismark Kwame Oteng" placeholder="Account holder name" class="w-full sm:w-64 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none">
+                            </div>
+                        </div>
+                        
                         <!-- Topup Fee Settings -->
                         <div class="pt-4 mt-4 border-t border-gray-200">
                             <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
@@ -998,6 +1037,10 @@
                         document.getElementById('maxDeposit').value = s.maxDeposit || 5000;
                         document.getElementById('maxLoginAttempts').value = s.maxLoginAttempts || 5;
                         document.getElementById('sessionTimeout').value = s.sessionTimeoutHours || 24;
+                        // MoMo settings
+                        document.getElementById('momoEnabled').checked = s.momoEnabled !== false;
+                        document.getElementById('momoNumber').value = s.momoNumber || '0555546229';
+                        document.getElementById('momoName').value = s.momoName || 'Bismark Kwame Oteng';
                     }
                 } catch (appError) {
                     console.log('Could not load app settings from server, using local');
@@ -1064,6 +1107,11 @@
                     enablePaystack: document.getElementById('enablePaystack').checked,
                     paystackKey: document.getElementById('paystackKey').value,
                     
+                    // MoMo settings
+                    momoEnabled: document.getElementById('momoEnabled').checked,
+                    momoNumber: document.getElementById('momoNumber').value,
+                    momoName: document.getElementById('momoName').value,
+                    
                     // Topup fee settings
                     topup_fees_enabled: document.getElementById('topup_fees_enabled').checked,
                     topup_fee_percentage: parseFloat(document.getElementById('topup_fee_percentage').value) || 2,
@@ -1096,7 +1144,11 @@
                         minDeposit: settings.minDeposit,
                         maxDeposit: settings.maxDeposit,
                         maxLoginAttempts: settings.maxLoginAttempts,
-                        sessionTimeoutHours: settings.sessionTimeout
+                        sessionTimeoutHours: settings.sessionTimeout,
+                        // MoMo settings
+                        momoEnabled: settings.momoEnabled,
+                        momoNumber: settings.momoNumber,
+                        momoName: settings.momoName
                     });
                 } catch (appError) {
                     console.log('App settings API error:', appError.message);

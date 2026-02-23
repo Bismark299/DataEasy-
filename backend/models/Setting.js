@@ -171,14 +171,22 @@ module.exports = (sequelize) => {
             supportEmail: await this.getValue('support_email', 'support@dataeasyplus.com'),
             supportPhone: await this.getValue('support_phone', '+233 20 000 0000'),
             maintenanceMode: await this.getValue('maintenance_mode', false),
-            sendClaimVisible: await this.getValue('send_claim_visible', true) // Show Send & Claim section on client
+            sendClaimVisible: await this.getValue('send_claim_visible', true),
+            // MoMo settings
+            momoEnabled: await this.getValue('momo_enabled', true),
+            momoNumber: await this.getValue('momo_number', '0555546229'),
+            momoName: await this.getValue('momo_name', 'Bismark Kwame Oteng')
         };
     };
 
     // Get client UI settings (for public API)
     Setting.getClientUISettings = async function() {
         return {
-            sendClaimVisible: await this.getValue('send_claim_visible', true)
+            sendClaimVisible: await this.getValue('send_claim_visible', true),
+            // MoMo settings for client
+            momoEnabled: await this.getValue('momo_enabled', true),
+            momoNumber: await this.getValue('momo_number', '0555546229'),
+            momoName: await this.getValue('momo_name', 'Bismark Kwame Oteng')
         };
     };
 

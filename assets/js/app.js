@@ -1978,6 +1978,35 @@ const DataEasyApp = (function() {
             sendClaimSection.style.display = visible ? '' : 'none';
         }
     }
+
+    /**
+     * Update MoMo payment settings from server
+     */
+    function updateMomoSettings() {
+        const settings = DataEasyCart.getUISettings();
+        
+        // Update MoMo number displays
+        document.querySelectorAll('[data-momo-number]').forEach(el => {
+            el.textContent = settings.momoNumber || '0555546229';
+        });
+        
+        // Update MoMo name displays
+        document.querySelectorAll('[data-momo-name]').forEach(el => {
+            el.textContent = settings.momoName || '';
+        });
+        
+        // Show/hide MoMo sections based on enabled setting
+        const momoEnabled = settings.momoEnabled !== false;
+        const momoSidebarSection = document.getElementById('momo-sidebar-section');
+        const momoPaymentCard = document.getElementById('momo-payment-card');
+        
+        if (momoSidebarSection) {
+            momoSidebarSection.style.display = momoEnabled ? '' : 'none';
+        }
+        if (momoPaymentCard) {
+            momoPaymentCard.style.display = momoEnabled ? '' : 'none';
+        }
+    }
     
     async function init() {
         // Detect current page
@@ -1989,6 +2018,7 @@ const DataEasyApp = (function() {
         
         // Apply initial UI settings
         updateSendClaimVisibility();
+        updateMomoSettings();
 
         // Initialize common components
         initSidebars();
@@ -2006,6 +2036,9 @@ const DataEasyApp = (function() {
             
             // Update Send & Claim visibility based on server settings
             updateSendClaimVisibility();
+            
+            // Update MoMo payment settings
+            updateMomoSettings();
         });
 
         // Page-specific initialization

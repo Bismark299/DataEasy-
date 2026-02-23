@@ -1886,6 +1886,20 @@ exports.updateAppSettings = async (req, res) => {
             });
         }
 
+        // MoMo payment settings
+        if (req.body.momoEnabled !== undefined) {
+            await Setting.setValue('momo_enabled', req.body.momoEnabled, 'boolean', 'Enable MoMo deposit option');
+            updates.push('momoEnabled');
+        }
+        if (req.body.momoNumber !== undefined) {
+            await Setting.setValue('momo_number', req.body.momoNumber, 'string', 'MoMo phone number');
+            updates.push('momoNumber');
+        }
+        if (req.body.momoName !== undefined) {
+            await Setting.setValue('momo_name', req.body.momoName, 'string', 'MoMo account name');
+            updates.push('momoName');
+        }
+
         // Log the action
         await AdminAuditLog.logAction(req, {
             action: 'UPDATE_SETTINGS',

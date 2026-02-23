@@ -93,21 +93,22 @@
         </div>
 
         <!-- MoMo Payment Instructions -->
-        <div id="send-claim-section" class="p-4">
-            <div class="flex items-center gap-2 mb-3">
-                <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                    <i class="fas fa-mobile-alt text-yellow-400 text-sm"></i>
+        <div id=\"momo-sidebar-section\" class=\"p-4\">
+            <div class=\"flex items-center gap-2 mb-3\">
+                <div class=\"w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center\">
+                    <i class=\"fas fa-mobile-alt text-yellow-400 text-sm\"></i>
                 </div>
-                <span class="text-white text-sm font-medium">Pay via MoMo</span>
+                <span class=\"text-white text-sm font-medium\">Pay via MoMo</span>
             </div>
-            <div class="bg-gray-800/50 rounded-lg p-3 text-xs space-y-2">
-                <p class="text-gray-300"><span class="text-yellow-400 font-semibold">Step 1:</span> Send money to:</p>
-                <p class="text-white font-mono text-sm bg-gray-900 p-2 rounded text-center">0599 494 373</p>
-                <p class="text-gray-300"><span class="text-yellow-400 font-semibold">Step 2:</span> In the reference, type your <span class="text-blue-400">Agent Code</span>:</p>
-                <p class="text-blue-400 font-mono text-sm bg-gray-900 p-2 rounded text-center" data-momo-agent-code>Your Agent Code</p>
-                <p class="text-gray-300"><span class="text-yellow-400 font-semibold">Step 3:</span> Your wallet will be credited automatically within 5 minutes.</p>
-                <div class="border-t border-gray-700 pt-2 mt-2">
-                    <p class="text-gray-500 text-[10px]"><i class="fas fa-info-circle mr-1"></i>If you forget the reference, your deposit will be pending until manually credited by admin.</p>
+            <div class=\"bg-gray-800/50 rounded-lg p-3 text-xs space-y-2\">
+                <p class=\"text-gray-300\"><span class=\"text-yellow-400 font-semibold\">Step 1:</span> Send money to:</p>
+                <p class=\"text-white font-mono text-sm bg-gray-900 p-2 rounded text-center\" data-momo-number>Loading...</p>
+                <p class=\"text-gray-400 text-[10px] text-center\" data-momo-name></p>
+                <p class=\"text-gray-300\"><span class=\"text-yellow-400 font-semibold\">Step 2:</span> In the reference, type your <span class=\"text-blue-400\">Agent Code</span>:</p>
+                <p class=\"text-blue-400 font-mono text-sm bg-gray-900 p-2 rounded text-center\" data-momo-agent-code>Your Agent Code</p>
+                <p class=\"text-gray-300\"><span class=\"text-yellow-400 font-semibold\">Step 3:</span> Your wallet will be credited automatically within 5 minutes.</p>
+                <div class=\"border-t border-gray-700 pt-2 mt-2\">
+                    <p class=\"text-gray-500 text-[10px]\"><i class=\"fas fa-info-circle mr-1\"></i>If you forget the reference, your deposit will be pending until manually credited by admin.</p>
                 </div>
             </div>
         </div>
@@ -235,7 +236,7 @@
             </div>
 
             <!-- MoMo Payment Instructions Card -->
-            <div class="bg-gradient-to-br from-yellow-900/30 to-card-bg rounded-xl p-4 md:p-5 border border-yellow-600/30 sm:col-span-2">
+            <div id="momo-payment-card" class="bg-gradient-to-br from-yellow-900/30 to-card-bg rounded-xl p-4 md:p-5 border border-yellow-600/30 sm:col-span-2">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
                         <i class="fas fa-mobile-alt text-yellow-400"></i>
@@ -246,7 +247,8 @@
                     <div class="bg-gray-800/50 rounded-lg p-3">
                         <p class="text-yellow-400 font-semibold mb-1">Step 1</p>
                         <p class="text-gray-300">Send money to:</p>
-                        <p class="text-white font-mono text-base mt-1">0599 494 373</p>
+                        <p class="text-white font-mono text-base mt-1" data-momo-number>Loading...</p>
+                        <p class="text-gray-400 text-[10px] mt-1" data-momo-name></p>
                     </div>
                     <div class="bg-gray-800/50 rounded-lg p-3">
                         <p class="text-yellow-400 font-semibold mb-1">Step 2</p>
