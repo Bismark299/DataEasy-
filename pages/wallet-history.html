@@ -209,7 +209,7 @@
     <!-- Main Content -->
     <main class="max-w-[1200px] mx-auto px-4 py-6 md:py-8">
         <!-- Top Section: Balance, Add Money, Topup -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-10">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10">
             <!-- Available Balance Card -->
             <div class="bg-card-bg rounded-xl p-4 md:p-6 border border-gray-700">
                 <p class="text-gray-400 text-xs md:text-sm text-center mb-2">AVAILABLE BALANCE</p>
@@ -221,25 +221,44 @@
                 </div>
             </div>
 
-            <!-- Add Money Card -->
-            <div class="bg-card-bg rounded-xl p-4 md:p-6 border border-gray-700 flex flex-col items-center justify-center">
-                <div class="text-gray-400 mb-3">
-                    <i class="fas fa-wallet text-3xl md:text-4xl"></i>
+            <!-- Topup Input Card -->
+            <div class="bg-card-bg rounded-xl p-4 md:p-6 border border-gray-700 flex flex-col justify-center">
+                <p class="text-gray-300 text-sm font-medium mb-3 text-center">Pay with Card</p>
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-gray-400 text-sm">GH₵</span>
+                    <input type="number" id="topup-amount" placeholder="Amount" min="1" class="flex-1 bg-gray-800 text-white py-2.5 px-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none text-center text-sm">
                 </div>
-                <p class="text-gray-300 text-base md:text-lg">Add Money</p>
+                <button id="add-money-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                    <i class="fas fa-credit-card"></i>
+                    Paystack
+                </button>
             </div>
 
-            <!-- Topup Input Card -->
-            <div class="bg-card-bg rounded-xl p-4 md:p-6 border border-gray-700 flex flex-col justify-center sm:col-span-2 lg:col-span-1">
-                <div class="flex items-center gap-2 mb-4">
-                    <span class="text-gray-400 text-lg">GH₵</span>
-                    <input type="number" id="topup-amount" placeholder="Enter amount" min="1" class="flex-1 bg-gray-800 text-white py-3 px-4 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none text-center text-sm md:text-base">
+            <!-- MoMo Payment Instructions Card -->
+            <div class="bg-gradient-to-br from-yellow-900/30 to-card-bg rounded-xl p-4 md:p-5 border border-yellow-600/30 sm:col-span-2">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                        <i class="fas fa-mobile-alt text-yellow-400"></i>
+                    </div>
+                    <span class="text-yellow-400 font-semibold">Pay via MoMo</span>
                 </div>
-                <button id="add-money-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition text-sm md:text-base flex items-center justify-center gap-2">
-                    <i class="fas fa-credit-card"></i>
-                    Pay with Paystack
-                </button>
-                <p class="text-gray-500 text-xs text-center mt-2">Secure payment powered by Paystack</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div class="bg-gray-800/50 rounded-lg p-3">
+                        <p class="text-yellow-400 font-semibold mb-1">Step 1</p>
+                        <p class="text-gray-300">Send money to:</p>
+                        <p class="text-white font-mono text-base mt-1">0599 494 373</p>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-lg p-3">
+                        <p class="text-yellow-400 font-semibold mb-1">Step 2</p>
+                        <p class="text-gray-300">Add your Agent Code as reference:</p>
+                        <p class="text-blue-400 font-mono text-base mt-1" data-momo-agent-code>Your Code</p>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-lg p-3">
+                        <p class="text-yellow-400 font-semibold mb-1">Step 3</p>
+                        <p class="text-gray-300">Auto-credited within <span class="text-green-400 font-semibold">5 minutes</span></p>
+                    </div>
+                </div>
+                <p class="text-gray-500 text-[10px] mt-2"><i class="fas fa-info-circle mr-1"></i>Forgot reference? Admin will manually credit your wallet.</p>
             </div>
         </div>
 
