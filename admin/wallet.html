@@ -248,6 +248,7 @@
                             <select id="sourceFilter" class="w-48 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-sidebar focus:border-transparent outline-none bg-white">
                                 <option value="">-- All Sources --</option>
                                 <option value="paystack">Paystack</option>
+                                <option value="momo">MoMo</option>
                                 <option value="manual">Admin Credit</option>
                                 <option value="order">Order</option>
                                 <option value="refund">Refund</option>
@@ -746,9 +747,10 @@
             function getSourceDisplay(paymentMethod) {
                 const sources = {
                     'paystack': { label: 'Paystack', color: 'bg-blue-500 text-white', icon: 'fa-credit-card' },
+                    'momo': { label: 'MoMo', color: 'bg-yellow-500 text-white', icon: 'fa-mobile-alt' },
                     'manual': { label: 'Admin Credit', color: 'bg-purple-500 text-white', icon: 'fa-user-shield' },
                     'order': { label: 'Order', color: 'bg-orange-500 text-white', icon: 'fa-shopping-cart' },
-                    'refund': { label: 'Refund', color: 'bg-yellow-500 text-white', icon: 'fa-undo' }
+                    'refund': { label: 'Refund', color: 'bg-green-500 text-white', icon: 'fa-undo' }
                 };
                 return sources[paymentMethod] || { label: paymentMethod || 'N/A', color: 'bg-gray-400 text-white', icon: 'fa-question' };
             }
@@ -815,8 +817,8 @@
             const statusColors = { 'completed': 'bg-green-100 text-green-800', 'pending': 'bg-yellow-100 text-yellow-800', 'failed': 'bg-red-100 text-red-800' };
             
             // Source display info
-            const sourceLabels = { 'paystack': 'Paystack', 'manual': 'Admin Credit', 'order': 'Order', 'refund': 'Refund' };
-            const sourceColors = { 'paystack': 'bg-blue-100 text-blue-800', 'manual': 'bg-purple-100 text-purple-800', 'order': 'bg-orange-100 text-orange-800', 'refund': 'bg-yellow-100 text-yellow-800' };
+            const sourceLabels = { 'paystack': 'Paystack', 'momo': 'MoMo', 'manual': 'Admin Credit', 'order': 'Order', 'refund': 'Refund' };
+            const sourceColors = { 'paystack': 'bg-blue-100 text-blue-800', 'momo': 'bg-yellow-100 text-yellow-800', 'manual': 'bg-purple-100 text-purple-800', 'order': 'bg-orange-100 text-orange-800', 'refund': 'bg-green-100 text-green-800' };
             const sourceLabel = sourceLabels[tx.paymentMethod] || tx.paymentMethod || 'N/A';
             const sourceColor = sourceColors[tx.paymentMethod] || 'bg-gray-100 text-gray-800';
 
@@ -873,7 +875,7 @@
             if (filtered.length === 0) { showToast('warning', 'Warning', 'No transactions to export'); return; }
 
             // Source label mapping
-            const sourceLabels = { 'paystack': 'Paystack', 'manual': 'Admin Credit', 'order': 'Order', 'refund': 'Refund' };
+            const sourceLabels = { 'paystack': 'Paystack', 'momo': 'MoMo', 'manual': 'Admin Credit', 'order': 'Order', 'refund': 'Refund' };
             
             const headers = ['ID', 'Date', 'User', 'Phone', 'Type', 'Source', 'Description', 'Amount', 'Balance After', 'Status', 'Reference'];
             const rows = filtered.map(tx => [

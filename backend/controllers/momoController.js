@@ -411,7 +411,7 @@ const processDeposit = async (req, res) => {
             balanceAfter,
             description: `MoMo Deposit (${transactionId})`,
             reference: `MOMO-${transactionId}`,
-            paymentMethod: 'manual', // Use 'manual' as it's an existing enum value
+            paymentMethod: 'momo',
             status: 'completed',
             metadata: {
                 momoTransactionId: transactionId,

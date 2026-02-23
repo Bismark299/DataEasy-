@@ -64,7 +64,7 @@ const Transaction = sequelize.define('Transaction', {
         allowNull: true
     },
     paymentMethod: {
-        type: DataTypes.ENUM('paystack', 'manual', 'order', 'refund'),
+        type: DataTypes.ENUM('paystack', 'manual', 'momo', 'order', 'refund'),
         defaultValue: 'paystack'
     },
     status: {
