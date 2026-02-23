@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.dataeasy.momolistener.MoMoListenerApp
+import com.dataeasy.momolistener.R
 import com.dataeasy.momolistener.databinding.ActivityMainBinding
 import com.dataeasy.momolistener.domain.model.MoMoTransaction
 import com.dataeasy.momolistener.domain.model.ParseResult
@@ -117,7 +118,8 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun onPermissionsGranted() {
-        binding.statusText.text = "✅ Ready - Tap Start"
+        binding.statusText.text = "Ready"
+        binding.statusDot.setBackgroundResource(R.drawable.status_dot_pending)
         binding.btnStart.isEnabled = true
         binding.btnStop.isEnabled = false
         
@@ -150,7 +152,8 @@ class MainActivity : AppCompatActivity() {
             startService(intent)
         }
         
-        binding.statusText.text = "✅ Listening for MoMo SMS"
+        binding.statusText.text = "Listening"
+        binding.statusDot.setBackgroundResource(R.drawable.status_dot_active)
         binding.btnStart.isEnabled = false
         binding.btnStop.isEnabled = true
         
@@ -160,7 +163,8 @@ class MainActivity : AppCompatActivity() {
     private fun stopListenerService() {
         stopService(Intent(this, ListenerService::class.java))
         
-        binding.statusText.text = "⏹ Service stopped"
+        binding.statusText.text = "Stopped"
+        binding.statusDot.setBackgroundResource(R.drawable.status_dot_stopped)
         binding.btnStart.isEnabled = true
         binding.btnStop.isEnabled = false
         
@@ -193,14 +197,14 @@ class MainActivity : AppCompatActivity() {
         }
         
         Toast.makeText(this, "Syncing...", Toast.LENGTH_SHORT).show()
-        binding.statusText.text = "🔄 Syncing..."
+        binding.statusText.text = "Syncing..."
         
         lifecycleScope.launch {
             val count = withContext(Dispatchers.IO) {
                 syncMoMoFromInbox()
             }
             
-            binding.statusText.text = "✅ Synced $count message(s)"
+            binding.statusText.text = "Synced"
             Toast.makeText(this@MainActivity, "Found $count MoMo messages", Toast.LENGTH_SHORT).show()
             
             // Trigger upload
@@ -283,7 +287,7 @@ class MainActivity : AppCompatActivity() {
                     }
             } catch (e: Exception) {
                 android.util.Log.e("MainActivity", "Error observing transactions", e)
-                binding.statsText.text = "Error loading data"
+                binding.statTotalAmount.text = "Error"
             }
         }
     }
@@ -300,7 +304,11 @@ class MainActivity : AppCompatActivity() {
             .filter { it.status == TransactionStatus.SUCCESS }
             .sumOf { it.amount }
         
-        binding.statsText.text = "Total: $total | ✅ $success | ⏳ $pending | ❌ $failed\n" +
-                "Processed: GHS %.2f".format(totalAmount)
+        // Update individual stat views
+        binding.statTotalAmount.text = "GHS %.2f".format(totalAmount)
+        binding.statTotalCount.text = "$total transactions"
+        binding.statSuccess.text = success.toString()
+        binding.statPending.text = pending.toString()
+        binding.statFailed.text = failed.toString()
     }
 }
