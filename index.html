@@ -6,23 +6,22 @@
     <title>DataEasy+ - Bulk Orders</title>
     
     <!-- DNS Prefetch for external resources -->
-    <link rel="dns-prefetch" href="//cdn.tailwindcss.com">
     <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
     <link rel="dns-prefetch" href="//js.paystack.co">
     
     <!-- Preconnect to critical origins -->
-    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     
     <!-- Preload critical CSS -->
+    <link rel="preload" href="assets/css/tailwind.min.css" as="style">
     <link rel="preload" href="assets/css/custom.css?v=20260213d" as="style">
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" crossorigin>
     <link rel="preload" href="assets/js/config.js" as="script">
     <link rel="preload" href="assets/js/api.js" as="script">
     <link rel="preload" href="assets/js/app.js" as="script">
     
-    <!-- Load external resources with async where possible -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load CSS and scripts -->
+    <link rel="stylesheet" href="assets/css/tailwind.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://js.paystack.co/v1/inline.js" async></script>
     <link rel="stylesheet" href="assets/css/custom.css?v=20260213d">
@@ -46,30 +45,6 @@
                 }
             }
         })();
-    </script>
-    <script>
-        tailwind.config = {
-            theme: {
-                screens: {
-                    'xs': '400px',
-                    'sm': '640px',
-                    'md': '768px',
-                    'lg': '1024px',
-                    'xl': '1280px',
-                    '2xl': '1536px',
-                },
-                extend: {
-                    colors: {
-                        'mtn-yellow': '#F5C518',
-                        'dark-bg': '#1a1a2e',
-                        'card-bg': '#16213e',
-                        'airtel-red': '#E4002B',
-                        'airtel-blue': '#0033A0',
-                        'telecel-red': '#E53935',
-                    }
-                }
-            }
-        }
     </script>
     <style>
         .airtel-tab-gradient {

@@ -4,20 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MoMo Deposits - DataEasy+ Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="../assets/js/config.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'sidebar': '#1a1f36',
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         .sidebar-link.active { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
         .loading-overlay { backdrop-filter: blur(4px); }
@@ -194,11 +183,11 @@
             <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
                 <!-- Quick Date Buttons -->
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <button onclick="setDateFilter('today')" id="btnToday" class="px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition">Today</button>
-                    <button onclick="setDateFilter('yesterday')" id="btnYesterday" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Yesterday</button>
-                    <button onclick="setDateFilter('week')" id="btnWeek" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">This Week</button>
-                    <button onclick="setDateFilter('month')" id="btnMonth" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">This Month</button>
-                    <button onclick="setDateFilter('all')" id="btnAll" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">All Time</button>
+                    <button id="btnToday" class="px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition">Today</button>
+                    <button id="btnYesterday" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Yesterday</button>
+                    <button id="btnWeek" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">This Week</button>
+                    <button id="btnMonth" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">This Month</button>
+                    <button id="btnAll" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">All Time</button>
                 </div>
                 
                 <div class="flex flex-wrap gap-3 items-center">
@@ -768,6 +757,13 @@
             currentPage = 1;
             loadDeposits();
         });
+
+        // Date filter button event listeners
+        document.getElementById('btnToday').addEventListener('click', () => setDateFilter('today'));
+        document.getElementById('btnYesterday').addEventListener('click', () => setDateFilter('yesterday'));
+        document.getElementById('btnWeek').addEventListener('click', () => setDateFilter('week'));
+        document.getElementById('btnMonth').addEventListener('click', () => setDateFilter('month'));
+        document.getElementById('btnAll').addEventListener('click', () => setDateFilter('all'));
 
         // Hide loading overlay and initialize with today's date filter
         document.getElementById('loadingOverlay').classList.add('hidden');

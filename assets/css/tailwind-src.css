@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   ADMIN STYLES
+   ============================================ */
+
+/* Sidebar */
+.sidebar-link.active {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+}
+
+/* Loading overlay */
+.loading-overlay {
+    backdrop-filter: blur(4px);
+}
+
+/* Collapsed sidebar */
+.sidebar-collapsed {
+    width: 80px !important;
+}
+
+.sidebar-collapsed .sidebar-text {
+    display: none;
+}
+
+.sidebar-collapsed .sidebar-link {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.sidebar-collapsed .sidebar-link i {
+    width: auto;
+    font-size: 1.25rem;
+}
+
+.sidebar-collapsed .menu-label {
+    display: none;
+}
+
+.sidebar-collapsed .logo-text {
+    display: none;
+}
+
+.sidebar-collapsed .logout-btn {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.sidebar-collapsed .logout-btn span {
+    display: none;
+}
+
+.main-collapsed {
+    margin-left: 80px !important;
+}
+
+/* ============================================
+   USER-FACING STYLES
+   ============================================ */
+
+/* Airtel branding */
+.airtel-tab-gradient {
+    background: linear-gradient(90deg, #E4002B 50%, #0033A0 50%);
+}
+
+.airtel-card {
+    background-color: #0033A0;
+    position: relative;
+    overflow: hidden;
+}
+
+.airtel-card .card-footer {
+    background-color: #E4002B;
+}
+
+/* MTN branding */
+.mtn-card .card-footer {
+    background-color: #4a4a4a;
+    color: #e5e5e5;
+}
+
+.mtn-card .card-footer p {
+    color: #e5e5e5 !important;
+}
+
+.mtn-badge {
+    border: 2px solid #4a4a4a;
+    border-radius: 9999px;
+    padding: 2px 12px;
+    font-weight: bold;
+    color: #4a4a4a;
+}
+
+/* Telecel branding */
+.telecel-card .card-footer {
+    background-color: #2d2d2d;
+}
+
+.telecel-card .card-footer p {
+    color: white !important;
+}

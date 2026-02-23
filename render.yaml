@@ -40,7 +40,7 @@ services:
   - type: web
     name: dataeasy-frontend
     runtime: static
-    buildCommand: echo "No build needed"
+    buildCommand: npm install && npm run build:css
     staticPublishPath: .
     headers:
       - path: /*

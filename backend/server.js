@@ -133,7 +133,6 @@ app.use(helmet({
                 "'self'",
                 "'unsafe-inline'",
                 "'unsafe-eval'",
-                "https://cdn.tailwindcss.com",
                 "https://js.paystack.co",
                 "https://cdnjs.cloudflare.com",
                 "https://checkout.paystack.com",
@@ -143,7 +142,6 @@ app.use(helmet({
             scriptSrcElem: [
                 "'self'",
                 "'unsafe-inline'",
-                "https://cdn.tailwindcss.com",
                 "https://js.paystack.co",
                 "https://cdnjs.cloudflare.com",
                 "https://checkout.paystack.com",
@@ -153,7 +151,6 @@ app.use(helmet({
             styleSrc: [
                 "'self'",
                 "'unsafe-inline'",
-                "https://cdn.tailwindcss.com",
                 "https://cdnjs.cloudflare.com",
                 "https://fonts.googleapis.com",
                 "https://paystack.com",
@@ -163,7 +160,6 @@ app.use(helmet({
             styleSrcElem: [
                 "'self'",
                 "'unsafe-inline'",
-                "https://cdn.tailwindcss.com",
                 "https://cdnjs.cloudflare.com",
                 "https://fonts.googleapis.com",
                 "https://paystack.com",
