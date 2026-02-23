@@ -192,7 +192,24 @@
 
             <!-- Filters -->
             <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                <!-- Quick Date Buttons -->
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button onclick="setDateFilter('today')" id="btnToday" class="px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition">Today</button>
+                    <button onclick="setDateFilter('yesterday')" id="btnYesterday" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Yesterday</button>
+                    <button onclick="setDateFilter('week')" id="btnWeek" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">This Week</button>
+                    <button onclick="setDateFilter('month')" id="btnMonth" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">This Month</button>
+                    <button onclick="setDateFilter('all')" id="btnAll" class="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">All Time</button>
+                </div>
+                
                 <div class="flex flex-wrap gap-3 items-center">
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm text-gray-600">From:</label>
+                        <input type="date" id="startDate" class="bg-gray-50 border border-gray-200 text-gray-700 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm text-gray-600">To:</label>
+                        <input type="date" id="endDate" class="bg-gray-50 border border-gray-200 text-gray-700 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    </div>
                     <select id="statusFilter" class="bg-gray-50 border border-gray-200 text-gray-700 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">All Status</option>
                         <option value="pending">Pending</option>
@@ -297,6 +314,7 @@
         let totalPages = 1;
         let deposits = [];
         let allDepositsStats = { total: 0, credited: 0, unmatched: 0, totalAmount: 0 };
+        let currentDateFilter = 'today';
 
         // Check admin auth (using same token key as other admin pages)
         const token = localStorage.getItem('dataeasy_admin_token');
@@ -304,14 +322,86 @@
             window.location.href = '../pages/login.html';
         }
 
+        // Date helper functions
+        function getToday() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function getYesterday() {
+            const d = new Date();
+            d.setDate(d.getDate() - 1);
+            return d.toISOString().split('T')[0];
+        }
+
+        function getWeekStart() {
+            const d = new Date();
+            d.setDate(d.getDate() - d.getDay());
+            return d.toISOString().split('T')[0];
+        }
+
+        function getMonthStart() {
+            const d = new Date();
+            d.setDate(1);
+            return d.toISOString().split('T')[0];
+        }
+
+        // Set date filter and reload
+        function setDateFilter(period) {
+            currentDateFilter = period;
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            const today = getToday();
+            
+            // Reset all button styles
+            ['btnToday', 'btnYesterday', 'btnWeek', 'btnMonth', 'btnAll'].forEach(id => {
+                document.getElementById(id).className = 'px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition';
+            });
+
+            switch(period) {
+                case 'today':
+                    startDate.value = today;
+                    endDate.value = today;
+                    document.getElementById('btnToday').className = 'px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition';
+                    break;
+                case 'yesterday':
+                    const yesterday = getYesterday();
+                    startDate.value = yesterday;
+                    endDate.value = yesterday;
+                    document.getElementById('btnYesterday').className = 'px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition';
+                    break;
+                case 'week':
+                    startDate.value = getWeekStart();
+                    endDate.value = today;
+                    document.getElementById('btnWeek').className = 'px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition';
+                    break;
+                case 'month':
+                    startDate.value = getMonthStart();
+                    endDate.value = today;
+                    document.getElementById('btnMonth').className = 'px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition';
+                    break;
+                case 'all':
+                    startDate.value = '';
+                    endDate.value = '';
+                    document.getElementById('btnAll').className = 'px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition';
+                    break;
+            }
+            
+            currentPage = 1;
+            loadDeposits();
+        }
+
         // Load deposits
         async function loadDeposits() {
             const status = document.getElementById('statusFilter').value;
             const search = document.getElementById('searchInput').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
             
             let url = `${API_BASE_URL}/momo/deposits?page=${currentPage}&limit=20`;
             if (status) url += `&status=${status}`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
+            if (startDate) url += `&startDate=${startDate}`;
+            if (endDate) url += `&endDate=${endDate}`;
 
             try {
                 const response = await fetch(url, {
@@ -660,9 +750,28 @@
             }
         });
 
-        // Hide loading overlay and initialize
+        // Date filter change handlers
+        document.getElementById('startDate').addEventListener('change', () => {
+            currentDateFilter = 'custom';
+            ['btnToday', 'btnYesterday', 'btnWeek', 'btnMonth', 'btnAll'].forEach(id => {
+                document.getElementById(id).className = 'px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition';
+            });
+            currentPage = 1;
+            loadDeposits();
+        });
+
+        document.getElementById('endDate').addEventListener('change', () => {
+            currentDateFilter = 'custom';
+            ['btnToday', 'btnYesterday', 'btnWeek', 'btnMonth', 'btnAll'].forEach(id => {
+                document.getElementById(id).className = 'px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition';
+            });
+            currentPage = 1;
+            loadDeposits();
+        });
+
+        // Hide loading overlay and initialize with today's date filter
         document.getElementById('loadingOverlay').classList.add('hidden');
-        loadDeposits();
+        setDateFilter('today');
     </script>
 </body>
 </html>
