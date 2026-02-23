@@ -92,18 +92,23 @@
             </div>
         </div>
 
-        <!-- Send & Claim Section -->
+        <!-- MoMo Payment Instructions -->
         <div id="send-claim-section" class="p-4">
-            <h3 class="text-white text-sm font-semibold mb-3">Send & Claim</h3>
-            <div class="space-y-3">
-                <div>
-                    <label class="text-gray-400 text-xs block mb-1">Enter Transaction ID:</label>
-                    <input type="text" class="w-full bg-gray-800 text-white text-sm py-2 px-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                    <i class="fas fa-mobile-alt text-yellow-400 text-sm"></i>
                 </div>
-                <p class="text-gray-500 text-xs">Enter the MoMo transaction ID from your payment.</p>
-                <button class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded transition">
-                    Verify Transaction
-                </button>
+                <span class="text-white text-sm font-medium">Pay via MoMo</span>
+            </div>
+            <div class="bg-gray-800/50 rounded-lg p-3 text-xs space-y-2">
+                <p class="text-gray-300"><span class="text-yellow-400 font-semibold">Step 1:</span> Send money to:</p>
+                <p class="text-white font-mono text-sm bg-gray-900 p-2 rounded text-center">0599 494 373</p>
+                <p class="text-gray-300"><span class="text-yellow-400 font-semibold">Step 2:</span> In the reference, type your <span class="text-blue-400">Agent Code</span>:</p>
+                <p class="text-blue-400 font-mono text-sm bg-gray-900 p-2 rounded text-center" data-momo-agent-code>Your Agent Code</p>
+                <p class="text-gray-300"><span class="text-yellow-400 font-semibold">Step 3:</span> Your wallet will be credited automatically within 5 minutes.</p>
+                <div class="border-t border-gray-700 pt-2 mt-2">
+                    <p class="text-gray-500 text-[10px]"><i class="fas fa-info-circle mr-1"></i>If you forget the reference, your deposit will be pending until manually credited by admin.</p>
+                </div>
             </div>
         </div>
     </aside>

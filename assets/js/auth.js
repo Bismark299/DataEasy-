@@ -513,6 +513,11 @@ const DataEasyAuth = (function() {
             el.textContent = user && user.agentCode ? user.agentCode : '';
         });
 
+        // Update MoMo agent code displays (for payment instructions)
+        document.querySelectorAll('[data-momo-agent-code]').forEach(el => {
+            el.textContent = user && user.agentCode ? user.agentCode : 'Login to see your code';
+        });
+
         // Update user display name (for account page header)
         document.querySelectorAll('[data-user-display-name]').forEach(el => {
             el.textContent = user ? user.fullName : 'Your Name';
