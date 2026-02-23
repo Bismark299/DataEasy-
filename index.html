@@ -214,22 +214,22 @@
         </div>
 
         <!-- MoMo Payment Instructions -->
-        <div id="momo-sidebar-section" class="p-4">
+        <div id="momo-sidebar-section" class="p-4 border-t border-gray-700">
             <div class="flex items-center gap-2 mb-3">
                 <div class="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
                     <i class="fas fa-mobile-alt text-yellow-400 text-sm"></i>
                 </div>
-                <span class="text-white text-sm font-medium">Pay via MoMo</span>
+                <span class="text-yellow-400 text-sm font-bold">Pay via MoMo</span>
             </div>
-            <div class="bg-gray-800/50 rounded-lg p-3 text-xs space-y-2">
-                <p class="text-gray-300"><span class="text-yellow-400 font-semibold">Step 1:</span> Send money to:</p>
-                <p class="text-white font-mono text-sm bg-gray-900 p-2 rounded text-center" data-momo-number>Loading...</p>
-                <p class="text-gray-400 text-[10px] text-center" data-momo-name></p>
-                <p class="text-gray-300"><span class="text-yellow-400 font-semibold">Step 2:</span> In the reference, type your <span class="text-blue-400">Agent Code</span>:</p>
-                <p class="text-blue-400 font-mono text-sm bg-gray-900 p-2 rounded text-center" data-momo-agent-code>Your Agent Code</p>
-                <p class="text-gray-300"><span class="text-yellow-400 font-semibold">Step 3:</span> Your wallet will be credited automatically within 5 minutes.</p>
-                <div class="border-t border-gray-700 pt-2 mt-2">
-                    <p class="text-gray-500 text-[10px]"><i class="fas fa-info-circle mr-1"></i>If you forget the reference, your deposit will be pending until manually credited by admin.</p>
+            <div class="bg-gray-900 rounded-lg p-3 text-xs space-y-2 border border-gray-700">
+                <p class="text-white"><span class="text-yellow-400 font-semibold">Step 1:</span> Send money to:</p>
+                <p class="text-yellow-300 font-mono text-sm bg-black/50 p-2 rounded text-center font-bold" data-momo-number>Loading...</p>
+                <p class="text-gray-300 text-[10px] text-center" data-momo-name></p>
+                <p class="text-white"><span class="text-yellow-400 font-semibold">Step 2:</span> In the reference, type your <span class="text-blue-300 font-bold">Agent Code</span>:</p>
+                <p class="text-blue-300 font-mono text-sm bg-black/50 p-2 rounded text-center font-bold" data-momo-agent-code>Your Agent Code</p>
+                <p class="text-white"><span class="text-yellow-400 font-semibold">Step 3:</span> Auto-credited within <span class="text-green-400 font-bold">5 minutes</span>.</p>
+                <div class="border-t border-gray-600 pt-2 mt-2">
+                    <p class="text-gray-400 text-[10px]"><i class="fas fa-info-circle mr-1"></i>Forgot reference? Admin will manually credit your wallet.</p>
                 </div>
             </div>
         </div>
