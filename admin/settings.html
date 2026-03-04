@@ -215,6 +215,16 @@
                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                             </label>
                         </div>
+                        <div class="flex items-center justify-between py-3">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Show MoMo Details</label>
+                                <span class="text-xs text-gray-500">Display MoMo payment instructions on client sidebar</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="momoDetailsVisible" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -914,6 +924,17 @@
                     });
                 }
             });
+            
+            // Add change event listener for MoMo details toggle
+            const momoToggle = document.getElementById('momoDetailsVisible');
+            if (momoToggle) {
+                momoToggle.addEventListener('change', function() {
+                    const status = this.checked ? 'visible' : 'hidden';
+                    showToast(this.checked ? 'success' : 'warning', 'MoMo Details', `MoMo payment instructions are now ${status} for clients`);
+                    // Auto-save when toggle changes
+                    saveSettings();
+                });
+            }
         }
 
         async function saveNetworkAvailability() {
@@ -1033,6 +1054,7 @@
                         document.getElementById('supportPhone').value = s.supportPhone || '+233 20 000 0000';
                         document.getElementById('maintenanceMode').checked = s.maintenanceMode || false;
                         document.getElementById('sendClaimVisible').checked = s.sendClaimVisible !== false;
+                        document.getElementById('momoDetailsVisible').checked = s.momoDetailsVisible !== false;
                         document.getElementById('minDeposit').value = s.minDeposit || 1;
                         document.getElementById('maxDeposit').value = s.maxDeposit || 5000;
                         document.getElementById('maxLoginAttempts').value = s.maxLoginAttempts || 5;
@@ -1101,6 +1123,7 @@
                     supportPhone: document.getElementById('supportPhone').value,
                     maintenanceMode: document.getElementById('maintenanceMode').checked,
                     sendClaimVisible: document.getElementById('sendClaimVisible').checked,
+                    momoDetailsVisible: document.getElementById('momoDetailsVisible').checked,
                     
                     minDeposit: parseFloat(document.getElementById('minDeposit').value),
                     maxDeposit: parseFloat(document.getElementById('maxDeposit').value),
@@ -1141,6 +1164,7 @@
                         supportPhone: settings.supportPhone,
                         maintenanceMode: settings.maintenanceMode,
                         sendClaimVisible: settings.sendClaimVisible,
+                        momoDetailsVisible: settings.momoDetailsVisible,
                         minDeposit: settings.minDeposit,
                         maxDeposit: settings.maxDeposit,
                         maxLoginAttempts: settings.maxLoginAttempts,

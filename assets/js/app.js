@@ -2070,16 +2070,19 @@ const DataEasyApp = (function() {
             el.textContent = settings.momoName || '';
         });
         
-        // Show/hide MoMo sections based on enabled setting
+        // Show/hide MoMo sections based on enabled AND details visibility settings
         const momoEnabled = settings.momoEnabled !== false;
+        const momoDetailsVisible = settings.momoDetailsVisible !== false;
+        const shouldShow = momoEnabled && momoDetailsVisible;
+        
         const momoSidebarSection = document.getElementById('momo-sidebar-section');
         const momoPaymentCard = document.getElementById('momo-payment-card');
         
         if (momoSidebarSection) {
-            momoSidebarSection.style.display = momoEnabled ? '' : 'none';
+            momoSidebarSection.style.display = shouldShow ? '' : 'none';
         }
         if (momoPaymentCard) {
-            momoPaymentCard.style.display = momoEnabled ? '' : 'none';
+            momoPaymentCard.style.display = shouldShow ? '' : 'none';
         }
     }
     
