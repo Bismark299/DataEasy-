@@ -996,8 +996,9 @@
         async function retryOrderItem(orderId, itemIndex) {
             showConfirm('Retry Item', 'Are you sure you want to retry this item?', 'success', async () => {
                 try {
+                    // Update status to Processing
                     await DataEasyAPI.admin.updateItemStatus(orderId, itemIndex, 'Processing');
-                    showToast('success', 'Success', 'Item is being retried');
+                    showToast('success', 'Success', 'Item is being retried and synced with provider');
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
@@ -1024,8 +1025,37 @@
         async function cancelAndRefundItem(orderId, itemIndex) {
             showConfirm('Cancel & Refund', 'Cancel this item and refund the customer?', 'danger', async () => {
                 try {
+                    // Get order details first
+                    const order = allOrders.find(o => o.id === orderId);
+                    if (!order || !order.items || !order.items[itemIndex]) {
+                        showToast('error', 'Error', 'Item not found');
+                        return;
+                    }
+                    
+                    const item = order.items[itemIndex];
+                    const itemAmount = parseFloat(item.price) || 0;
+                    const userId = order.userId;
+                    
+                    // First, update item status to Failed
                     await DataEasyAPI.admin.updateItemStatus(orderId, itemIndex, 'Failed');
-                    showToast('success', 'Success', 'Item cancelled and refunded');
+                    
+                    // Then, credit the customer's wallet with the refund
+                    if (itemAmount > 0 && userId) {
+                        try {
+                            await DataEasyAPI.admin.adjustWallet(userId, {
+                                type: 'credit',
+                                amount: itemAmount,
+                                description: `Refund for cancelled order item #${orderId}`
+                            });
+                            showToast('success', 'Success', `Item cancelled. Refunded GH₵${itemAmount.toFixed(2)} to customer`);
+                        } catch (refundError) {
+                            console.error('Refund failed:', refundError);
+                            showToast('warning', 'Partial Success', `Item cancelled but refund failed. Please manually refund GH₵${itemAmount.toFixed(2)}`);
+                        }
+                    } else {
+                        showToast('success', 'Success', 'Item cancelled');
+                    }
+                    
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
