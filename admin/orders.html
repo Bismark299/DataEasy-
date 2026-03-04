@@ -466,6 +466,15 @@
                     return;
                 }
                 
+                // Retry order item button
+                const retryBtn = e.target.closest('.retry-item-btn');
+                if (retryBtn) {
+                    const orderId = retryBtn.dataset.orderId;
+                    const itemIndex = parseInt(retryBtn.dataset.itemIndex);
+                    if (orderId) retryOrderItem(orderId, itemIndex);
+                    return;
+                }
+                
                 // Complete order item button
                 const completeBtn = e.target.closest('.complete-item-btn');
                 if (completeBtn) {
@@ -957,6 +966,7 @@
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-1">
+                                ${(itemStatus.toLowerCase() === 'failed' || itemStatus.toLowerCase() === 'cancelled') ? `<button class="retry-item-btn w-8 h-8 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Retry"><i class="fas fa-redo"></i></button>` : ''}
                                 <button class="complete-item-btn w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-lg transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Complete"><i class="fas fa-check"></i></button>
                                 <button class="cancel-item-btn w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-lg transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Cancel & Refund"><i class="fas fa-undo"></i></button>
                                 <span class="w-3 h-3 rounded-full ${getStatusDot(itemStatus)}"></span>
