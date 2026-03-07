@@ -206,12 +206,8 @@ app.use(morgan('dev'));
 // In production: Frontend and backend are on SAME origin (single Render service)
 // So we allow same-origin requests and also handle cases where Origin header is sent
 const allowedOrigins = [
-    'http://localhost:5500',
-    'http://127.0.0.1:5500',
-    'http://localhost:5501',
-    'http://127.0.0.1:5501',
-    'http://localhost:9000',
-    'http://127.0.0.1:9000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
     process.env.FRONTEND_URL,
     process.env.RENDER_EXTERNAL_URL,  // Render provides this automatically
     // Add multiple frontend URLs if needed (comma-separated in env)
@@ -228,21 +224,15 @@ app.use(cors({
             return callback(null, true);
         }
         
-        // In production, be more permissive since frontend/backend are same origin
+        // In production, only allow explicitly configured origins + same Render service
         if (isProduction) {
             // Allow if origin matches any allowed origin
             if (allowedOrigins.includes(origin)) {
                 return callback(null, true);
             }
-            // Also allow if origin matches the request's host (same service)
-            // This handles Render's URL pattern
-            if (origin.includes('onrender.com') || origin.includes('render.com')) {
-                console.log('CORS: Allowing Render origin:', origin);
-                return callback(null, true);
-            }
-            // Allow any HTTPS origin in production for now (can tighten later)
-            if (origin.startsWith('https://')) {
-                console.log('CORS: Allowing HTTPS origin:', origin);
+            // Allow same Render service (origin must match RENDER_EXTERNAL_URL)
+            const renderUrl = process.env.RENDER_EXTERNAL_URL;
+            if (renderUrl && origin === renderUrl) {
                 return callback(null, true);
             }
             console.warn('CORS: Blocked origin:', origin);
@@ -368,14 +358,27 @@ app.get('/ad', (req, res) => {
 
 // Serve pages/ clean URL routes
 app.get('/pages/:page', (req, res) => {
-    const pagePath = path.join(frontendPath, 'pages', req.params.page + '.html');
-    res.sendFile(pagePath);
+    // Validate page name: only allow alphanumeric, hyphens, underscores
+    const page = req.params.page;
+    if (!/^[a-zA-Z0-9_-]+$/.test(page)) {
+        return res.status(400).send('Invalid page');
+    }
+    const pagePath = path.join(frontendPath, 'pages', page + '.html');
+    res.sendFile(pagePath, (err) => {
+        if (err) res.status(404).send('Page not found');
+    });
 });
 
 // Serve admin/ clean URL routes
 app.get('/admin/:page', (req, res) => {
-    const pagePath = path.join(frontendPath, 'admin', req.params.page + '.html');
-    res.sendFile(pagePath);
+    const page = req.params.page;
+    if (!/^[a-zA-Z0-9_-]+$/.test(page)) {
+        return res.status(400).send('Invalid page');
+    }
+    const pagePath = path.join(frontendPath, 'admin', page + '.html');
+    res.sendFile(pagePath, (err) => {
+        if (err) res.status(404).send('Page not found');
+    });
 });
 
 // Fallback to index.html for SPA-style routing (if needed)
@@ -384,9 +387,12 @@ app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) {
         return next();
     }
-    // Try to serve the requested file, or fallback to index
-    const filePath = path.join(frontendPath, req.path);
-    res.sendFile(filePath, (err) => {
+    // Resolve and verify the path stays within frontendPath
+    const resolvedPath = path.resolve(frontendPath, '.' + req.path);
+    if (!resolvedPath.startsWith(path.resolve(frontendPath))) {
+        return res.status(400).send('Invalid path');
+    }
+    res.sendFile(resolvedPath, (err) => {
         if (err) {
             res.sendFile(path.join(frontendPath, 'index.html'));
         }
@@ -402,7 +408,7 @@ app.use('/api', (req, res) => {
 app.use(sanitizeErrors);
 
 // Start Server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Initialize database before starting server
 const startServer = async () => {

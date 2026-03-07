@@ -462,7 +462,7 @@ exports.getAllUsers = async (req, res) => {
 
         const userIds = users.map(u => u.id);
 
-        // OPTIMIZED: Batch query for total loads (Paystack deposits + admin credits) per user
+        // OPTIMIZED: Batch query for total loads (Paystack deposits + admin credits + MoMo) per user
         const loadsResult = await Transaction.findAll({
             attributes: [
                 'userId',
@@ -472,7 +472,7 @@ exports.getAllUsers = async (req, res) => {
                 userId: { [Op.in]: userIds }, 
                 type: 'credit', 
                 status: 'completed',
-                paymentMethod: { [Op.in]: ['paystack', 'manual'] }  // Deposits + admin credits
+                paymentMethod: { [Op.in]: ['paystack', 'manual', 'momo'] }  // Deposits + admin credits + MoMo
             },
             group: ['userId'],
             raw: true
@@ -2000,6 +2000,14 @@ exports.secureDeliverOrder = async (req, res) => {
                 processedBy: req.admin?.username || 'admin',
                 processedAt: new Date()
             });
+        } else if (result.status === 'PROVIDER_DISABLED' && (result.code === 'INSUFFICIENT_BALANCE' || result.code === 'LOW_BALANCE')) {
+            // Insufficient MCBIS balance - keep item as Pending
+            items[idx] = {
+                ...item,
+                deliveryStatus: 'Pending',
+                deliveryError: result.error
+            };
+            await order.update({ items });
         }
 
         // Log the action

@@ -9,11 +9,8 @@ const DataEasyAPI = (function() {
     // ==========================================
     // CONFIGURATION
     // ==========================================
-    // Auto-detect environment: use relative path in production (same origin)
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const API_BASE_URL = window.API_BASE_URL || (isLocalhost 
-        ? 'http://localhost:9000/api' 
-        : '/api');  // Same origin in production
+    // Use same-origin relative path (works for both production and local dev)
+    const API_BASE_URL = window.API_BASE_URL || '/api';
     const PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || '';
 
     // ==========================================

@@ -950,6 +950,13 @@
                 return true;
             });
 
+            // Sort by current balance descending
+            filtered.sort((a, b) => {
+                const balA = parseFloat(a.walletBalance || a.wallet?.balance || 0);
+                const balB = parseFloat(b.walletBalance || b.wallet?.balance || 0);
+                return balB - balA;
+            });
+
             renderDealers(filtered);
         }
 

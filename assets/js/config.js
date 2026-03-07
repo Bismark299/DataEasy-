@@ -14,14 +14,9 @@
     const isProduction = !isLocalhost;
 
     // Configure API base URL
-    // In production, use same-origin (relative path) since frontend is served from backend
-    if (isProduction) {
-        // Same origin - frontend and backend served together
-        window.API_BASE_URL = window.API_BASE_URL || '/api';
-    } else {
-        // Development - use local backend
-        window.API_BASE_URL = 'http://localhost:9000/api';
-    }
+    // Use same-origin relative path since frontend is served from backend
+    // This works for both production (Render) and local development (any port)
+    window.API_BASE_URL = window.API_BASE_URL || '/api';
     
     // Paystack key - will be fetched from backend
     window.PAYSTACK_PUBLIC_KEY = '';

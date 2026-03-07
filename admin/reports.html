@@ -262,7 +262,7 @@
         }
 
         // API Base URL
-        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:9000/api';
+        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000/api';
 
         // Profile dropdown toggle
         function toggleProfileDropdown() {
@@ -643,8 +643,11 @@
                     </tr>
                 `;
             } else {
+                // Sort agents by profit descending
+                users.sort((a, b) => parseFloat(b.profit || 0) - parseFloat(a.profit || 0));
+
                 tbody.innerHTML = users.map((user, index) => {
-                    // Wallet Loads = Total loads from API (paystack + admin credits)
+                    // Wallet Loads = Total loads from API (paystack + admin credits + MoMo)
                     const walletLoads = parseFloat(user.totalLoads || 0);
                     
                     // Total Orders = Sum of all orders placed by user

@@ -10,7 +10,8 @@ const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 
 // Secret token for SMS listener authentication
-const SMS_LISTENER_TOKEN = process.env.SMS_LISTENER_TOKEN || 'dE4sy_m0m0_L1st3n3r_S3cr3t_T0k3n_2026_GH';
+// SECURITY: No fallback - must be set via environment variable
+const SMS_LISTENER_TOKEN = process.env.SMS_LISTENER_TOKEN;
 
 // ============================================
 // ANTI-FRAUD CONFIGURATION

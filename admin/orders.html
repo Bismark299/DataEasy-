@@ -994,16 +994,27 @@
         }
 
         async function retryOrderItem(orderId, itemIndex) {
-            showConfirm('Retry Item', 'Are you sure you want to retry this item?', 'success', async () => {
+            showConfirm('Retry Item', 'Are you sure you want to retry this item? It will be sent to MCBIS for processing.', 'success', async () => {
                 try {
-                    // Update status to Processing
+                    // Update status to Processing first
                     await DataEasyAPI.admin.updateItemStatus(orderId, itemIndex, 'Processing');
-                    showToast('success', 'Success', 'Item is being retried and synced with provider');
+                    showToast('info', 'Processing', 'Sending to MCBIS provider...');
+                    
+                    // Send to MCBIS for actual delivery
+                    const result = await DataEasyAPI.admin.secureDeliverOrder(orderId, itemIndex);
+                    
+                    if (result.success) {
+                        showToast('success', 'Success', 'Item delivered successfully via MCBIS');
+                    } else {
+                        showToast('warning', 'Sent to Provider', result.message || 'Item sent for processing. Check status shortly.');
+                    }
+                    
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
                     console.error('Error retrying item:', error);
                     showToast('error', 'Error', error.message || 'Failed to retry item');
+                    loadOrders();
                 }
             });
         }
@@ -1089,7 +1100,7 @@
                 syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
                 
                 const token = localStorage.getItem('dataeasy_admin_token');
-                const apiBase = window.API_BASE_URL || 'http://localhost:9000/api';
+                const apiBase = window.API_BASE_URL || 'http://localhost:3000/api';
                 const response = await fetch(`${apiBase}/admin/provider/sync-status`, {
                     method: 'POST',
                     headers: {

@@ -374,6 +374,13 @@ exports.createOrder = async (req, res) => {
                                 reference: deliveryResult.reference,
                                 displayOrderId: order.orderId
                             });
+                        } else if (deliveryResult.status === 'InsufficientBalance' || deliveryResult.status === 'BalanceCheckFailed') {
+                            // Insufficient MCBIS balance - keep as Pending for retry when funds are available
+                            orderItems[i].deliveryStatus = 'Pending';
+                            orderItems[i].deliveryError = deliveryResult.error;
+                            logger.warn('Insufficient MCBIS balance, order stays Pending', {
+                                orderId: order.orderId, itemIndex: i, error: deliveryResult.error
+                            });
                         } else if (deliveryResult.error) {
                             // Failed to send to provider
                             orderItems[i].deliveryStatus = 'Failed';
@@ -402,10 +409,12 @@ exports.createOrder = async (req, res) => {
                     }
                 }
                 
-                // Update order with current status (Processing)
+                // Update order with current status
+                const anyProcessing = orderItems.some(i => i.deliveryStatus === 'Processing');
+                const allPending = orderItems.every(i => i.deliveryStatus === 'Pending');
                 await order.update({
                     items: orderItems,
-                    deliveryStatus: 'Processing'
+                    deliveryStatus: allPending ? 'Pending' : anyProcessing ? 'Processing' : 'Pending'
                 });
                 
                 logger.info('Order sent to MCBIS, awaiting delivery confirmation', {
