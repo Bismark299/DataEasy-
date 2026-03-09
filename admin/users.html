@@ -160,6 +160,37 @@
 
         <!-- Page Content -->
         <div class="p-4 md:p-6">
+            <!-- User Stats Card -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Total Users</p>
+                        <p class="text-2xl font-bold text-gray-800" id="totalUsersCount">0</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-user-check text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Active Users</p>
+                        <p class="text-2xl font-bold text-gray-800" id="activeUsersCount">0</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
+                    <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-user-slash text-red-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Inactive / Suspended</p>
+                        <p class="text-2xl font-bold text-gray-800" id="inactiveUsersCount">0</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Header with Title -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-4 py-4 border-b border-gray-100 flex items-center gap-3">
@@ -646,7 +677,13 @@
         }
 
         function updateStats() {
-            // Stats cards removed - keeping function for compatibility
+            const total = allUsers.length;
+            const active = allUsers.filter(u => u.isActive !== false && (u.status || 'active') === 'active').length;
+            const inactive = total - active;
+
+            document.getElementById('totalUsersCount').textContent = total;
+            document.getElementById('activeUsersCount').textContent = active;
+            document.getElementById('inactiveUsersCount').textContent = inactive;
         }
 
         function filterUsers() {
