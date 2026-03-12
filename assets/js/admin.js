@@ -604,6 +604,7 @@
         switch (status) {
             case 'Delivered': return 'bg-green-500/20 text-green-400';
             case 'Failed': return 'bg-red-500/20 text-red-400';
+            case 'Pending': return 'bg-orange-500/20 text-orange-400';
             case 'Processing':
             default: return 'bg-yellow-500/20 text-yellow-400';
         }
@@ -683,6 +684,7 @@
                         <div class="flex flex-wrap gap-4">
                             <select id="filter-status" class="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none">
                                 <option value="all">All Status</option>
+                                <option value="Pending">Pending</option>
                                 <option value="Processing">Processing</option>
                                 <option value="Delivered">Delivered</option>
                                 <option value="Failed">Failed</option>
@@ -746,6 +748,7 @@
                 <td class="px-4 py-3 text-white font-medium">GH₵${order.total.toFixed(2)}</td>
                 <td class="px-4 py-3">
                     <select class="status-select bg-gray-700 text-sm px-2 py-1 rounded border border-gray-600 focus:outline-none ${getStatusSelectClass(order.deliveryStatus)}" data-order-id="${order.id}" data-user-email="${order.userEmail}">
+                        <option value="Pending" ${order.deliveryStatus === 'Pending' ? 'selected' : ''}>Pending</option>
                         <option value="Processing" ${order.deliveryStatus === 'Processing' ? 'selected' : ''}>Processing</option>
                         <option value="Delivered" ${order.deliveryStatus === 'Delivered' ? 'selected' : ''}>Delivered</option>
                         <option value="Failed" ${order.deliveryStatus === 'Failed' ? 'selected' : ''}>Failed</option>
@@ -765,6 +768,7 @@
         switch (status) {
             case 'Delivered': return 'text-green-400';
             case 'Failed': return 'text-red-400';
+            case 'Pending': return 'text-orange-400';
             default: return 'text-yellow-400';
         }
     }

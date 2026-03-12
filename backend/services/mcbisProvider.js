@@ -125,11 +125,36 @@ async function getWalletBalance() {
     
     try {
         const response = await mcbisApi.get('/walletBalance');
+        const data = response.data;
+        
+        // Robust balance extraction - handle multiple possible response formats
+        // MCBIS may change field names across API updates
+        const rawBalance = 
+            data?.data?.walletBalance ??   // Original: { data: { walletBalance: X } }
+            data?.data?.wallet_balance ??   // Snake_case variant
+            data?.data?.balance ??          // Simplified: { data: { balance: X } }
+            data?.walletBalance ??          // Flat: { walletBalance: X }
+            data?.wallet_balance ??         // Flat snake_case
+            data?.balance ??               // Flat simplified
+            null;
+        
+        const balance = rawBalance !== null ? parseFloat(rawBalance) : 0;
+        const balanceParsed = !isNaN(balance) && rawBalance !== null;
+        
+        if (!balanceParsed) {
+            logger.warn('MCBIS wallet balance field not found in response - API format may have changed', {
+                responseKeys: data ? Object.keys(data) : [],
+                dataKeys: data?.data ? Object.keys(data.data) : [],
+                rawResponse: JSON.stringify(data).substring(0, 500)
+            });
+        }
+        
         return {
             success: true,
-            balance: parseFloat(response.data?.data?.walletBalance || 0),
+            balance,
+            balanceParsed,
             configured: true,
-            raw: response.data
+            raw: data
         };
     } catch (error) {
         // Check for Cloudflare challenge
@@ -189,12 +214,26 @@ async function placeOrder({ network, receiver, amount, reference }) {
             amount: parseInt(amount, 10)
         });
 
+        const respData = response.data;
+        
+        // Robust status extraction - handle multiple response formats
+        const status = respData?.data?.status || respData?.status || respData?.data?.order?.status || 'pending';
+        const message = respData?.message || respData?.data?.message || 'Order placed successfully';
+        
+        logger.info('MCBIS placeOrder raw response', {
+            reference: orderReference,
+            status,
+            message,
+            responseKeys: respData ? Object.keys(respData) : [],
+            dataKeys: respData?.data ? Object.keys(respData.data) : []
+        });
+
         return {
             success: true,
             reference: orderReference,
-            status: response.data?.data?.status || 'pending',
-            message: response.data?.message || 'Order placed successfully',
-            raw: response.data
+            status,
+            message,
+            raw: respData
         };
     } catch (error) {
         const errorMsg = error.response?.data?.message || error.message;
@@ -238,26 +277,35 @@ async function checkOrderStatus(reference) {
     try {
         const response = await mcbisApi.get(`/checkOrderStatus/${reference}`);
         
-        const data = response.data?.data;
+        const respData = response.data;
+        const data = respData?.data;
         
-        // CRITICAL: Use data.order.status (actual order status), NOT data.status (API call status)
-        // data.status === "success" just means the API call worked, not that the order is complete!
-        // Fallback chain: data.order.status -> data.status (if order doesn't exist) -> 'unknown'
-        const orderStatus = data?.order?.status || data?.status || 'unknown';
+        // Robust status extraction - handle multiple possible response formats after MCBIS API updates
+        // Priority: data.order.status (nested) -> data.orderStatus -> respData.order?.status -> data.status -> respData.status
+        const orderStatus = 
+            data?.order?.status ||          // Original: { data: { order: { status: X } } }
+            data?.orderStatus ||            // Flat variant: { data: { orderStatus: X } }
+            data?.order_status ||           // Snake_case variant
+            respData?.order?.status ||      // Top-level: { order: { status: X } }
+            data?.status ||                 // Fallback: { data: { status: X } } (API call status, less reliable)
+            respData?.status ||             // Top-level status
+            'unknown';
         
         logger.info('MCBIS checkOrderStatus response', {
             reference,
+            extractedStatus: orderStatus,
             apiCallStatus: data?.status,
-            orderStatus: orderStatus,
-            order: data?.order,
-            rawData: data
+            orderData: data?.order,
+            responseKeys: respData ? Object.keys(respData) : [],
+            dataKeys: data ? Object.keys(data) : [],
+            rawData: JSON.stringify(respData).substring(0, 500)
         });
         
         return {
             success: true,
-            status: orderStatus,  // Return the ACTUAL order status
-            order: data?.order,
-            raw: response.data
+            status: orderStatus,
+            order: data?.order || respData?.order,
+            raw: respData
         };
     } catch (error) {
         logger.error('Failed to check MCBIS order status', { 
@@ -329,14 +377,24 @@ async function deliverBundle(orderItem, options = {}) {
 
     // BALANCE CHECK: Verify sufficient funds before proceeding
     // NOTE: Uses OUR internal cost price, NOT provider price
+    // IMPORTANT: Balance check is advisory only - if it fails or can't parse the response,
+    // we proceed anyway and let MCBIS reject on placeOrder if balance is truly insufficient.
+    // This prevents orders getting stuck on "Pending" due to API format changes.
     if (!skipBalanceCheck) {
         try {
             const balanceResult = await getWalletBalance();
             const currentBalance = parseFloat(balanceResult.balance || 0);
             const orderCost = parseFloat(price || 0); // OUR cost price from order
             
-            // If we have the price, check if balance is sufficient
-            if (orderCost > 0 && currentBalance < orderCost) {
+            // If balance wasn't parseable (API format may have changed), skip check and proceed
+            if (!balanceResult.balanceParsed) {
+                logger.warn('MCBIS balance could not be parsed - skipping balance check and proceeding with order', {
+                    orderId,
+                    itemIndex,
+                    rawResponse: balanceResult.raw
+                });
+            } else if (orderCost > 0 && currentBalance < orderCost) {
+                // Only block if we successfully parsed a real balance that's too low
                 logger.error('Insufficient MCBIS balance for order', {
                     orderId,
                     itemIndex,
@@ -352,10 +410,8 @@ async function deliverBundle(orderItem, options = {}) {
                     currentBalance,
                     requiredAmount: orderCost
                 };
-            }
-            
-            // Even without exact price, ensure some balance exists
-            if (currentBalance < 1) {
+            } else if (balanceResult.balanceParsed && currentBalance < 1) {
+                // Only block if we successfully parsed a real balance that's near zero
                 logger.error('MCBIS balance too low', { currentBalance });
                 return {
                     success: false,
@@ -363,19 +419,19 @@ async function deliverBundle(orderItem, options = {}) {
                     error: `MCBIS balance too low: ₵${currentBalance.toFixed(2)}`,
                     currentBalance
                 };
+            } else {
+                logger.info('MCBIS balance check passed', { 
+                    currentBalance, 
+                    orderCost: orderCost || 'unknown'
+                });
             }
-            
-            logger.info('MCBIS balance check passed', { 
-                currentBalance, 
-                orderCost: orderCost || 'unknown'
-            });
         } catch (balanceError) {
-            logger.error('Failed to check MCBIS balance', { error: balanceError.message });
-            return {
-                success: false,
-                status: 'BalanceCheckFailed',
-                error: 'Could not verify MCBIS balance before order'
-            };
+            // Balance check failed - proceed anyway, let placeOrder handle it
+            logger.warn('Failed to check MCBIS balance - proceeding with order anyway', {
+                error: balanceError.message,
+                orderId,
+                itemIndex
+            });
         }
     }
     
@@ -411,17 +467,34 @@ async function deliverBundle(orderItem, options = {}) {
     
     const statusCheck = await checkOrderStatus(reference);
     
-    // Map MCBIS status to our status
+    // Map MCBIS status to our status (expanded for API update compatibility)
     const statusMap = {
         'success': 'Delivered',
+        'successful': 'Delivered',
         'completed': 'Delivered',
+        'delivered': 'Delivered',
+        'submitted': 'Processing',
         'pending': 'Processing',
         'processing': 'Processing',
+        'initiated': 'Processing',
+        'queued': 'Processing',
+        'in_progress': 'Processing',
         'failed': 'Failed',
-        'error': 'Failed'
+        'fail': 'Failed',
+        'error': 'Failed',
+        'cancelled': 'Failed',
+        'rejected': 'Failed'
     };
 
-    const finalStatus = statusMap[statusCheck.status?.toLowerCase()] || 'Processing';
+    const rawStatus = statusCheck.status?.toLowerCase()?.trim();
+    const finalStatus = statusMap[rawStatus] || 'Processing';
+    
+    logger.info('deliverBundle status mapping', {
+        reference,
+        rawMcbisStatus: statusCheck.status,
+        normalizedStatus: rawStatus,
+        mappedStatus: finalStatus
+    });
 
     return {
         success: finalStatus === 'Delivered',

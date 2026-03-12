@@ -1048,6 +1048,8 @@ const DataEasyApp = (function() {
                         deliveryDisplay = `<span class="text-green-400">Sent<br><span class="text-xs">${deliveredTimeStr} - ${deliveredDateStr}</span></span>`;
                     } else if (deliveryStatus === 'Processing') {
                         deliveryDisplay = `<span class="text-yellow-400">Processing...</span>`;
+                    } else if (deliveryStatus === 'Pending') {
+                        deliveryDisplay = `<span class="text-orange-400">Pending</span>`;
                     } else if (deliveryStatus === 'Failed') {
                         deliveryDisplay = `<span class="text-red-400">Failed</span>`;
                     } else {
@@ -1086,6 +1088,7 @@ const DataEasyApp = (function() {
                     
                     const deliveryClass = (deliveryStatus === 'Delivered' || deliveryStatus === 'Submitted' || deliveryStatus.includes('Submitted')) ? 'text-green-400' :
                                          deliveryStatus === 'Processing' ? 'text-yellow-400' :
+                                         deliveryStatus === 'Pending' ? 'text-orange-400' :
                                          deliveryStatus === 'Failed' ? 'text-red-400' : 'text-gray-400';
                     
                     return `
@@ -1640,11 +1643,28 @@ const DataEasyApp = (function() {
             });
         }
 
+        // Wallet page payment method tabs
+        const tabs = document.querySelectorAll('#wallet-payment-method-tabs .payment-tab');
+        const methodInput = document.getElementById('wallet-payment-method');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const method = tab.dataset.method;
+                if (methodInput) methodInput.value = method;
+                tabs.forEach(t => {
+                    if (t.dataset.method === method) {
+                        t.className = 'payment-tab flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg border transition bg-green-600/20 border-green-500 text-green-400';
+                    } else {
+                        t.className = 'payment-tab flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg border transition bg-gray-800 border-gray-600 text-gray-400 hover:border-blue-500 hover:text-blue-400';
+                    }
+                });
+            });
+        });
+
         await renderWalletTransactions();
     }
 
     /**
-     * Initiate Paystack payment for wallet top-up
+     * Initiate payment for wallet top-up
      */
     async function initiatePaystackPayment(amountInput, button) {
         const amount = parseFloat(amountInput.value);
@@ -1665,7 +1685,13 @@ const DataEasyApp = (function() {
             return;
         }
 
+        // Determine payment method
+        const methodInput = document.getElementById('sidebar-payment-method') || document.getElementById('wallet-payment-method');
+        const paymentMethod = methodInput ? methodInput.value : 'paystack';
+
         DOM.setLoading(button, true, 'Connecting...');
+
+        // Paystack flow - popup
 
         // Try using API if available
         if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
@@ -1749,6 +1775,37 @@ const DataEasyApp = (function() {
             sidebarBtn.addEventListener('click', () => {
                 initiatePaystackPayment(sidebarAmountInput, sidebarBtn);
             });
+        }
+
+        // Payment method tab switching
+        const tabs = document.querySelectorAll('#payment-method-tabs .payment-tab');
+        const methodInput = document.getElementById('sidebar-payment-method');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const method = tab.dataset.method;
+                if (methodInput) methodInput.value = method;
+                tabs.forEach(t => {
+                    if (t.dataset.method === method) {
+                        t.className = 'payment-tab flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg border transition bg-green-600/20 border-green-500 text-green-400';
+                    } else {
+                        t.className = 'payment-tab flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg border transition bg-gray-800 border-gray-600 text-gray-400 hover:border-blue-500 hover:text-blue-400';
+                    }
+                });
+            });
+        });
+
+        // Handle topup result from redirect
+        const urlParams = new URLSearchParams(window.location.search);
+        const topupResult = urlParams.get('topup');
+        if (topupResult === 'success') {
+            Toast.success('Wallet topped up successfully!');
+            updateWalletDisplay();
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (topupResult === 'failed') {
+            const reason = urlParams.get('reason') || 'Payment failed';
+            Toast.error(`Top-up failed: ${reason.replace(/_/g, ' ')}`);
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
     }
 

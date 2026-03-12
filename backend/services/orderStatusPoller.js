@@ -139,7 +139,7 @@ async function pollLoop(pollKey) {
             activePolls.delete(pollKey);
             return;
 
-        } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error') {
+        } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'cancelled' || mcbisStatus === 'rejected') {
             // FAILED - Update order and stop polling
             await updateOrderItemStatus(
                 pollState.orderId,

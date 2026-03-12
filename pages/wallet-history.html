@@ -224,15 +224,22 @@
 
             <!-- Topup Input Card -->
             <div class="bg-card-bg rounded-xl p-4 md:p-6 border border-gray-700 flex flex-col justify-center">
-                <p class="text-gray-300 text-sm font-medium mb-3 text-center">Pay with Card</p>
+                <p class="text-gray-300 text-sm font-medium mb-3 text-center">Add Money</p>
+                <!-- Payment Method Selector -->
+                <div class="flex gap-1 mb-3" id="wallet-payment-method-tabs">
+                    <button type="button" data-method="paystack" class="payment-tab flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg border transition bg-green-600/20 border-green-500 text-green-400">
+                        <i class="fas fa-credit-card mr-1"></i>Paystack
+                    </button>
+                </div>
                 <div class="flex items-center gap-2 mb-3">
                     <span class="text-gray-400 text-sm">GH₵</span>
                     <input type="number" id="topup-amount" placeholder="Amount" min="1" class="flex-1 bg-gray-800 text-white py-2.5 px-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none text-center text-sm">
                 </div>
                 <button id="add-money-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg transition text-sm flex items-center justify-center gap-2">
                     <i class="fas fa-credit-card"></i>
-                    Paystack
+                    Pay Now
                 </button>
+                <input type="hidden" id="wallet-payment-method" value="paystack">
             </div>
 
             <!-- MoMo Payment Instructions Card -->

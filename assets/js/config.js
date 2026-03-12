@@ -38,13 +38,12 @@
                 window.PAYSTACK_CONFIG_LOADED = true;
                 window.PAYSTACK_CONFIGURED = data.config.paystackConfigured !== false;
                 console.log('✅ Paystack key loaded:', window.PAYSTACK_PUBLIC_KEY.substring(0, 15) + '...');
-                return true;
             } else {
                 console.error('❌ Paystack key not configured in backend. Set PAYSTACK_PUBLIC_KEY environment variable in Render.');
                 window.PAYSTACK_CONFIG_LOADED = true;
                 window.PAYSTACK_CONFIGURED = false;
-                return false;
             }
+            return true;
         })
         .catch(err => {
             console.error('❌ Could not fetch config:', err.message);

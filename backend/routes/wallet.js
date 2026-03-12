@@ -12,7 +12,7 @@ const { topupValidation } = require('../middleware/validation');
 const { topupLimiter } = require('../middleware/rateLimiter');
 const { requireIdempotency } = require('../middleware/idempotency');
 
-// All routes require authentication
+// All other routes require authentication
 router.use(protect);
 
 // Read operations

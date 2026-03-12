@@ -202,6 +202,12 @@
                 </div>
                 <span class="text-white text-sm font-medium">Add Money</span>
             </div>
+            <!-- Payment Method Selector -->
+            <div class="flex gap-1 mb-3" id="payment-method-tabs">
+                <button type="button" data-method="paystack" class="payment-tab flex-1 py-1.5 px-2 text-xs font-semibold rounded-lg border transition bg-green-600/20 border-green-500 text-green-400">
+                    <i class="fas fa-credit-card mr-1"></i>Paystack
+                </button>
+            </div>
             <div class="flex items-center gap-2">
                 <div class="flex-1 relative">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₵</span>
@@ -211,6 +217,7 @@
                     Topup
                 </button>
             </div>
+            <input type="hidden" id="sidebar-payment-method" value="paystack">
         </div>
 
         <!-- MoMo Payment Instructions -->

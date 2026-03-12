@@ -38,13 +38,13 @@ const CIRCUIT_BREAKER = {
 const MCBIS_RESPONSE_SCHEMA = {
     placeOrder: {
         requiredFields: ['data', 'message'],
-        successIndicators: ['success', 'completed', 'pending', 'processing'],
-        failureIndicators: ['failed', 'error', 'insufficient', 'invalid']
+        successIndicators: ['success', 'completed', 'pending', 'processing', 'submitted', 'initiated', 'queued'],
+        failureIndicators: ['failed', 'error', 'insufficient', 'invalid', 'cancelled', 'rejected']
     },
     checkStatus: {
         requiredFields: ['data'],
-        successIndicators: ['success', 'completed', 'delivered'],
-        failureIndicators: ['failed', 'error', 'cancelled']
+        successIndicators: ['success', 'completed', 'delivered', 'successful'],
+        failureIndicators: ['failed', 'error', 'cancelled', 'rejected']
     }
 };
 
