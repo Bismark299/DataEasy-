@@ -762,6 +762,35 @@ const DataEasyAPI = (function() {
     }
 
     // ==========================================
+    // DEVELOPER API KEY MANAGEMENT
+    // ==========================================
+    const Developer = {
+        async createKey(data) {
+            return request('/developer/keys', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+        },
+        async listKeys() {
+            return request('/developer/keys');
+        },
+        async getKey(keyId) {
+            return request(`/developer/keys/${keyId}`);
+        },
+        async updateKey(keyId, data) {
+            return request(`/developer/keys/${keyId}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            });
+        },
+        async revokeKey(keyId) {
+            return request(`/developer/keys/${keyId}`, {
+                method: 'DELETE'
+            });
+        }
+    };
+
+    // ==========================================
     // PUBLIC API
     // ==========================================
     return {
@@ -771,6 +800,7 @@ const DataEasyAPI = (function() {
         Wallet,
         Admin,
         admin: Admin,  // Lowercase alias for compatibility with admin pages
+        Developer,
         Paystack,
         isBackendAvailable,
         getAuthToken,

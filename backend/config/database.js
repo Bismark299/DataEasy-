@@ -95,7 +95,8 @@ const connectDB = async () => {
             await sequelize.sync({ force: false });
             console.log('✅ Database synchronized (production mode)');
         } else {
-            // In development, just sync without alter
+            // In development, fix missing columns then sync
+            await fixMissingColumns();
             await sequelize.sync();
             console.log('✅ Database synchronized');
         }
@@ -342,6 +343,9 @@ const fixMissingColumns = async () => {
         `ALTER TABLE momo_deposits ADD COLUMN IF NOT EXISTS "smsReceivedAt" TIMESTAMP WITH TIME ZONE`,
         `ALTER TABLE momo_deposits ADD COLUMN IF NOT EXISTS "walletTransactionId" UUID`,
         `ALTER TABLE momo_deposits ADD COLUMN IF NOT EXISTS "deviceInfo" JSONB DEFAULT '{}'`,
+        
+        // Stores table - pricing for agent selling prices
+        `ALTER TABLE stores ADD COLUMN IF NOT EXISTS pricing JSONB DEFAULT '{}'::jsonb`,
     ];
     
     let fixed = 0;

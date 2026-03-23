@@ -142,6 +142,21 @@ const sensitiveAdminLimiter = rateLimit({
     keyGenerator: (req) => req.admin?.username || req.ip
 });
 
+/**
+ * Public store order limiter
+ * Prevents spam on unauthenticated store order endpoints
+ */
+const publicStoreOrderLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 5, // 5 orders per minute per IP
+    message: { 
+        error: 'Please wait',
+        message: 'Too many order attempts. Try again shortly.'
+    },
+    standardHeaders: false,
+    legacyHeaders: false
+});
+
 module.exports = {
     defaultLimiter,
     authLimiter,
@@ -151,5 +166,6 @@ module.exports = {
     registrationLimiter,
     passwordLimiter,
     adminActionLimiter,
-    sensitiveAdminLimiter
+    sensitiveAdminLimiter,
+    publicStoreOrderLimiter
 };

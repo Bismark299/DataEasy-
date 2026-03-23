@@ -119,8 +119,11 @@ const requireIdempotency = async (req, res, next) => {
         next();
     } catch (error) {
         logger.error('Idempotency middleware error', { error: error.message });
-        // On error, allow request to proceed (fail open for availability)
-        next();
+        // Fail closed: reject request if idempotency check fails
+        return res.status(503).json({
+            error: 'Service temporarily unavailable',
+            message: 'Could not verify request uniqueness. Please retry.'
+        });
     }
 };
 

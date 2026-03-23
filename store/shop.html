@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Bundles | DataEasy+</title>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="../assets/css/custom.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body { background: #0f172a; min-height: 100vh; }
+        .network-tab.active-mtn { background-color: rgb(245,197,24); color: #000; font-weight: 600; }
+        .network-tab.active-airtel { background-color: rgb(0,51,160); color: #fff; font-weight: 600; }
+        .network-tab.active-telecel { background-color: rgb(229,57,53); color: #fff; font-weight: 600; }
+        .bg-mtn-yellow { background-color: rgb(245,197,24); }
+        .bg-airtel-blue { background-color: rgb(0,51,160); }
+        .bg-telecel-red { background-color: rgb(229,57,53); }
+        .package-card.selected { outline: 3px solid #22c55e; outline-offset: -3px; border-radius: 0.75rem; }
+    </style>
+</head>
+<body class="text-gray-100">
+
+    <!-- Header -->
+    <header class="bg-[#1e293b] border-b border-[#334155] px-4 py-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-store text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 id="storeName" class="text-lg font-bold text-white">Loading...</h1>
+                    <p id="storeLocation" class="text-gray-400 text-xs"></p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 py-6">
+
+        <!-- Store not found -->
+        <div id="storeNotFound" class="hidden text-center py-16">
+            <i class="fas fa-store-slash text-gray-600 text-5xl mb-4"></i>
+            <h2 class="text-xl text-gray-400">Store not found</h2>
+            <p class="text-gray-500 text-sm mt-2">This store may not exist or is currently unavailable.</p>
+        </div>
+
+        <!-- Store content -->
+        <div id="storeContent" class="hidden">
+
+            <!-- Network Filter Tabs -->
+            <div class="flex justify-center gap-2 mb-6 flex-wrap">
+                <button class="network-tab active-mtn px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base transition" data-network="MTN">MTN</button>
+                <button class="network-tab bg-[#334155] text-gray-300 px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base transition" data-network="AirtelTigo">AirtelTiGO</button>
+                <button class="network-tab bg-[#334155] text-gray-300 px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base transition" data-network="Telecel">Telecel</button>
+            </div>
+
+            <!-- Packages grid -->
+            <div id="packagesGrid" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                <p class="text-gray-500 col-span-full text-center py-8">Loading packages...</p>
+            </div>
+
+            <!-- Order form (shown after selecting a package) -->
+            <div id="orderSection" class="hidden">
+                <div class="bg-[#1e293b] border border-[#334155] rounded-xl p-5">
+                    <h2 class="text-white font-bold text-lg mb-4"><i class="fas fa-shopping-cart mr-2"></i>Your Order</h2>
+
+                    <!-- Selected package summary -->
+                    <div id="selectedPkgSummary" class="bg-[#0f172a] rounded-lg p-3 mb-4"></div>
+
+                    <form id="customerOrderForm" class="space-y-3">
+                        <div>
+                            <label class="text-gray-400 text-xs mb-1 block">Recipient Phone Number *</label>
+                            <input type="tel" id="recipientPhone" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none" placeholder="e.g. 024XXXXXXX" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-gray-400 text-xs mb-1 block">Your Name *</label>
+                                <input type="text" id="custName" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="text-gray-400 text-xs mb-1 block">Your Email *</label>
+                                <input type="email" id="custEmail" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-gray-400 text-xs mb-1 block">Quantity</label>
+                            <input type="number" id="custQty" min="1" value="1" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none">
+                        </div>
+                        <div class="bg-[#0f172a] rounded-lg p-3">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-400">Total:</span>
+                                <span class="text-green-400 text-xl font-bold" id="orderTotalDisplay">&#x20B5;0.00</span>
+                            </div>
+                        </div>
+                        <button type="submit" id="payBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-sm transition-colors">
+                            <i class="fas fa-lock mr-1"></i> Pay Now with Paystack
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Payment success -->
+            <div id="paymentSuccess" class="hidden text-center py-12">
+                <div class="w-20 h-20 rounded-full bg-green-600/20 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check-circle text-green-400 text-4xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-2">Payment Successful!</h2>
+                <p class="text-gray-400 text-sm">Your data bundle will be delivered shortly to</p>
+                <p id="deliveryPhone" class="text-green-400 font-bold mt-1"></p>
+                <p class="text-gray-500 text-xs mt-4">Reference: <span id="paymentRef"></span></p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- Powered by -->
+    <footer class="text-center py-6 text-gray-600 text-xs">
+        Powered by <span class="text-blue-400">DataEasy+</span>
+    </footer>
+
+    <script src="../assets/js/config.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        const API = window.API_BASE_URL || '/api';
+        let storeId = null;
+        let packages = {};
+        let currentNetwork = 'MTN';
+        let selectedPackage = null;
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function formatCurrency(amount) {
+            return '\u20B5' + parseFloat(amount).toFixed(2);
+        }
+
+        function toast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600', warning: 'bg-yellow-600' };
+            const el = document.createElement('div');
+            el.className = `${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg text-sm`;
+            el.textContent = message;
+            container.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
+        }
+
+        function getStoreId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('store');
+        }
+
+        // ==========================================
+        // PACKAGE CARD (matches main dashboard design)
+        // ==========================================
+        const networkStyles = {
+            MTN: { body: 'bg-mtn-yellow', text: 'text-black', badge: 'MTN', badgeColor: 'border-gray-600 text-gray-600', cardClass: 'mtn-card' },
+            AirtelTigo: { body: 'bg-airtel-blue', text: 'text-white', badge: 'AT', badgeColor: 'border-white text-white', cardClass: 'airtel-card' },
+            Telecel: { body: 'bg-telecel-red', text: 'text-white', badge: 'T', badgeColor: 'border-white text-white', cardClass: 'telecel-card' }
+        };
+
+        function createPackageCard(pkg, network) {
+            const style = networkStyles[network] || networkStyles.MTN;
+            const isSelected = selectedPackage && selectedPackage.id === pkg.id;
+
+            return `
+                <div class="package-card ${style.cardClass} cursor-pointer hover:shadow-xl rounded-xl overflow-hidden shadow-lg transition-all duration-300 relative ${isSelected ? 'selected' : ''}"
+                     data-pkg-id="${escapeHtml(String(pkg.id))}" data-price="${pkg.price}" data-name="${escapeHtml(pkg.name)}" data-data="${escapeHtml(pkg.data)}" data-validity="${escapeHtml(pkg.validity)}">
+                    <div class="card-body ${style.body} p-4 sm:p-5 text-center relative">
+                        <span class="absolute top-3 left-3 border-2 ${style.badgeColor} rounded-full px-3 py-0.5 text-xs font-bold">${style.badge}</span>
+                        <p class="${style.text} text-3xl sm:text-4xl font-bold mt-4">${escapeHtml(pkg.data)}</p>
+                    </div>
+                    <div class="card-footer p-2 grid grid-cols-3 gap-1 text-center">
+                        <div>
+                            <p class="text-sm font-semibold">${formatCurrency(pkg.price)}</p>
+                            <p class="text-xs text-gray-400">Price</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold">N/A</p>
+                            <p class="text-xs text-gray-400">Rollover</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold">${escapeHtml(pkg.validity) || '\u221E'}</p>
+                            <p class="text-xs text-gray-400">Duration</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // LOAD STORE & PACKAGES
+        // ==========================================
+        async function loadStore() {
+            storeId = getStoreId();
+            if (!storeId) {
+                document.getElementById('storeNotFound').classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/store/public/${encodeURIComponent(storeId)}`);
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || 'Store not found');
+
+                document.getElementById('storeName').textContent = data.store.name;
+                if (data.store.location) {
+                    document.getElementById('storeLocation').textContent = data.store.location;
+                }
+                document.getElementById('storeContent').classList.remove('hidden');
+                await loadPackages();
+            } catch (e) {
+                document.getElementById('storeName').textContent = 'Store';
+                document.getElementById('storeNotFound').classList.remove('hidden');
+            }
+        }
+
+        async function loadPackages() {
+            try {
+                const res = await fetch(`${API}/store/public/${encodeURIComponent(storeId)}/packages`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to load');
+                packages = data.packages || {};
+                renderPackages();
+            } catch (e) {
+                toast('Failed to load packages', 'error');
+            }
+        }
+
+        function renderPackages() {
+            const grid = document.getElementById('packagesGrid');
+            const pkgs = packages[currentNetwork] || [];
+
+            if (!pkgs.length) {
+                grid.innerHTML = '<p class="text-gray-500 col-span-full text-center py-8">No packages available for this network.</p>';
+                return;
+            }
+
+            grid.innerHTML = pkgs.map(p => createPackageCard(p, currentNetwork)).join('');
+
+            // Click handlers
+            grid.querySelectorAll('.package-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    grid.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+
+                    selectedPackage = {
+                        id: this.dataset.pkgId,
+                        price: parseFloat(this.dataset.price),
+                        name: this.dataset.name,
+                        data: this.dataset.data,
+                        validity: this.dataset.validity
+                    };
+
+                    showOrderForm();
+                });
+            });
+        }
+
+        // ==========================================
+        // ORDER FORM
+        // ==========================================
+        function showOrderForm() {
+            const section = document.getElementById('orderSection');
+            const summary = document.getElementById('selectedPkgSummary');
+            const style = networkStyles[currentNetwork] || networkStyles.MTN;
+
+            summary.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-white font-semibold">${escapeHtml(selectedPackage.data)}</span>
+                        <span class="text-gray-500 text-xs ml-2">${escapeHtml(selectedPackage.validity)}</span>
+                    </div>
+                    <span class="text-green-400 font-bold">${formatCurrency(selectedPackage.price)}</span>
+                </div>
+                <p class="text-gray-500 text-xs mt-1">${escapeHtml(currentNetwork)} Data Bundle</p>
+            `;
+            section.classList.remove('hidden');
+            updateTotal();
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function updateTotal() {
+            const qty = parseInt(document.getElementById('custQty').value) || 1;
+            const total = selectedPackage ? selectedPackage.price * qty : 0;
+            document.getElementById('orderTotalDisplay').textContent = formatCurrency(total);
+        }
+
+        // ==========================================
+        // PAYMENT
+        // ==========================================
+        async function createOrder(e) {
+            e.preventDefault();
+            if (!selectedPackage) {
+                toast('Select a data package first', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('payBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing...';
+
+            try {
+                const body = {
+                    customerName: document.getElementById('custName').value.trim(),
+                    customerEmail: document.getElementById('custEmail').value.trim(),
+                    customerPhone: document.getElementById('recipientPhone').value.trim(),
+                    items: [{
+                        packageId: selectedPackage.id,
+                        quantity: parseInt(document.getElementById('custQty').value) || 1
+                    }]
+                };
+
+                const res = await fetch(`${API}/store/public/${encodeURIComponent(storeId)}/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to create order');
+
+                try { sessionStorage.setItem('dataeasy_order_phone', body.customerPhone); } catch(ex) {}
+
+                if (data.payment && data.payment.authorizationUrl) {
+                    window.location.href = data.payment.authorizationUrl;
+                } else {
+                    toast('Payment link not available. Try again.', 'error');
+                }
+            } catch (e) {
+                toast(e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-lock mr-1"></i> Pay Now with Paystack';
+            }
+        }
+
+        // ==========================================
+        // PAYMENT CALLBACK
+        // ==========================================
+        async function checkPaymentCallback() {
+            const params = new URLSearchParams(window.location.search);
+            const reference = params.get('reference') || params.get('trxref');
+            if (!reference) return;
+
+            storeId = params.get('store');
+            if (!storeId) return;
+
+            try {
+                const res = await fetch(`${API}/store/public/orders/${encodeURIComponent(reference)}/verify`);
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('storeContent').classList.remove('hidden');
+                    document.querySelectorAll('#storeContent > *').forEach(el => el.classList.add('hidden'));
+                    const successDiv = document.getElementById('paymentSuccess');
+                    document.getElementById('paymentRef').textContent = reference;
+                    try {
+                        const phone = sessionStorage.getItem('dataeasy_order_phone');
+                        if (phone) document.getElementById('deliveryPhone').textContent = phone;
+                        sessionStorage.removeItem('dataeasy_order_phone');
+                    } catch(ex) {}
+                    successDiv.classList.remove('hidden');
+                } else {
+                    toast(data.error || 'Payment verification failed', 'error');
+                }
+            } catch (e) {
+                toast('Could not verify payment', 'error');
+            }
+        }
+
+        // ==========================================
+        // INIT
+        // ==========================================
+        function init() {
+            // Network tabs
+            document.querySelectorAll('.network-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    currentNetwork = tab.dataset.network;
+                    selectedPackage = null;
+                    document.getElementById('orderSection').classList.add('hidden');
+
+                    document.querySelectorAll('.network-tab').forEach(t => {
+                        t.className = 'network-tab bg-[#334155] text-gray-300 px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base transition';
+                    });
+                    const activeClass = { MTN: 'active-mtn', AirtelTigo: 'active-airtel', Telecel: 'active-telecel' };
+                    tab.className = `network-tab ${activeClass[currentNetwork]} px-4 sm:px-6 py-2 rounded-lg text-sm sm:text-base transition`;
+
+                    renderPackages();
+                });
+            });
+
+            document.getElementById('customerOrderForm').addEventListener('submit', createOrder);
+            document.getElementById('custQty').addEventListener('input', updateTotal);
+
+            loadStore();
+            checkPaymentCallback();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    })();
+    </script>
+</body>
+</html>

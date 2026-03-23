@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Store - DataEasy+</title>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/custom.css">
+    <script src="../assets/js/config.js"></script>
+    <style>
+        body { background: #0f172a; color: #e2e8f0; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; }
+        .card-header { border-bottom: 1px solid #334155; }
+        .stat-card { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #334155; }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { background: #334155; }
+        .btn-danger { background: #ef4444; }
+        .badge-success { background: #059669; color: white; }
+        .badge-warning { background: #d97706; color: white; }
+        .badge-error { background: #dc2626; color: white; }
+        .badge-info { background: #2563eb; color: white; }
+        .input-field { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; }
+        .input-field:focus { border-color: #3b82f6; outline: none; }
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .modal-overlay { background: rgba(0,0,0,0.7); }
+        .nav-link { transition: all 0.2s; }
+        .nav-link:hover { background: #334155; }
+        .nav-link.active { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Top Navigation -->
+    <nav class="bg-[#1e293b] border-b border-[#334155] sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-4">
+                    <a href=".." class="text-gray-400 hover:text-white transition">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">S</div>
+                        <span class="text-white font-bold text-lg">My Store</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-gray-400 text-sm" id="agentCode"></span>
+                    <a href=".." class="text-gray-400 hover:text-white text-sm">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Store Navigation Tabs -->
+    <div class="bg-[#1e293b] border-b border-[#334155]">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex gap-1 overflow-x-auto py-2" id="storeTabs">
+                <button class="nav-link active px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-tab="dashboard">
+                    <i class="fas fa-th-large mr-1"></i> Dashboard
+                </button>
+                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="packages">
+                    <i class="fas fa-box mr-1"></i> Packages
+                </button>
+                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="orders">
+                    <i class="fas fa-shopping-bag mr-1"></i> Orders
+                </button>
+                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="payouts">
+                    <i class="fas fa-money-bill-wave mr-1"></i> Payouts
+                </button>
+                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="financials">
+                    <i class="fas fa-chart-line mr-1"></i> Financials
+                </button>
+                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="settings">
+                    <i class="fas fa-cog mr-1"></i> Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- No Store Setup -->
+        <div id="noStoreSection" class="hidden">
+            <div class="card p-8 text-center max-w-lg mx-auto">
+                <div class="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-store text-3xl text-blue-400"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Create Your Store</h2>
+                <p class="text-gray-400 mb-6">Set up your store to start selling products and earning revenue.</p>
+                <form id="createStoreForm" class="text-left space-y-4">
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">Store Name *</label>
+                        <input type="text" id="newStoreName" class="input-field w-full px-4 py-2 rounded-lg" required placeholder="My Awesome Store">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">Description</label>
+                        <textarea id="newStoreDesc" class="input-field w-full px-4 py-2 rounded-lg" rows="2" placeholder="What does your store sell?"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">Location</label>
+                        <input type="text" id="newStoreLoc" class="input-field w-full px-4 py-2 rounded-lg" placeholder="Accra, Ghana">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">Phone</label>
+                        <input type="text" id="newStorePhone" class="input-field w-full px-4 py-2 rounded-lg" placeholder="0241234567">
+                    </div>
+                    <button type="submit" class="btn-primary w-full py-3 rounded-lg text-white font-semibold">
+                        <i class="fas fa-plus mr-2"></i> Create Store
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- DASHBOARD TAB -->
+        <div id="tab-dashboard" class="tab-content">
+            <!-- Settlement Balance Card -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="stat-card p-4 rounded-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-xs uppercase tracking-wider">Available Balance</span>
+                        <i class="fas fa-wallet text-green-400"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-green-400" id="availableBalance">₵0.00</p>
+                    <p class="text-xs text-gray-500 mt-1">Ledger: <span id="ledgerBalance">₵0.00</span></p>
+                </div>
+                <div class="stat-card p-4 rounded-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-xs uppercase tracking-wider">Today's Sales</span>
+                        <i class="fas fa-chart-bar text-blue-400"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-white" id="todaySales">₵0.00</p>
+                    <p class="text-xs text-gray-500 mt-1"><span id="todayCount">0</span> orders</p>
+                </div>
+                <div class="stat-card p-4 rounded-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-xs uppercase tracking-wider">Total Revenue</span>
+                        <i class="fas fa-coins text-yellow-400"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-white" id="totalRevenue">₵0.00</p>
+                    <p class="text-xs text-gray-500 mt-1">Commission paid: <span id="totalCommission">₵0.00</span></p>
+                </div>
+                <div class="stat-card p-4 rounded-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-gray-400 text-xs uppercase tracking-wider">Total Payouts</span>
+                        <i class="fas fa-money-bill-wave text-purple-400"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-white" id="totalPayouts">₵0.00</p>
+                    <p class="text-xs text-gray-500 mt-1">Pending: <span id="pendingPayoutsCount">0</span></p>
+                </div>
+            </div>
+
+            <!-- Quick Stats Row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="card p-4 text-center">
+                    <p class="text-3xl font-bold text-white" id="totalOrders">0</p>
+                    <p class="text-gray-400 text-sm">Total Orders</p>
+                </div>
+                <div class="card p-4 text-center">
+                    <p class="text-3xl font-bold text-white" id="activePackages">0</p>
+                    <p class="text-gray-400 text-sm">Priced Packages</p>
+                </div>
+                <div class="card p-4 text-center">
+                    <p class="text-3xl font-bold text-white" id="holdAmount">₵0.00</p>
+                    <p class="text-gray-400 text-sm">On Hold</p>
+                </div>
+                <div class="card p-4 text-center">
+                    <p class="text-3xl font-bold text-white" id="cogsTotal">₵0.00</p>
+                    <p class="text-gray-400 text-sm">Cost of Goods</p>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mb-4">
+                <button data-action="goto-orders" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
+                    <i class="fas fa-plus mr-1"></i> New Sale
+                </button>
+                <button data-action="goto-payouts" class="btn-secondary px-4 py-2 rounded-lg text-white text-sm">
+                    <i class="fas fa-money-bill-wave mr-1"></i> Request Payout
+                </button>
+            </div>
+        </div>
+
+        <!-- DATA PACKAGES TAB -->
+        <div id="tab-packages" class="tab-content hidden">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Data Packages & Pricing</h2>
+                    <p class="text-gray-400 text-xs mt-1">Set your selling prices. Customers see your prices, not your cost.</p>
+                </div>
+                <button id="savePricingBtn" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
+                    <i class="fas fa-save mr-1"></i> Save Prices
+                </button>
+            </div>
+            <div class="flex gap-2 mb-4 overflow-x-auto">
+                <button class="network-filter active px-4 py-1.5 text-sm rounded-full bg-yellow-500 text-black font-semibold" data-network="MTN">MTN</button>
+                <button class="network-filter px-4 py-1.5 text-sm rounded-full bg-[#334155] text-gray-300" data-network="AirtelTigo">AirtelTigo</button>
+                <button class="network-filter px-4 py-1.5 text-sm rounded-full bg-[#334155] text-gray-300" data-network="Telecel">Telecel</button>
+            </div>
+            <div id="packagesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <p class="text-gray-500 col-span-full text-center py-8">Loading packages...</p>
+            </div>
+            <!-- Store link section -->
+            <div id="storeLinkSection" class="mt-6 p-4 card border border-dashed border-gray-600 hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-white font-semibold text-sm"><i class="fas fa-link mr-1"></i> Your Store Link</h3>
+                        <p class="text-gray-400 text-xs mt-1">Share with customers so they can buy directly</p>
+                    </div>
+                    <button id="copyStoreLinkBtn" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg">
+                        <i class="fas fa-copy mr-1"></i> Copy Link
+                    </button>
+                </div>
+                <p id="storeLinkUrl" class="text-blue-400 text-xs mt-2 break-all"></p>
+            </div>
+        </div>
+
+        <!-- ORDERS TAB -->
+        <div id="tab-orders" class="tab-content hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-white">Store Orders</h2>
+                <button id="newOrderBtn" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
+                    <i class="fas fa-plus mr-1"></i> New Order
+                </button>
+            </div>
+            <div class="flex gap-2 mb-4 overflow-x-auto">
+                <button class="order-filter active px-3 py-1 text-sm rounded-full bg-blue-600 text-white" data-filter="all">All</button>
+                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#334155] text-gray-300" data-filter="pending">Pending</button>
+                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#334155] text-gray-300" data-filter="paid">Paid</button>
+                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#334155] text-gray-300" data-filter="fulfilled">Fulfilled</button>
+            </div>
+            <div id="ordersList" class="space-y-3">
+                <p class="text-gray-500 text-center py-8">Loading orders...</p>
+            </div>
+        </div>
+
+        <!-- PAYOUTS TAB -->
+        <div id="tab-payouts" class="tab-content hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-white">Payout Requests</h2>
+                <button id="requestPayoutBtn" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
+                    <i class="fas fa-money-bill-wave mr-1"></i> Request Payout
+                </button>
+            </div>
+            <div class="card p-4 mb-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Available for Withdrawal</p>
+                        <p class="text-2xl font-bold text-green-400" id="withdrawableBalance">₵0.00</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-gray-400 text-sm">On Hold</p>
+                        <p class="text-xl font-bold text-yellow-400" id="payoutHoldAmount">₵0.00</p>
+                    </div>
+                </div>
+            </div>
+            <div id="payoutsList" class="space-y-3">
+                <p class="text-gray-500 text-center py-8">Loading payouts...</p>
+            </div>
+        </div>
+
+        <!-- FINANCIALS TAB -->
+        <div id="tab-financials" class="tab-content hidden">
+            <h2 class="text-xl font-bold text-white mb-4">Financial Statements</h2>
+
+            <!-- Date Range Filter -->
+            <div class="card p-4 mb-4">
+                <div class="flex flex-wrap gap-3 items-end">
+                    <div>
+                        <label class="text-gray-400 text-xs block mb-1">Start Date</label>
+                        <input type="date" id="finStartDate" class="input-field px-3 py-2 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-xs block mb-1">End Date</label>
+                        <input type="date" id="finEndDate" class="input-field px-3 py-2 rounded-lg text-sm">
+                    </div>
+                    <button data-action="refresh-financials" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
+                        <i class="fas fa-sync mr-1"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Financial Sub-tabs -->
+            <div class="flex gap-2 mb-4 overflow-x-auto">
+                <button class="fin-tab active px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white" data-fin="income">Income Statement</button>
+                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#334155] text-gray-300" data-fin="balance">Balance Sheet</button>
+                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#334155] text-gray-300" data-fin="cashflow">Cash Flow</button>
+                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#334155] text-gray-300" data-fin="ledger">Ledger</button>
+            </div>
+
+            <div id="financialContent" class="card p-6">
+                <p class="text-gray-500 text-center">Loading financial data...</p>
+            </div>
+        </div>
+
+        <!-- SETTINGS TAB -->
+        <div id="tab-settings" class="tab-content hidden">
+            <h2 class="text-xl font-bold text-white mb-4">Store Settings</h2>
+            <form id="storeSettingsForm" class="card p-6 space-y-4 max-w-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">Store Name</label>
+                        <input type="text" id="settStoreName" class="input-field w-full px-4 py-2 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">Phone</label>
+                        <input type="text" id="settStorePhone" class="input-field w-full px-4 py-2 rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-1 block">Description</label>
+                    <textarea id="settStoreDesc" class="input-field w-full px-4 py-2 rounded-lg" rows="2"></textarea>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-sm mb-1 block">Location</label>
+                    <input type="text" id="settStoreLoc" class="input-field w-full px-4 py-2 rounded-lg">
+                </div>
+                <h3 class="text-white font-semibold pt-4 border-t border-[#334155]">Payout Details</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">Bank Name</label>
+                        <input type="text" id="settBankName" class="input-field w-full px-4 py-2 rounded-lg" placeholder="e.g. GCB Bank">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">Bank Account Number</label>
+                        <input type="text" id="settBankAcct" class="input-field w-full px-4 py-2 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">Account Name</label>
+                        <input type="text" id="settBankAcctName" class="input-field w-full px-4 py-2 rounded-lg">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">MoMo Number</label>
+                        <input type="text" id="settMomoNum" class="input-field w-full px-4 py-2 rounded-lg" placeholder="0241234567">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm mb-1 block">MoMo Provider</label>
+                        <select id="settMomoProv" class="input-field w-full px-4 py-2 rounded-lg">
+                            <option value="">Select provider</option>
+                            <option value="MTN">MTN</option>
+                            <option value="AirtelTigo">AirtelTigo</option>
+                            <option value="Telecel">Telecel</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary px-6 py-2 rounded-lg text-white font-semibold">
+                    <i class="fas fa-save mr-2"></i> Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Order Modal -->
+    <div id="orderModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
+        <div class="card p-6 w-full max-w-lg scale-in max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white">New Sale Order</h3>
+                <button data-close-modal="orderModal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="orderForm" class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-gray-400 text-xs mb-1 block">Customer Name *</label>
+                        <input type="text" id="orderCustName" class="input-field w-full px-3 py-2 rounded-lg text-sm" required>
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-xs mb-1 block">Customer Email *</label>
+                        <input type="email" id="orderCustEmail" class="input-field w-full px-3 py-2 rounded-lg text-sm" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Customer Phone</label>
+                    <input type="text" id="orderCustPhone" class="input-field w-full px-3 py-2 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Select Data Packages</label>
+                    <div class="flex gap-2 mb-2">
+                        <button type="button" class="order-network-tab active text-xs px-3 py-1 rounded-full bg-yellow-500 text-black font-semibold" data-order-network="MTN">MTN</button>
+                        <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full bg-[#334155] text-gray-300" data-order-network="AirtelTigo">AirtelTigo</button>
+                        <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full bg-[#334155] text-gray-300" data-order-network="Telecel">Telecel</button>
+                    </div>
+                    <div id="orderPackageSelect" class="space-y-2 max-h-48 overflow-y-auto">
+                        <p class="text-gray-500 text-sm">Loading packages...</p>
+                    </div>
+                </div>
+                <div id="orderItemsSummary" class="hidden bg-[#0f172a] rounded-lg p-3">
+                    <p class="text-gray-400 text-xs mb-2">Order Summary</p>
+                    <div id="orderItemsList"></div>
+                    <div class="border-t border-[#334155] pt-2 mt-2">
+                        <div class="flex justify-between text-white font-bold">
+                            <span>Total:</span>
+                            <span id="orderTotal">₵0.00</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Notes</label>
+                    <textarea id="orderNotes" class="input-field w-full px-3 py-2 rounded-lg text-sm" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn-primary w-full py-2 rounded-lg text-white font-semibold text-sm" id="createOrderBtn">
+                    <i class="fas fa-credit-card mr-1"></i> Create Order & Send Payment Link
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payout Request Modal -->
+    <div id="payoutModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
+        <div class="card p-6 w-full max-w-md scale-in">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white">Request Payout</h3>
+                <button data-close-modal="payoutModal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="payoutForm" class="space-y-3">
+                <div class="bg-[#0f172a] rounded-lg p-3 mb-2">
+                    <p class="text-gray-400 text-xs">Available Balance</p>
+                    <p class="text-2xl font-bold text-green-400" id="payoutAvailable">₵0.00</p>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Amount (₵) *</label>
+                    <input type="number" step="0.01" id="payoutAmount" class="input-field w-full px-3 py-2 rounded-lg text-sm" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Payout Method *</label>
+                    <select id="payoutMethod" class="input-field w-full px-3 py-2 rounded-lg text-sm" required>
+                        <option value="">Choose method</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="momo">Mobile Money</option>
+                    </select>
+                </div>
+                <div id="payoutDestination" class="bg-[#0f172a] rounded-lg p-3 hidden">
+                    <p class="text-gray-400 text-xs mb-1">Payout will be sent to:</p>
+                    <p class="text-white text-sm font-medium" id="payoutDestText">-</p>
+                </div>
+                <button type="submit" class="btn-primary w-full py-2 rounded-lg text-white font-semibold text-sm">
+                    <i class="fas fa-paper-plane mr-1"></i> Submit Payout Request
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script src="../assets/js/utils.js"></script>
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/store.js"></script>
+</body>
+</html>

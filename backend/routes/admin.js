@@ -7,6 +7,8 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const adminStoreController = require('../controllers/adminStoreController');
+const apiKeyController = require('../controllers/apiKeyController');
 const { adminAuth } = require('../middleware/auth');
 const { sensitiveAdminLimiter } = require('../middleware/rateLimiter');
 const { requireIdempotency } = require('../middleware/idempotency');
@@ -83,5 +85,29 @@ router.put('/fee-settings', sensitiveAdminLimiter, adminController.updateFeeSett
 // General app settings routes
 router.get('/app-settings', adminController.getAppSettings);
 router.put('/app-settings', sensitiveAdminLimiter, adminController.updateAppSettings);
+
+// ==========================================
+// STORE MANAGEMENT (Admin)
+// ==========================================
+router.get('/stores/stats', adminStoreController.getStoreStats);
+router.get('/stores/payouts', adminStoreController.getAllPayouts);
+router.put('/stores/payouts/:payoutId/approve', sensitiveAdminLimiter, adminStoreController.approvePayout);
+router.put('/stores/payouts/:payoutId/complete', sensitiveAdminLimiter, adminStoreController.completePayout);
+router.put('/stores/payouts/:payoutId/reject', sensitiveAdminLimiter, adminStoreController.rejectPayout);
+router.get('/stores/reconciliation', adminStoreController.getAllReconciliations);
+router.put('/stores/reconciliations/:recordId/resolve', sensitiveAdminLimiter, adminStoreController.resolveReconciliation);
+router.get('/stores', adminStoreController.getAllStores);
+router.get('/stores/:storeId', adminStoreController.getStoreDetails);
+router.put('/stores/:storeId', sensitiveAdminLimiter, adminStoreController.updateStoreSettings);
+router.post('/stores/:storeId/adjust', sensitiveAdminLimiter, adminStoreController.adjustSettlement);
+router.post('/stores/:storeId/reconcile', sensitiveAdminLimiter, adminStoreController.runReconciliation);
+router.get('/stores/:storeId/reconciliations', adminStoreController.getReconciliations);
+
+// ==========================================
+// API KEY MANAGEMENT (Admin)
+// ==========================================
+router.get('/api-keys/stats', apiKeyController.adminGetStats);
+router.get('/api-keys', apiKeyController.adminListKeys);
+router.delete('/api-keys/:keyId', sensitiveAdminLimiter, apiKeyController.adminRevokeKey);
 
 module.exports = router;
