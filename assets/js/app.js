@@ -971,7 +971,7 @@ const DataEasyApp = (function() {
                 orders = orders.filter(o => 
                     o.id.toLowerCase().includes(searchLower) ||
                     (o.items && o.items.some(item => 
-                        item.phoneNumbers && item.phoneNumbers.some(phone => phone.includes(search))
+                        (item.phoneNumber || '').includes(search)
                     ))
                 );
             }
