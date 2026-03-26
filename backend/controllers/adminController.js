@@ -418,6 +418,81 @@ exports.updateItemStatus = async (req, res) => {
 };
 
 /**
+ * Match orders by phone + data size and mark as Delivered
+ * PUT /api/admin/orders/match-complete
+ * Body: { entries: [{ phone: "0555546229", data: "2" }, ...] }
+ */
+exports.matchAndCompleteOrders = async (req, res) => {
+    try {
+        const { entries } = req.body;
+        if (!Array.isArray(entries) || entries.length === 0) {
+            return res.status(400).json({ error: 'No entries provided' });
+        }
+
+        // Get all non-terminal orders (Pending or Processing)
+        const orders = await Order.findAll({
+            where: {
+                deliveryStatus: { [Op.in]: ['Pending', 'Processing'] }
+            },
+            order: [['createdAt', 'DESC']]
+        });
+
+        let matched = 0;
+        const updatedOrders = new Set();
+
+        for (const entry of entries) {
+            const phone = (entry.phone || '').replace(/\s+/g, '').replace(/^\+233/, '0');
+            const dataSize = (entry.data || '').toString().trim();
+            if (!phone || !dataSize) continue;
+
+            let found = false;
+
+            for (const order of orders) {
+                const items = order.items || [];
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    const itemStatus = (item.deliveryStatus || 'Pending').toLowerCase();
+                    if (itemStatus !== 'pending' && itemStatus !== 'processing') continue;
+
+                    const itemPhone = (item.phoneNumber || '').replace(/\s+/g, '').replace(/^\+233/, '0');
+                    if (itemPhone !== phone) continue;
+
+                    // Extract numeric data size from item.data (e.g., "2GB" -> "2", "10GB" -> "10")
+                    const itemDataMatch = (item.data || item.packageName || '').match(/(\d+(?:\.\d+)?)\s*(?:GB|MB)?/i);
+                    const itemDataNum = itemDataMatch ? itemDataMatch[1] : '';
+
+                    if (itemDataNum === dataSize) {
+                        items[i] = {
+                            ...item,
+                            deliveryStatus: 'Delivered',
+                            deliveredAt: new Date()
+                        };
+                        matched++;
+                        found = true;
+                        updatedOrders.add(order);
+                        break; // One match per entry
+                    }
+                }
+                if (found) break;
+            }
+
+        }
+
+        // Save all updated orders
+        for (const order of updatedOrders) {
+            order.items = order.items.map(item => ({ ...item }));
+            order.changed('items', true);
+            await order.updateDeliveryStatus();
+        }
+
+        res.json({ success: true, matched });
+    } catch (error) {
+        console.error('Match and complete error:', error);
+        res.status(500).json({ error: 'Failed to match and complete orders' });
+    }
+};
+
+/**
  * Bulk update item statuses across multiple orders
  * PUT /api/admin/orders/bulk-item-status
  * Body: { items: [{ orderId, itemIndex }], status }

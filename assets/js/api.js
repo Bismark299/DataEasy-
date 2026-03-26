@@ -362,6 +362,14 @@ const DataEasyAPI = (function() {
             });
         },
 
+        async matchAndCompleteOrders(entries) {
+            return await request('/admin/orders/match-complete', {
+                method: 'PUT',
+                body: JSON.stringify({ entries }),
+                adminAuth: true
+            });
+        },
+
         async getUsers(params = {}) {
             const queryString = new URLSearchParams(params).toString();
             return await request(`/admin/users${queryString ? '?' + queryString : ''}`, { adminAuth: true });

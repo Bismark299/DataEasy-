@@ -431,6 +431,10 @@
                             <i class="fas fa-undo"></i>
                             <span>Cancel & Refund</span>
                         </button>
+                        <button class="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition" id="addToCompleteBtn">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Add To Complete</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -516,6 +520,27 @@
             </div>
         </div>
     </main>
+
+    <!-- Add To Complete Modal -->
+    <div class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4" id="addToCompleteModal">
+        <div class="bg-white rounded-xl w-full max-w-lg">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h3 class="font-semibold text-gray-800"><i class="fas fa-clipboard-check text-purple-500 mr-2"></i>Add To Complete</h3>
+                <button class="modal-close-btn text-gray-400 hover:text-gray-600 text-xl" data-modal="addToCompleteModal">&times;</button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-500 mb-3">Paste phone numbers with data size (one per line).<br>Format: <code class="bg-gray-100 px-1 rounded">0555546229 2</code> &nbsp; (phone &amp; GB)</p>
+                <textarea id="matchCompleteInput" class="w-full h-48 border border-gray-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-y" placeholder="0555546229 2&#10;0247879363 10&#10;0201234567 5"></textarea>
+                <div id="matchCompleteResult" class="mt-3 text-sm hidden"></div>
+            </div>
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+                <button class="modal-close-btn px-4 py-2 text-gray-600 hover:text-gray-800 transition" data-modal="addToCompleteModal">Cancel</button>
+                <button id="matchCompleteSubmitBtn" class="px-5 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition">
+                    <i class="fas fa-check mr-1"></i>Complete Orders
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Container -->
     <div class="fixed bottom-4 right-4 z-50 space-y-2" id="toastContainer"></div>
@@ -1496,6 +1521,75 @@
             const mobileCancelBtn = document.getElementById('mobileCancelBtn');
             if (mobileCancelBtn) {
                 mobileCancelBtn.addEventListener('click', handleCancelOrders);
+            }
+
+            // Add To Complete Button
+            document.getElementById('addToCompleteBtn').addEventListener('click', () => {
+                document.getElementById('matchCompleteInput').value = '';
+                document.getElementById('matchCompleteResult').classList.add('hidden');
+                const modal = document.getElementById('addToCompleteModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+
+            // Complete Orders submit
+            document.getElementById('matchCompleteSubmitBtn').addEventListener('click', handleMatchComplete);
+        }
+
+        async function handleMatchComplete() {
+            const raw = document.getElementById('matchCompleteInput').value.trim();
+            if (!raw) {
+                showToast('warning', 'Empty', 'Please paste phone numbers with data sizes');
+                return;
+            }
+
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+            const entries = [];
+            for (const line of lines) {
+                // Support tab or space separator: "0555546229 2" or "0555546229\t2"
+                const parts = line.split(/[\t\s]+/);
+                if (parts.length >= 2) {
+                    entries.push({ phone: parts[0], data: parts[1] });
+                }
+            }
+
+            if (entries.length === 0) {
+                showToast('warning', 'Invalid', 'No valid entries found. Use format: phone data');
+                return;
+            }
+
+            const confirmed = await showConfirm({
+                title: 'Complete Orders',
+                message: `Match and complete ${entries.length} order item(s)?`,
+                type: 'success',
+                confirmText: 'Complete',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+
+            const btn = document.getElementById('matchCompleteSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
+
+            try {
+                const result = await DataEasyAPI.admin.matchAndCompleteOrders(entries);
+
+                // Close the modal
+                const modal = document.getElementById('addToCompleteModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+
+                showToast('success', 'Done', `${result.matched} orders completed`);
+
+                if (result.matched > 0) {
+                    await loadOrders();
+                }
+            } catch (error) {
+                console.error('Match complete error:', error);
+                showToast('error', 'Error', 'Failed to complete orders');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check mr-1"></i>Complete Orders';
             }
         }
 

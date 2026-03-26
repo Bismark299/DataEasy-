@@ -265,10 +265,12 @@ app.use('/api/', maintenanceMode);
 // Rate Limiting - general API (per-user when authenticated, per-IP otherwise)
 const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 1 * 60 * 1000, // 1 minute
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 600, // 600 requests per minute
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1200, // 1200 requests per minute
     message: { error: 'Too many requests, please try again later.' },
     keyGenerator: (req) => req.user?.id || req.ip,
     skip: (req) => {
+        // Skip rate limiting in development
+        if (process.env.NODE_ENV === 'development') return true;
         // Skip rate limiting for admin routes (they have their own limiters for sensitive ops)
         if (req.path.startsWith('/api/admin')) return true;
         // Skip for public read-only endpoints
