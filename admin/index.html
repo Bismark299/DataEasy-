@@ -1070,23 +1070,21 @@
                 await navigator.clipboard.writeText(text);
                 showToast('success', 'Copied!', `${pendingItems.length} pending ${network} orders copied to clipboard`);
                 
-                // Update all copied items to Processing status
+                // Update all copied items to Processing status in one request
                 showToast('info', 'Updating...', 'Changing status to Processing...');
                 
-                let updateSuccess = 0;
-                for (const item of itemsToUpdate) {
-                    try {
-                        await DataEasyAPI.admin.updateItemStatus(item.orderId, item.itemIndex, 'Processing');
-                        updateSuccess++;
-                    } catch (err) {
-                        console.error('Failed to update item:', item, err);
+                try {
+                    const result = await DataEasyAPI.admin.bulkUpdateItemStatus(itemsToUpdate, 'Processing');
+                    if (result.updated > 0) {
+                        showToast('success', 'Updated', `${result.updated} items changed to Processing`);
+                        await loadOrders();
                     }
-                }
-                
-                if (updateSuccess > 0) {
-                    showToast('success', 'Updated', `${updateSuccess} items changed to Processing`);
-                    // Reload orders to reflect changes
-                    await loadOrders();
+                    if (result.failed > 0) {
+                        showToast('warning', 'Partial', `${result.failed} items failed to update`);
+                    }
+                } catch (err) {
+                    console.error('Bulk update failed:', err);
+                    showToast('error', 'Error', 'Failed to update item statuses');
                 }
             } catch (err) {
                 showToast('error', 'Error', 'Failed to copy to clipboard');

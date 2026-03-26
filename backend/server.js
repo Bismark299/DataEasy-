@@ -262,11 +262,12 @@ app.use(cors({
 // Maintenance Mode - blocks API when enabled (must be before routes)
 app.use('/api/', maintenanceMode);
 
-// Rate Limiting - general API (more generous for admin dashboard usage)
+// Rate Limiting - general API (per-user when authenticated, per-IP otherwise)
 const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 1 * 60 * 1000, // 1 minute
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 300, // 300 requests per minute
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 600, // 600 requests per minute
     message: { error: 'Too many requests, please try again later.' },
+    keyGenerator: (req) => req.user?.id || req.ip,
     skip: (req) => {
         // Skip rate limiting for admin routes (they have their own limiters for sensitive ops)
         if (req.path.startsWith('/api/admin')) return true;
@@ -278,11 +279,12 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Admin routes limiter - generous for read operations
+// Admin routes limiter - generous for dashboard operations
 const adminLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 200, // 200 requests per minute for admin dashboard
-    message: { error: 'Too many requests, please try again later.' }
+    max: 600, // 600 requests per minute for admin dashboard
+    message: { error: 'Too many requests, please try again later.' },
+    keyGenerator: (req) => req.admin?.username || req.ip
 });
 app.use('/api/admin', adminLimiter);
 

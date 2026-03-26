@@ -1162,6 +1162,18 @@ const DataEasyApp = (function() {
         // Initial render
         renderOrders();
 
+        // Auto-refresh orders every 15 seconds if any are non-terminal
+        const terminalStatuses = ['Delivered', 'Submitted', 'Completed', 'Failed'];
+        const hasActiveOrders = () => allOrders.some(o => !terminalStatuses.includes(o.deliveryStatus));
+        
+        if (hasActiveOrders()) {
+            const refreshInterval = setInterval(async () => {
+                await fetchOrders();
+                renderOrders(currentFilter, searchInput?.value || '');
+                if (!hasActiveOrders()) clearInterval(refreshInterval);
+            }, 15000);
+        }
+
         // ==========================================
         // EXPORT SINGLE ORDER
         // ==========================================
@@ -1515,8 +1527,19 @@ const DataEasyApp = (function() {
         const getStatusBtn = document.getElementById('get-delivery-status-btn');
         if (getStatusBtn) {
             getStatusBtn.addEventListener('click', () => {
-                simulateDeliveryStatus(order);
+                fetchAndUpdateDeliveryStatus(orderId);
             });
+        }
+
+        // Auto-poll for status updates if order isn't in a terminal state
+        const terminalStatuses = ['Delivered', 'Submitted', 'Completed', 'Failed'];
+        if (!terminalStatuses.includes(order.deliveryStatus)) {
+            const pollInterval = setInterval(async () => {
+                const updated = await fetchAndUpdateDeliveryStatus(orderId, true);
+                if (updated && terminalStatuses.includes(updated)) {
+                    clearInterval(pollInterval);
+                }
+            }, 10000); // Poll every 10 seconds
         }
     }
 
@@ -1568,64 +1591,91 @@ const DataEasyApp = (function() {
     }
 
     /**
-     * Get delivery status based on order status
+     * Fetch live delivery status from server and update the UI
+     * @param {string} orderId
+     * @param {boolean} silent - if true, don't show loading indicator (for auto-poll)
+     * @returns {string|null} the new delivery status, or null on error
      */
-    function simulateDeliveryStatus(order) {
+    async function fetchAndUpdateDeliveryStatus(orderId, silent = false) {
         const loadingEl = document.getElementById('delivery-status-loading');
         const resultEl = document.getElementById('delivery-status-result');
         const statusCells = document.querySelectorAll('.delivery-status-cell');
 
-        if (loadingEl) loadingEl.classList.remove('hidden');
-        if (resultEl) resultEl.innerHTML = '';
+        if (!silent && loadingEl) loadingEl.classList.remove('hidden');
 
-        // Simulate API delay
-        setTimeout(() => {
-            if (loadingEl) loadingEl.classList.add('hidden');
-
-            // Get the delivery status from order - should match order status
-            const deliveryStatus = order.deliveryStatus || 'Processing';
-            // Use processedAt (when delivered) instead of createdAt (when order was made)
-            const deliveredDate = order.processedAt ? new Date(order.processedAt) : new Date(order.createdAt);
-            const timeStr = deliveredDate.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true
-            }).toUpperCase();
-            const dateStr = `${deliveredDate.getDate()}/${deliveredDate.toLocaleString('en-US', {month: 'long'})}/${deliveredDate.getFullYear()}`;
-
-            // Determine status display based on deliveryStatus
-            let statusHtml = '';
-            let statusClass = '';
-            
-            if (deliveryStatus === 'Delivered' || deliveryStatus === 'Submitted' || deliveryStatus === 'Completed') {
-                statusClass = 'text-green-400';
-                statusHtml = `<span class="${statusClass} text-sm">Sent<br><span class="text-xs">${timeStr} - ${dateStr}</span></span>`;
-            } else if (deliveryStatus === 'Processing') {
-                statusClass = 'text-yellow-400';
-                statusHtml = `<span class="${statusClass} text-sm font-medium">Processing...</span>`;
-            } else if (deliveryStatus === 'Failed') {
-                statusClass = 'text-red-400';
-                statusHtml = `<span class="${statusClass} text-sm font-medium">Failed</span>`;
-            } else {
-                statusClass = 'text-gray-400';
-                statusHtml = `<span class="${statusClass} text-sm">—</span>`;
+        try {
+            const response = await DataEasyAPI.Orders.getById(orderId);
+            if (!response.success || !response.order) {
+                if (!silent && resultEl) {
+                    resultEl.innerHTML = `<p class="text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-2 inline-block">
+                        <i class="fas fa-exclamation-circle mr-2"></i>Failed to fetch order status</p>`;
+                }
+                return null;
             }
 
-            // Update each cell with the actual order delivery status
-            statusCells.forEach(cell => {
-                cell.innerHTML = statusHtml;
+            const order = response.order;
+            const deliveryStatus = order.deliveryStatus || 'Processing';
+
+            // Update the header delivery status badge
+            document.querySelectorAll('[data-delivery-status]').forEach(el => {
+                el.textContent = deliveryStatus;
+                if (deliveryStatus === 'Delivered' || deliveryStatus === 'Submitted' || deliveryStatus === 'Completed') {
+                    el.className = 'text-green-400 font-medium';
+                } else if (deliveryStatus === 'Processing') {
+                    el.className = 'text-yellow-400 font-medium';
+                } else if (deliveryStatus === 'Failed') {
+                    el.className = 'text-red-400 font-medium';
+                } else {
+                    el.className = 'text-gray-400 font-medium';
+                }
             });
 
-            if (resultEl) {
-                const resultClass = deliveryStatus === 'Failed' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 
-                                   'text-green-400 bg-green-500/10 border-green-500/30';
-                resultEl.innerHTML = `
-                    <p class="${resultClass} border rounded-lg px-4 py-2 inline-block">
-                        <i class="fas fa-check-circle mr-2"></i>Delivery status loaded successfully!
-                    </p>
-                `;
+            // Update each item row with its individual status
+            if (order.items) {
+                statusCells.forEach(cell => {
+                    const itemIndex = parseInt(cell.dataset.itemIndex);
+                    const item = order.items[itemIndex];
+                    if (!item) return;
+
+                    const itemStatus = item.deliveryStatus || deliveryStatus;
+                    const deliveredAt = item.deliveredAt || order.processedAt || order.createdAt;
+                    const deliveredDate = new Date(deliveredAt);
+                    const timeStr = deliveredDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase();
+                    const dateStr = `${deliveredDate.getDate()}/${deliveredDate.toLocaleString('en-US', {month: 'long'})}/${deliveredDate.getFullYear()}`;
+
+                    const status = (itemStatus || 'pending').toLowerCase();
+                    if (status === 'delivered' || status === 'submitted' || status === 'completed') {
+                        cell.innerHTML = `<span class="text-green-400 text-sm">Sent<br><span class="text-xs">${timeStr} - ${dateStr}</span></span>`;
+                    } else if (status === 'processing') {
+                        cell.innerHTML = `<span class="text-yellow-400 text-sm font-medium">Processing...</span>`;
+                    } else if (status === 'failed') {
+                        cell.innerHTML = `<span class="text-red-400 text-sm font-medium">Failed</span>`;
+                    } else {
+                        cell.innerHTML = `<span class="text-orange-400 text-sm">Pending</span>`;
+                    }
+                });
             }
-        }, 1500);
+
+            if (!silent) {
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (resultEl) {
+                    resultEl.innerHTML = `<p class="text-green-400 bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2 inline-block">
+                        <i class="fas fa-check-circle mr-2"></i>Delivery status loaded successfully!</p>`;
+                }
+            }
+
+            return deliveryStatus;
+        } catch (e) {
+            console.error('Failed to fetch delivery status:', e);
+            if (!silent) {
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (resultEl) {
+                    resultEl.innerHTML = `<p class="text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-2 inline-block">
+                        <i class="fas fa-exclamation-circle mr-2"></i>Failed to fetch status</p>`;
+                }
+            }
+            return null;
+        }
     }
 
     // ==========================================

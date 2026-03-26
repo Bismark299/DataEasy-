@@ -354,6 +354,14 @@ const DataEasyAPI = (function() {
             });
         },
 
+        async bulkUpdateItemStatus(items, status) {
+            return await request('/admin/orders/bulk-item-status', {
+                method: 'PUT',
+                body: JSON.stringify({ items, status }),
+                adminAuth: true
+            });
+        },
+
         async getUsers(params = {}) {
             const queryString = new URLSearchParams(params).toString();
             return await request(`/admin/users${queryString ? '?' + queryString : ''}`, { adminAuth: true });

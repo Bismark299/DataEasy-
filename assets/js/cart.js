@@ -580,11 +580,15 @@ const DataEasyCart = (function() {
     let isSubmitting = false;  // Prevent double-submit
     
     async function checkout() {
-        // Prevent double-submit
+        // Prevent double-submit - set immediately before any async work
         if (isSubmitting) {
             Toast.warning('Please wait, your order is being processed...');
             return null;
         }
+        isSubmitting = true;
+        disableCheckoutButtons(true);
+
+        try {
         
         if (isEmpty()) {
             Toast.warning('Your cart is empty');
@@ -618,14 +622,7 @@ const DataEasyCart = (function() {
 
         // Try API first
         if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
-            // Set submitting flag and disable checkout buttons
-            isSubmitting = true;
-            disableCheckoutButtons(true);
-            
             try {
-                // Generate idempotency key to prevent duplicate orders
-                const idempotencyKey = `order-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-                
                 // Prepare order items for API
                 const orderItems = [];
                 cart.items.forEach(item => {
@@ -646,6 +643,12 @@ const DataEasyCart = (function() {
                         }
                     }
                 });
+
+                // Generate deterministic idempotency key from cart contents
+                // Same cart contents within the same minute = same key = prevents duplicates
+                const itemFingerprint = orderItems.map(i => `${i.packageId}:${i.phoneNumber}`).sort().join('|');
+                const minuteBucket = Math.floor(Date.now() / 60000); // same key within 1-min window
+                const idempotencyKey = `order-${user.id || user.email}-${network}-${minuteBucket}-${btoa(itemFingerprint).substring(0, 40)}`;
 
                 const response = await DataEasyAPI.Orders.create({
                     network,
@@ -680,10 +683,6 @@ const DataEasyCart = (function() {
             } catch (error) {
                 Toast.error(error.message || 'Failed to place order');
                 return null;
-            } finally {
-                // Always reset submitting state
-                isSubmitting = false;
-                disableCheckoutButtons(false);
             }
         }
 
@@ -749,6 +748,12 @@ const DataEasyCart = (function() {
         EventBus.emit('order:created', order);
 
         return order;
+
+        } finally {
+            // Always reset submitting state
+            isSubmitting = false;
+            disableCheckoutButtons(false);
+        }
     }
 
     // ==========================================

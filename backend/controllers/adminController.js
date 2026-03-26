@@ -418,6 +418,68 @@ exports.updateItemStatus = async (req, res) => {
 };
 
 /**
+ * Bulk update item statuses across multiple orders
+ * PUT /api/admin/orders/bulk-item-status
+ * Body: { items: [{ orderId, itemIndex }], status }
+ */
+exports.bulkUpdateItemStatus = async (req, res) => {
+    try {
+        const { items, status, failureReason } = req.body;
+        const validStatuses = ['Pending', 'Processing', 'Delivered', 'Failed'];
+
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'No items provided' });
+        }
+
+        // Group items by orderId to minimize DB queries
+        const byOrder = {};
+        for (const item of items) {
+            if (!byOrder[item.orderId]) byOrder[item.orderId] = [];
+            byOrder[item.orderId].push(parseInt(item.itemIndex));
+        }
+
+        let updated = 0;
+        let failed = 0;
+
+        for (const [orderId, indices] of Object.entries(byOrder)) {
+            try {
+                const order = await Order.findByPk(orderId);
+                if (!order) { failed += indices.length; continue; }
+
+                const orderItems = [...order.items];
+                for (const idx of indices) {
+                    if (idx >= 0 && idx < orderItems.length) {
+                        orderItems[idx] = {
+                            ...orderItems[idx],
+                            deliveryStatus: status,
+                            deliveredAt: status === 'Delivered' ? new Date() : orderItems[idx].deliveredAt,
+                            failureReason: status === 'Failed' ? failureReason : orderItems[idx].failureReason
+                        };
+                        updated++;
+                    } else {
+                        failed++;
+                    }
+                }
+
+                order.items = orderItems;
+                await order.updateDeliveryStatus();
+            } catch (err) {
+                console.error('Bulk update error for order', orderId, err);
+                failed += indices.length;
+            }
+        }
+
+        res.json({ success: true, updated, failed });
+    } catch (error) {
+        console.error('Bulk item status error:', error);
+        res.status(500).json({ error: 'Failed to bulk update items' });
+    }
+};
+
+/**
  * Get all users (admin)
  * GET /api/admin/users
  * OPTIMIZED: Uses aggregated queries instead of N+1 pattern

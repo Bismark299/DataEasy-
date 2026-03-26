@@ -322,27 +322,38 @@ exports.createOrder = async (req, res) => {
         // Commit the transaction - all operations succeed together
         await t.commit();
 
-        // ===== AUTO-DELIVERY VIA MCBIS =====
-        // After transaction commits, send to MCBIS and start status polling
-        let deliveryAttempted = false;
-        let deliveryResults = [];
-        
-        try {
-            // Check if MCBIS is enabled for this network
-            const shouldAutoDeliver = await Setting.shouldDeliverViaMcbis(network);
-            
-            if (shouldAutoDeliver) {
-                logger.info('Auto-delivery enabled, sending to MCBIS', { network, orderId: order.orderId });
+        // Respond to client immediately - order is created and paid
+        res.status(201).json({
+            success: true,
+            message: 'Order placed successfully',
+            order: {
+                orderId: order.orderId,
+                items: order.items.length,
+                total: order.total,
+                network: order.network,
+                deliveryStatus: order.deliveryStatus
+            },
+            newBalance: wallet.balance
+        });
+
+        // ===== AUTO-DELIVERY VIA MCBIS (background, after response) =====
+        // Fire-and-forget: send items to MCBIS without blocking the client
+        (async () => {
+            try {
+                const shouldAutoDeliver = await Setting.shouldDeliverViaMcbis(network);
+                
+                if (!shouldAutoDeliver) {
+                    logger.info('Auto-delivery not enabled for network', { network });
+                    return;
+                }
+
+                logger.info('Auto-delivery enabled, sending to MCBIS in background', { network, orderId: order.orderId, itemCount: orderItems.length });
                 const provider = getMcbisProvider();
                 const poller = getOrderStatusPoller();
                 
-                // Send each item to MCBIS
-                for (let i = 0; i < orderItems.length; i++) {
-                    const item = orderItems[i];
-                    deliveryAttempted = true;
-                    
+                // Send all items to MCBIS concurrently for speed
+                const deliveryPromises = orderItems.map(async (item, i) => {
                     try {
-                        // Send to MCBIS - will return "pending" status
                         const deliveryResult = await provider.deliverBundle({
                             orderId: order.id,
                             itemIndex: i,
@@ -353,20 +364,10 @@ exports.createOrder = async (req, res) => {
                             existingReference: item.providerReference
                         });
                         
-                        deliveryResults.push({
-                            index: i,
-                            sent: true,
-                            status: deliveryResult.status || 'pending',
-                            reference: deliveryResult.reference,
-                            error: deliveryResult.error
-                        });
-                        
-                        // Update item with reference and "Processing" status
                         orderItems[i].deliveryStatus = 'Processing';
                         orderItems[i].providerReference = deliveryResult.reference;
                         orderItems[i].sentToProviderAt = new Date().toISOString();
                         
-                        // Start background polling for this item
                         if (deliveryResult.reference && deliveryResult.status !== 'Failed') {
                             poller.startPolling({
                                 orderId: order.id,
@@ -375,41 +376,32 @@ exports.createOrder = async (req, res) => {
                                 displayOrderId: order.orderId
                             });
                         } else if (deliveryResult.status === 'InsufficientBalance' || deliveryResult.status === 'BalanceCheckFailed') {
-                            // Insufficient MCBIS balance - keep as Pending for retry when funds are available
                             orderItems[i].deliveryStatus = 'Pending';
                             orderItems[i].deliveryError = deliveryResult.error;
                             logger.warn('Insufficient MCBIS balance, order stays Pending', {
                                 orderId: order.orderId, itemIndex: i, error: deliveryResult.error
                             });
                         } else if (deliveryResult.error) {
-                            // Failed to send to provider
                             orderItems[i].deliveryStatus = 'Failed';
                             orderItems[i].deliveryError = deliveryResult.error;
                         }
                         
-                        logger.info('Sent to MCBIS, polling started', {
-                            orderId: order.orderId,
-                            itemIndex: i,
-                            reference: deliveryResult.reference,
-                            status: deliveryResult.status
+                        logger.info('Sent to MCBIS', {
+                            orderId: order.orderId, itemIndex: i,
+                            reference: deliveryResult.reference, status: deliveryResult.status
                         });
                     } catch (itemError) {
                         logger.error('Failed to send item to MCBIS', {
-                            orderId: order.orderId,
-                            itemIndex: i,
-                            error: itemError.message
+                            orderId: order.orderId, itemIndex: i, error: itemError.message
                         });
                         orderItems[i].deliveryStatus = 'Failed';
                         orderItems[i].deliveryError = itemError.message;
-                        deliveryResults.push({
-                            index: i,
-                            sent: false,
-                            error: itemError.message
-                        });
                     }
-                }
+                });
+
+                await Promise.all(deliveryPromises);
                 
-                // Update order with current status
+                // Update order with delivery statuses
                 const anyProcessing = orderItems.some(i => i.deliveryStatus === 'Processing');
                 const allPending = orderItems.every(i => i.deliveryStatus === 'Pending');
                 await order.update({
@@ -417,42 +409,17 @@ exports.createOrder = async (req, res) => {
                     deliveryStatus: allPending ? 'Pending' : anyProcessing ? 'Processing' : 'Pending'
                 });
                 
-                logger.info('Order sent to MCBIS, awaiting delivery confirmation', {
+                logger.info('Background MCBIS delivery complete', {
                     orderId: order.orderId,
-                    itemsSent: deliveryResults.filter(r => r.sent).length,
-                    itemsFailed: deliveryResults.filter(r => !r.sent).length
+                    processing: orderItems.filter(i => i.deliveryStatus === 'Processing').length,
+                    failed: orderItems.filter(i => i.deliveryStatus === 'Failed').length
                 });
-            } else {
-                logger.info('Auto-delivery not enabled for network', { network });
+            } catch (deliveryError) {
+                logger.error('Background auto-delivery process failed', {
+                    orderId: order.orderId, error: deliveryError.message
+                });
             }
-        } catch (deliveryError) {
-            // Log but don't fail the order - it's already created and paid
-            logger.error('Auto-delivery process failed', {
-                orderId: order.orderId,
-                error: deliveryError.message
-            });
-        }
-
-        // Refresh order to get latest status
-        await order.reload();
-
-        res.status(201).json({
-            success: true,
-            message: deliveryAttempted 
-                ? 'Order placed and sent for processing'
-                : 'Order placed successfully (pending manual processing)',
-            order: {
-                orderId: order.orderId,
-                items: order.items.length,
-                total: order.total,
-                network: order.network,
-                deliveryStatus: order.deliveryStatus
-            },
-            newBalance: wallet.balance,
-            deliveryAttempted,
-            // Note: Status will update to "Delivered" automatically when MCBIS confirms
-            pollingActive: deliveryAttempted
-        });
+        })();
     } catch (error) {
         // Rollback on any error - all operations fail together
         await t.rollback();

@@ -350,19 +350,26 @@ exports.getOrders = async (req, res) => {
  */
 exports.getOrder = async (req, res) => {
     try {
-        const order = await Order.findOne({
-            where: { id: req.params.orderId, userId: req.user.id }
-        });
+        const paramId = req.params.orderId;
+        let order = null;
+
+        // Only query by UUID primary key if the param is a valid UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(paramId)) {
+            order = await Order.findOne({
+                where: { id: paramId, userId: req.user.id }
+            });
+        }
+
+        // Fall back to orderId (the sequential/custom one)
+        if (!order) {
+            order = await Order.findOne({
+                where: { orderId: paramId, userId: req.user.id }
+            });
+        }
 
         if (!order) {
-            // Also try by orderId (the sequential one)
-            const orderBySeqId = await Order.findOne({
-                where: { orderId: req.params.orderId, userId: req.user.id }
-            });
-            if (!orderBySeqId) {
-                return res.status(404).json({ success: false, error: 'Order not found.' });
-            }
-            return res.json({ success: true, order: formatOrder(orderBySeqId) });
+            return res.status(404).json({ success: false, error: 'Order not found.' });
         }
 
         res.json({ success: true, order: formatOrder(order) });

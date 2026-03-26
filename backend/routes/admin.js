@@ -25,6 +25,7 @@ router.get('/orders', adminController.getAllOrders);
 router.get('/orders/:orderId', adminController.getOrder);
 router.put('/orders/:orderId/status', adminController.updateOrderStatus);
 router.put('/orders/:orderId/item/:itemIndex/status', adminController.updateItemStatus);
+router.put('/orders/bulk-item-status', adminController.bulkUpdateItemStatus);
 
 // Users management
 router.get('/users', adminController.getAllUsers);
