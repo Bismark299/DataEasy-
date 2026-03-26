@@ -252,7 +252,12 @@ exports.createOrder = async (req, res) => {
                             existingReference: orderItems[i].providerReference
                         });
                         if (deliveryResult.reference) {
-                            poller.startPolling(order.id, i, deliveryResult.reference);
+                            poller.startPolling({
+                                orderId: order.id,
+                                itemIndex: i,
+                                reference: deliveryResult.reference,
+                                displayOrderId: order.orderId
+                            });
                         }
                     } catch (deliveryError) {
                         logger.error('API order auto-delivery failed for item', { orderId: order.orderId, itemIndex: i, error: deliveryError.message });

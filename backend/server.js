@@ -88,7 +88,7 @@ const walletRoutes = require('./routes/wallet');
 const adminRoutes = require('./routes/admin');
 const webhookRoutes = require('./routes/webhook');
 const momoRoutes = require('./routes/momo');
-// const storeRoutes = require('./routes/store'); // Store module disabled - not finished
+const storeRoutes = require('./routes/store');
 const developerRoutes = require('./routes/developer');
 const v1Routes = require('./routes/v1');
 
@@ -323,7 +323,7 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhook', webhookRoutes);
 app.use('/api/momo', momoRoutes);
-// app.use('/api/store', storeRoutes); // Store module disabled - not finished
+app.use('/api/store', storeRoutes);
 app.use('/api/developer', developerRoutes);
 app.use('/api/v1', v1Routes);
 
@@ -356,7 +356,7 @@ const staticOptions = {
 app.use('/assets', express.static(path.join(frontendPath, 'assets'), staticOptions));
 app.use('/pages', express.static(path.join(frontendPath, 'pages'), staticOptions));
 app.use('/admin', express.static(path.join(frontendPath, 'admin'), staticOptions));
-// app.use('/store', express.static(path.join(frontendPath, 'store'), staticOptions)); // Store disabled
+app.use('/store', express.static(path.join(frontendPath, 'store'), staticOptions));
 
 // Serve HTML files
 app.get('/', (req, res) => {
@@ -392,17 +392,16 @@ app.get('/admin/:page', (req, res) => {
     });
 });
 
-// Store routes disabled - module not finished
-// app.get('/store/:page', (req, res) => {
-//     const page = req.params.page;
-//     if (!/^[a-zA-Z0-9_-]+$/.test(page)) {
-//         return res.status(400).send('Invalid page');
-//     }
-//     const pagePath = path.join(frontendPath, 'store', page + '.html');
-//     res.sendFile(pagePath, (err) => {
-//         if (err) res.status(404).send('Page not found');
-//     });
-// });
+app.get('/store/:page', (req, res) => {
+    const page = req.params.page;
+    if (!/^[a-zA-Z0-9_-]+$/.test(page)) {
+        return res.status(400).send('Invalid page');
+    }
+    const pagePath = path.join(frontendPath, 'store', page + '.html');
+    res.sendFile(pagePath, (err) => {
+        if (err) res.status(404).send('Page not found');
+    });
+});
 
 // Fallback to index.html for SPA-style routing (if needed)
 app.get('*', (req, res, next) => {

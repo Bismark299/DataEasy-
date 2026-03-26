@@ -308,15 +308,20 @@ async function checkOrderStatus(reference) {
             raw: respData
         };
     } catch (error) {
+        // If MCBIS returns 404, the order reference doesn't exist on their end
+        const is404 = error.response?.status === 404;
+        
         logger.error('Failed to check MCBIS order status', { 
             error: error.message,
-            reference
+            reference,
+            httpStatus: error.response?.status,
+            notFound: is404
         });
         
         return {
             success: false,
             error: error.response?.data?.message || error.message,
-            status: 'unknown'
+            status: is404 ? 'not_found' : 'unknown'
         };
     }
 }

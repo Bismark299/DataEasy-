@@ -716,56 +716,8 @@ exports.adjustWallet = async (req, res) => {
             return res.status(400).json({ error: 'Invalid amount' });
         }
 
-        // Enforce per-adjustment limit
-        if (amount > WALLET_ADJUSTMENT_LIMIT) {
-            await t.rollback();
-            return res.status(400).json({ 
-                error: `Wallet adjustment cannot exceed GH₵${WALLET_ADJUSTMENT_LIMIT}. For larger amounts, please contact system administrator.`,
-                maxAllowed: WALLET_ADJUSTMENT_LIMIT
-            });
-        }
-
-        // Enforce daily limit for admin
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-        
-        const adminUsername = req.admin?.username || 'unknown';
-        const todaysAdjustments = await AdminAuditLog.findAll({
-            where: {
-                adminUsername,
-                action: 'WALLET_ADJUSTMENT',
-                createdAt: { [Op.gte]: todayStart }
-            },
-            transaction: t
-        });
-        
-        const todaysTotalCredits = todaysAdjustments.reduce((sum, log) => {
-            const newVal = log.newValue || {};
-            if (newVal.type === 'credit') {
-                return sum + (newVal.adjustment || 0);
-            }
-            return sum;
-        }, 0);
-        
-        // Only enforce daily limit for credits (adding funds)
-        if (type === 'credit' && (todaysTotalCredits + amount) > DAILY_ADJUSTMENT_LIMIT) {
-            await t.rollback();
-            const remaining = Math.max(0, DAILY_ADJUSTMENT_LIMIT - todaysTotalCredits);
-            return res.status(400).json({ 
-                error: `Daily credit limit reached. You have credited GH₵${todaysTotalCredits.toFixed(2)} today. Maximum daily limit is GH₵${DAILY_ADJUSTMENT_LIMIT}.`,
-                dailyLimit: DAILY_ADJUSTMENT_LIMIT,
-                usedToday: todaysTotalCredits,
-                remainingToday: remaining
-            });
-        }
-
-        // Require description for larger amounts
-        if (amount > REQUIRE_DESCRIPTION_ABOVE && (!description || description.trim().length < 10)) {
-            await t.rollback();
-            return res.status(400).json({ 
-                error: `Description is required for amounts over GH₵${REQUIRE_DESCRIPTION_ABOVE}. Please provide a detailed reason (minimum 10 characters).`
-            });
-        }
+        // No per-adjustment limit enforced
+        // No daily limit enforced
 
         const user = await User.findByPk(req.params.userId, { transaction: t });
         if (!user) {
@@ -1800,7 +1752,8 @@ exports.updateAppSettings = async (req, res) => {
             maxLoginAttempts,
             lockoutMinutes,
             sessionTimeoutHours,
-            sendClaimVisible
+            sendClaimVisible,
+            storeVisible
         } = req.body;
 
         const updates = [];
@@ -1882,6 +1835,14 @@ exports.updateAppSettings = async (req, res) => {
             await Setting.setValue('send_claim_visible', sendClaimVisible, 'boolean', 'Show Send & Claim section on client pages');
             updates.push('sendClaimVisible');
             logger.info(`Send & Claim visibility ${sendClaimVisible ? 'ENABLED' : 'DISABLED'}`, {
+                admin: req.admin?.username
+            });
+        }
+
+        if (storeVisible !== undefined) {
+            await Setting.setValue('store_visible', storeVisible, 'boolean', 'Show Store link on client pages');
+            updates.push('storeVisible');
+            logger.info(`Store visibility ${storeVisible ? 'ENABLED' : 'DISABLED'}`, {
                 admin: req.admin?.username
             });
         }

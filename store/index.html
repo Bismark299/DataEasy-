@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -9,31 +9,31 @@
     <link rel="stylesheet" href="../assets/css/custom.css">
     <script src="../assets/js/config.js"></script>
     <style>
-        body { background: #0f172a; color: #e2e8f0; }
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; }
-        .card-header { border-bottom: 1px solid #334155; }
-        .stat-card { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #334155; }
-        .btn-primary { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
-        .btn-primary:hover { opacity: 0.9; }
-        .btn-secondary { background: #334155; }
+        body { background: #111827; color: #f3f4f6; }
+        .card { background: #1f2937; border: 1px solid #374151; border-radius: 12px; }
+        .card-header { border-bottom: 1px solid #374151; }
+        .stat-card { background: linear-gradient(135deg, #1f2937, #111827); border: 1px solid #374151; }
+        .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); transition: all 0.2s; }
+        .btn-secondary { background: #374151; }
         .btn-danger { background: #ef4444; }
-        .badge-success { background: #059669; color: white; }
-        .badge-warning { background: #d97706; color: white; }
-        .badge-error { background: #dc2626; color: white; }
-        .badge-info { background: #2563eb; color: white; }
-        .input-field { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; }
-        .input-field:focus { border-color: #3b82f6; outline: none; }
-        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .badge-success { background: #10b981; color: white; }
+        .badge-warning { background: #f59e0b; color: #111; }
+        .badge-error { background: #ef4444; color: white; }
+        .badge-info { background: #6366f1; color: white; }
+        .input-field { background: #111827; border: 1px solid #4b5563; color: #f3f4f6; }
+        .input-field:focus { border-color: #818cf8; outline: none; box-shadow: 0 0 0 2px rgba(129,140,248,0.2); }
+        .tab-active { border-bottom: 2px solid #818cf8; color: #818cf8; }
         .modal-overlay { background: rgba(0,0,0,0.7); }
-        .nav-link { transition: all 0.2s; }
-        .nav-link:hover { background: #334155; }
-        .nav-link.active { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+        .nav-link { transition: all 0.2s; color: #9ca3af; }
+        .nav-link:hover { background: #374151; color: #e5e7eb; }
+        .nav-link.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
     </style>
 </head>
 <body class="min-h-screen">
 
     <!-- Top Navigation -->
-    <nav class="bg-[#1e293b] border-b border-[#334155] sticky top-0 z-40">
+    <nav class="bg-[#1f2937] border-b border-[#374151]">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center gap-4">
@@ -41,7 +41,7 @@
                         <i class="fas fa-arrow-left"></i>
                     </a>
                     <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">S</div>
+                        <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">S</div>
                         <span class="text-white font-bold text-lg">My Store</span>
                     </div>
                 </div>
@@ -56,7 +56,7 @@
     </nav>
 
     <!-- Store Navigation Tabs -->
-    <div class="bg-[#1e293b] border-b border-[#334155]">
+    <div class="bg-[#1f2937]">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex gap-1 overflow-x-auto py-2" id="storeTabs">
                 <button class="nav-link active px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-tab="dashboard">
@@ -86,8 +86,8 @@
         <!-- No Store Setup -->
         <div id="noStoreSection" class="hidden">
             <div class="card p-8 text-center max-w-lg mx-auto">
-                <div class="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-store text-3xl text-blue-400"></i>
+                <div class="w-20 h-20 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-store text-3xl text-indigo-400"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-white mb-2">Create Your Store</h2>
                 <p class="text-gray-400 mb-6">Set up your store to start selling products and earning revenue.</p>
@@ -130,7 +130,7 @@
                 <div class="stat-card p-4 rounded-xl">
                     <div class="flex items-center justify-between mb-2">
                         <span class="text-gray-400 text-xs uppercase tracking-wider">Today's Sales</span>
-                        <i class="fas fa-chart-bar text-blue-400"></i>
+                        <i class="fas fa-chart-bar text-indigo-400"></i>
                     </div>
                     <p class="text-2xl font-bold text-white" id="todaySales">₵0.00</p>
                     <p class="text-xs text-gray-500 mt-1"><span id="todayCount">0</span> orders</p>
@@ -173,34 +173,73 @@
                 </div>
             </div>
 
-            <div class="flex gap-3 mb-4">
-                <button data-action="goto-orders" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
-                    <i class="fas fa-plus mr-1"></i> New Sale
-                </button>
-                <button data-action="goto-payouts" class="btn-secondary px-4 py-2 rounded-lg text-white text-sm">
-                    <i class="fas fa-money-bill-wave mr-1"></i> Request Payout
-                </button>
+            <!-- Recent Orders -->
+            <div class="card mt-6">
+                <div class="card-header p-4 flex flex-wrap items-center justify-between gap-3">
+                    <h3 class="text-white font-bold text-base"><i class="fas fa-shopping-bag mr-2 text-indigo-400"></i>Orders</h3>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Status filter -->
+                        <select id="dashOrderStatus" class="input-field px-3 py-1.5 rounded-lg text-xs">
+                            <option value="">All Status</option>
+                            <option value="sent">Sent</option>
+                            <option value="processing">Processing</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                        <!-- Date filter -->
+                        <input type="date" id="dashOrderDate" class="input-field px-3 py-1.5 rounded-lg text-xs">
+                        <!-- Search by phone -->
+                        <input type="text" id="dashOrderSearch" class="input-field px-3 py-1.5 rounded-lg text-xs w-40" placeholder="Search phone...">
+                        <button data-action="goto-orders" class="text-xs text-indigo-400 hover:text-indigo-300 whitespace-nowrap">View All &rarr;</button>
+                    </div>
+                </div>
+                <!-- Per page & pagination info -->
+                <div class="flex items-center justify-between px-4 py-2 border-b border-[#374151]">
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400 text-xs">Show</span>
+                        <select id="dashPerPage" class="input-field px-2 py-1 rounded text-xs">
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span class="text-gray-400 text-xs">per page</span>
+                    </div>
+                    <span class="text-gray-500 text-xs" id="dashOrderInfo"></span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-[#374151] text-gray-400 text-xs uppercase">
+                                <th class="text-left py-3 px-4">Date</th>
+                                <th class="text-left py-3 px-4">Reference</th>
+                                <th class="text-left py-3 px-4">Phone</th>
+                                <th class="text-left py-3 px-4">Data</th>
+                                <th class="text-left py-3 px-4">Amount</th>
+                                <th class="text-left py-3 px-4">Status</th>
+                                <th class="text-left py-3 px-4">Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashOrdersBody">
+                            <tr><td colspan="7" class="text-center text-gray-500 py-8">Loading orders...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="flex items-center justify-center gap-2 p-4 border-t border-[#374151]" id="dashPagination"></div>
             </div>
         </div>
 
         <!-- DATA PACKAGES TAB -->
         <div id="tab-packages" class="tab-content hidden">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-between mb-6">
                 <div>
                     <h2 class="text-xl font-bold text-white">Data Packages & Pricing</h2>
                     <p class="text-gray-400 text-xs mt-1">Set your selling prices. Customers see your prices, not your cost.</p>
                 </div>
-                <button id="savePricingBtn" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
-                    <i class="fas fa-save mr-1"></i> Save Prices
-                </button>
+
             </div>
-            <div class="flex gap-2 mb-4 overflow-x-auto">
-                <button class="network-filter active px-4 py-1.5 text-sm rounded-full bg-yellow-500 text-black font-semibold" data-network="MTN">MTN</button>
-                <button class="network-filter px-4 py-1.5 text-sm rounded-full bg-[#334155] text-gray-300" data-network="AirtelTigo">AirtelTigo</button>
-                <button class="network-filter px-4 py-1.5 text-sm rounded-full bg-[#334155] text-gray-300" data-network="Telecel">Telecel</button>
-            </div>
-            <div id="packagesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <p class="text-gray-500 col-span-full text-center py-8">Loading packages...</p>
+            <div id="packagesList" class="space-y-6">
+                <p class="text-gray-500 text-center py-8">Loading packages...</p>
             </div>
             <!-- Store link section -->
             <div id="storeLinkSection" class="mt-6 p-4 card border border-dashed border-gray-600 hidden">
@@ -209,11 +248,11 @@
                         <h3 class="text-white font-semibold text-sm"><i class="fas fa-link mr-1"></i> Your Store Link</h3>
                         <p class="text-gray-400 text-xs mt-1">Share with customers so they can buy directly</p>
                     </div>
-                    <button id="copyStoreLinkBtn" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg">
+                    <button id="copyStoreLinkBtn" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg">
                         <i class="fas fa-copy mr-1"></i> Copy Link
                     </button>
                 </div>
-                <p id="storeLinkUrl" class="text-blue-400 text-xs mt-2 break-all"></p>
+                <p id="storeLinkUrl" class="text-indigo-400 text-xs mt-2 break-all"></p>
             </div>
         </div>
 
@@ -226,10 +265,10 @@
                 </button>
             </div>
             <div class="flex gap-2 mb-4 overflow-x-auto">
-                <button class="order-filter active px-3 py-1 text-sm rounded-full bg-blue-600 text-white" data-filter="all">All</button>
-                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#334155] text-gray-300" data-filter="pending">Pending</button>
-                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#334155] text-gray-300" data-filter="paid">Paid</button>
-                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#334155] text-gray-300" data-filter="fulfilled">Fulfilled</button>
+                <button class="order-filter active px-3 py-1 text-sm rounded-full bg-indigo-600 text-white" data-filter="all">All</button>
+                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#374151] text-gray-300" data-filter="pending">Pending</button>
+                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#374151] text-gray-300" data-filter="paid">Paid</button>
+                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#374151] text-gray-300" data-filter="fulfilled">Fulfilled</button>
             </div>
             <div id="ordersList" class="space-y-3">
                 <p class="text-gray-500 text-center py-8">Loading orders...</p>
@@ -284,10 +323,10 @@
 
             <!-- Financial Sub-tabs -->
             <div class="flex gap-2 mb-4 overflow-x-auto">
-                <button class="fin-tab active px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white" data-fin="income">Income Statement</button>
-                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#334155] text-gray-300" data-fin="balance">Balance Sheet</button>
-                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#334155] text-gray-300" data-fin="cashflow">Cash Flow</button>
-                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#334155] text-gray-300" data-fin="ledger">Ledger</button>
+                <button class="fin-tab active px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white" data-fin="income">Income Statement</button>
+                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#374151] text-gray-300" data-fin="balance">Balance Sheet</button>
+                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#374151] text-gray-300" data-fin="cashflow">Cash Flow</button>
+                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#374151] text-gray-300" data-fin="ledger">Ledger</button>
             </div>
 
             <div id="financialContent" class="card p-6">
@@ -317,7 +356,7 @@
                     <label class="text-gray-400 text-sm mb-1 block">Location</label>
                     <input type="text" id="settStoreLoc" class="input-field w-full px-4 py-2 rounded-lg">
                 </div>
-                <h3 class="text-white font-semibold pt-4 border-t border-[#334155]">Payout Details</h3>
+                <h3 class="text-white font-semibold pt-4 border-t border-[#374151]">Payout Details</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="text-gray-400 text-sm mb-1 block">Bank Name</label>
@@ -382,17 +421,17 @@
                     <label class="text-gray-400 text-xs mb-1 block">Select Data Packages</label>
                     <div class="flex gap-2 mb-2">
                         <button type="button" class="order-network-tab active text-xs px-3 py-1 rounded-full bg-yellow-500 text-black font-semibold" data-order-network="MTN">MTN</button>
-                        <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full bg-[#334155] text-gray-300" data-order-network="AirtelTigo">AirtelTigo</button>
-                        <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full bg-[#334155] text-gray-300" data-order-network="Telecel">Telecel</button>
+                        <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full bg-[#374151] text-gray-300" data-order-network="AirtelTigo">AirtelTigo</button>
+                        <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full bg-[#374151] text-gray-300" data-order-network="Telecel">Telecel</button>
                     </div>
                     <div id="orderPackageSelect" class="space-y-2 max-h-48 overflow-y-auto">
                         <p class="text-gray-500 text-sm">Loading packages...</p>
                     </div>
                 </div>
-                <div id="orderItemsSummary" class="hidden bg-[#0f172a] rounded-lg p-3">
+                <div id="orderItemsSummary" class="hidden bg-[#111827] rounded-lg p-3">
                     <p class="text-gray-400 text-xs mb-2">Order Summary</p>
                     <div id="orderItemsList"></div>
-                    <div class="border-t border-[#334155] pt-2 mt-2">
+                    <div class="border-t border-[#374151] pt-2 mt-2">
                         <div class="flex justify-between text-white font-bold">
                             <span>Total:</span>
                             <span id="orderTotal">₵0.00</span>
@@ -420,7 +459,7 @@
                 </button>
             </div>
             <form id="payoutForm" class="space-y-3">
-                <div class="bg-[#0f172a] rounded-lg p-3 mb-2">
+                <div class="bg-[#111827] rounded-lg p-3 mb-2">
                     <p class="text-gray-400 text-xs">Available Balance</p>
                     <p class="text-2xl font-bold text-green-400" id="payoutAvailable">₵0.00</p>
                 </div>
@@ -436,7 +475,7 @@
                         <option value="momo">Mobile Money</option>
                     </select>
                 </div>
-                <div id="payoutDestination" class="bg-[#0f172a] rounded-lg p-3 hidden">
+                <div id="payoutDestination" class="bg-[#111827] rounded-lg p-3 hidden">
                     <p class="text-gray-400 text-xs mb-1">Payout will be sent to:</p>
                     <p class="text-white text-sm font-medium" id="payoutDestText">-</p>
                 </div>

@@ -694,7 +694,7 @@ async function runReconciliation() {
             // Check status with provider
             const statusCheck = await mcbisProvider.checkOrderStatus(tx.internalReference);
             
-            if (statusCheck.status !== 'pending' && statusCheck.status !== 'processing') {
+            if (statusCheck.status !== 'pending' && statusCheck.status !== 'processing' && statusCheck.status !== 'unknown') {
                 report.mismatches.push({
                     type: 'STALE_PENDING',
                     txId: tx.id,

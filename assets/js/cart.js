@@ -54,7 +54,8 @@ const DataEasyCart = (function() {
     // UI settings from server (controls what UI elements are visible)
     let uiSettings = {
         sendClaimVisible: true,
-        momoDetailsVisible: true
+        momoDetailsVisible: true,
+        storeVisible: true
     };
 
     // ==========================================

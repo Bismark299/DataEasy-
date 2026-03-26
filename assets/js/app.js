@@ -2112,6 +2112,18 @@ const DataEasyApp = (function() {
     }
 
     /**
+     * Update Store link visibility based on server settings
+     */
+    function updateStoreVisibility() {
+        const storeLinkEl = document.getElementById('store-sidebar-link');
+        if (storeLinkEl) {
+            const settings = DataEasyCart.getUISettings();
+            const visible = settings.storeVisible !== false;
+            storeLinkEl.style.display = visible ? '' : 'none';
+        }
+    }
+
+    /**
      * Update MoMo payment settings from server
      */
     function updateMomoSettings() {
@@ -2153,6 +2165,7 @@ const DataEasyApp = (function() {
         
         // Apply initial UI settings
         updateSendClaimVisibility();
+        updateStoreVisibility();
         updateMomoSettings();
 
         // Initialize common components
@@ -2171,6 +2184,9 @@ const DataEasyApp = (function() {
             
             // Update Send & Claim visibility based on server settings
             updateSendClaimVisibility();
+            
+            // Update Store visibility based on server settings
+            updateStoreVisibility();
             
             // Update MoMo payment settings
             updateMomoSettings();

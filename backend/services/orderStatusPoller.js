@@ -33,6 +33,10 @@ const INITIAL_DELAY = 3000;          // Wait 3 seconds before first check
  * @param {string} params.displayOrderId - Display order ID (e.g., "0001")
  */
 async function startPolling({ orderId, itemIndex, reference, displayOrderId }) {
+    if (!reference) {
+        logger.error('startPolling called without reference, skipping', { orderId, itemIndex, displayOrderId });
+        return;
+    }
     const pollKey = `${orderId}-${itemIndex}`;
     
     // Don't start duplicate polling
@@ -140,14 +144,18 @@ async function pollLoop(pollKey) {
             activePolls.delete(pollKey);
             return;
 
-        } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'cancelled' || mcbisStatus === 'rejected') {
+        } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'cancelled' || mcbisStatus === 'rejected' || mcbisStatus === 'not_found') {
             // FAILED - Update order and stop polling
+            const failReason = mcbisStatus === 'not_found' 
+                ? 'Order reference not found on provider (404)' 
+                : (statusResult.error || 'Delivery failed by provider');
+            
             await updateOrderItemStatus(
                 pollState.orderId,
                 pollState.itemIndex,
                 'Failed',
                 pollState.reference,
-                statusResult.error || 'Delivery failed by provider'
+                failReason
             );
 
             logger.error('Order delivery failed', {
@@ -155,7 +163,7 @@ async function pollLoop(pollKey) {
                 itemIndex: pollState.itemIndex,
                 reference: pollState.reference,
                 mcbisStatus: mcbisStatus,
-                error: statusResult.error
+                error: failReason
             });
 
             activePolls.delete(pollKey);
@@ -382,9 +390,10 @@ async function syncProcessingOrders() {
                         mcbisStatus === 'delivered' || mcbisStatus === 'successful') {
                         await updateOrderItemStatus(order.id, i, 'Delivered', item.providerReference);
                         logger.info('Background sync: order marked delivered', { orderId: order.orderId, itemIndex: i });
-                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error') {
-                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, 'Failed by provider');
-                        logger.info('Background sync: order marked failed', { orderId: order.orderId, itemIndex: i });
+                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'not_found') {
+                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)' : 'Failed by provider';
+                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, reason);
+                        logger.info('Background sync: order marked failed', { orderId: order.orderId, itemIndex: i, reason });
                     }
 
                     // Small delay between API calls
@@ -472,10 +481,11 @@ async function recoverPendingOrders() {
                         logger.info('Recovery: item delivered (status re-check)', {
                             orderId: order.orderId, itemIndex: i, reference: item.providerReference
                         });
-                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error') {
-                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, 'Failed by provider');
+                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'not_found') {
+                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)' : 'Failed by provider';
+                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, reason);
                         logger.info('Recovery: item failed (status re-check)', {
-                            orderId: order.orderId, itemIndex: i
+                            orderId: order.orderId, itemIndex: i, reason
                         });
                     } else {
                         // Still processing — re-launch poller to keep tracking

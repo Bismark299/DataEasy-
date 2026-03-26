@@ -223,13 +223,23 @@
                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                             </label>
                         </div>
-                        <div class="flex items-center justify-between py-3">
+                        <div class="flex items-center justify-between py-3 border-b border-gray-50">
                             <div>
                                 <label class="font-semibold text-gray-800 text-sm block">Show MoMo Details</label>
                                 <span class="text-xs text-gray-500">Display MoMo payment instructions on client sidebar</span>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="momoDetailsVisible" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between py-3">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Show Store</label>
+                                <span class="text-xs text-gray-500">Display My Store link on client sidebar</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="storeVisible" checked class="sr-only peer">
                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                             </label>
                         </div>
@@ -1062,6 +1072,7 @@
                         document.getElementById('supportPhone').value = s.supportPhone || '+233 20 000 0000';
                         document.getElementById('maintenanceMode').checked = s.maintenanceMode || false;
                         document.getElementById('sendClaimVisible').checked = s.sendClaimVisible !== false;
+                        document.getElementById('storeVisible').checked = s.storeVisible !== false;
                         document.getElementById('momoDetailsVisible').checked = s.momoDetailsVisible !== false;
                         document.getElementById('minDeposit').value = s.minDeposit || 1;
                         document.getElementById('maxDeposit').value = s.maxDeposit || 5000;
@@ -1131,6 +1142,7 @@
                     supportPhone: document.getElementById('supportPhone').value,
                     maintenanceMode: document.getElementById('maintenanceMode').checked,
                     sendClaimVisible: document.getElementById('sendClaimVisible').checked,
+                    storeVisible: document.getElementById('storeVisible').checked,
                     momoDetailsVisible: document.getElementById('momoDetailsVisible').checked,
                     
                     minDeposit: parseFloat(document.getElementById('minDeposit').value),
@@ -1172,6 +1184,7 @@
                         supportPhone: settings.supportPhone,
                         maintenanceMode: settings.maintenanceMode,
                         sendClaimVisible: settings.sendClaimVisible,
+                        storeVisible: settings.storeVisible,
                         momoDetailsVisible: settings.momoDetailsVisible,
                         minDeposit: settings.minDeposit,
                         maxDeposit: settings.maxDeposit,
