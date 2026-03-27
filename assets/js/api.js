@@ -94,11 +94,11 @@ const DataEasyAPI = (function() {
             const data = await response.json();
 
             if (!response.ok) {
-                // Handle token expiration - only clear relevant tokens
+                // Handle token expiration - only logout on explicit auth failures
                 if (response.status === 401) {
-                    // Only clear tokens if this wasn't an admin request
-                    // Admin pages handle their own auth flow
-                    if (!options.adminAuth) {
+                    const errorMsg = (data.error || data.message || '').toLowerCase();
+                    // Only clear session if it's a real auth failure (expired/invalid token)
+                    if (!options.adminAuth && (errorMsg.includes('expired') || errorMsg.includes('invalid') || errorMsg.includes('unauthorized') || errorMsg.includes('no token'))) {
                         localStorage.removeItem('dataeasy_session');
                         localStorage.removeItem('dataeasy_user');
                         if (typeof DataEasyUtils !== 'undefined') {

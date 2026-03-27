@@ -77,7 +77,7 @@ exports.updateProfile = async (req, res) => {
  */
 exports.getUserOrders = async (req, res) => {
     try {
-        const { page = 1, limit = 20, status } = req.query;
+        const { page = 1, limit = 500, status } = req.query;
 
         const where = { userId: req.user.id };
         if (status) {
@@ -88,7 +88,7 @@ exports.getUserOrders = async (req, res) => {
             where,
             order: [['createdAt', 'DESC']],
             offset: (page - 1) * parseInt(limit),
-            limit: parseInt(limit)
+            limit: Math.min(parseInt(limit), 500)
         });
 
         res.json({

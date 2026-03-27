@@ -923,7 +923,7 @@ const DataEasyApp = (function() {
             // Try API first
             if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
                 try {
-                    const response = await DataEasyAPI.Users.getOrders();
+                    const response = await DataEasyAPI.Users.getOrders({ limit: 500 });
                     if (response.success) {
                         allOrders = response.orders.map(order => ({
                             ...order,
@@ -1190,10 +1190,10 @@ const DataEasyApp = (function() {
             
             if (order.items) {
                 order.items.forEach(item => {
-                    const phones = item.phoneNumbers || [];
-                    phones.forEach(phone => {
-                        csv += `${phone},${item.network},${item.package?.data || item.packageName || 'N/A'},${item.package?.price || item.price || 0}\n`;
-                    });
+                    const phone = item.phoneNumber || '';
+                    if (phone) {
+                        csv += `${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0}\n`;
+                    }
                 });
             }
 
@@ -1248,10 +1248,10 @@ const DataEasyApp = (function() {
                     
                     if (order.items && order.items.length > 0) {
                         order.items.forEach(item => {
-                            const phones = item.phoneNumbers || [];
-                            phones.forEach(phone => {
-                                csv += `${order.id},${orderDate},${phone},${item.network},${item.package?.data || item.packageName || 'N/A'},${item.package?.price || item.price || 0},${paymentStatus},${deliveryStatus}\n`;
-                            });
+                            const phone = item.phoneNumber || '';
+                            if (phone) {
+                                csv += `${order.id},${orderDate},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0},${paymentStatus},${deliveryStatus}\n`;
+                            }
                         });
                     } else {
                         csv += `${order.id},${orderDate},-,-,-,${order.total},${paymentStatus},${deliveryStatus}\n`;
@@ -1292,10 +1292,10 @@ const DataEasyApp = (function() {
         
         if (order.items) {
             order.items.forEach(item => {
-                const phones = item.phoneNumbers || [];
-                phones.forEach(phone => {
-                    csv += `${phone},${item.network},${item.package?.data || 'N/A'},${item.package?.price || 0}\n`;
-                });
+                const phone = item.phoneNumber || item.phoneNumbers?.[0] || '';
+                if (phone) {
+                    csv += `${phone},${item.network || order.network || ''},${item.data || item.package?.data || 'N/A'},${item.price || item.package?.price || 0}\n`;
+                }
             });
         }
 
