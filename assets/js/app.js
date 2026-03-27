@@ -919,6 +919,8 @@ const DataEasyApp = (function() {
         let allOrders = [];
         let dateFrom = null;
         let dateTo = null;
+        let currentPage = 1;
+        const ordersPerPage = 20;
 
         // Fetch orders from API or localStorage
         async function fetchOrders() {
@@ -989,10 +991,29 @@ const DataEasyApp = (function() {
                 );
             }
 
-            // Update order count in header
-            const orderCountEl = document.getElementById('orders-count');
-            if (orderCountEl) {
-                orderCountEl.textContent = `Showing ${orders.length} order${orders.length !== 1 ? 's' : ''}`;
+            // Update order count
+            const totalOrders = orders.length;
+            const totalPages = Math.ceil(totalOrders / ordersPerPage);
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+            const startIdx = (currentPage - 1) * ordersPerPage;
+            const paginatedOrders = orders.slice(startIdx, startIdx + ordersPerPage);
+
+            const countText = `Showing ${startIdx + 1}-${Math.min(startIdx + ordersPerPage, totalOrders)} of ${totalOrders} order${totalOrders !== 1 ? 's' : ''}`;
+            document.querySelectorAll('.orders-count, #orders-count').forEach(el => {
+                el.textContent = countText;
+            });
+
+            // Render pagination controls
+            const paginationContainer = document.getElementById('pagination-controls');
+            if (paginationContainer) {
+                if (totalPages <= 1) {
+                    paginationContainer.innerHTML = '';
+                } else {
+                    paginationContainer.innerHTML = `
+                        <button class="pagination-btn px-3 py-1 rounded-lg text-sm transition ${currentPage === 1 ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-white hover:bg-gray-600'}" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                        <button class="pagination-btn px-3 py-1 rounded-lg text-sm transition ${currentPage === totalPages ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-white hover:bg-gray-600'}" data-page="next" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+                    `;
+                }
             }
 
             if (orders.length === 0) {
@@ -1028,7 +1049,7 @@ const DataEasyApp = (function() {
 
             // Render desktop table
             if (ordersTableBody) {
-                ordersTableBody.innerHTML = orders.map(order => {
+                ordersTableBody.innerHTML = paginatedOrders.map(order => {
                     const itemCount = order.items ? order.items.length : 0;
                     const paymentStatus = order.paymentStatus || 'Completed';
                     const deliveryStatus = order.deliveryStatus || 'Processing';
@@ -1087,7 +1108,7 @@ const DataEasyApp = (function() {
 
             // Render mobile cards
             if (mobileOrdersList) {
-                mobileOrdersList.innerHTML = orders.map(order => {
+                mobileOrdersList.innerHTML = paginatedOrders.map(order => {
                     const itemCount = order.items ? order.items.length : 0;
                     const paymentStatus = order.paymentStatus || 'Completed';
                     const deliveryStatus = order.deliveryStatus || 'Processing';
@@ -1145,6 +1166,7 @@ const DataEasyApp = (function() {
         filterTabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 currentFilter = tab.dataset.filter;
+                currentPage = 1;
                 
                 filterTabs.forEach(t => {
                     t.classList.remove('bg-blue-600', 'text-white');
@@ -1181,9 +1203,27 @@ const DataEasyApp = (function() {
                     Toast.error('Please select at least one date');
                     return;
                 }
+                currentPage = 1;
                 renderOrders('date', searchInput?.value || '');
             });
         }
+
+        // Pagination click handler
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.pagination-btn');
+            if (!btn || btn.disabled) return;
+            const page = btn.dataset.page;
+            if (page === 'prev') {
+                currentPage = Math.max(1, currentPage - 1);
+            } else if (page === 'next') {
+                currentPage++;
+            } else {
+                currentPage = parseInt(page);
+            }
+            renderOrders(currentFilter, searchInput?.value || '');
+            // Scroll to top of orders table
+            document.querySelector('.bg-card-bg.rounded-xl.overflow-hidden')?.scrollIntoView({ behavior: 'smooth' });
+        });
 
         // Search form
         if (searchForm) {
@@ -1196,6 +1236,7 @@ const DataEasyApp = (function() {
         // Search input
         if (searchInput) {
             searchInput.addEventListener('input', DataEasyUtils.debounce(() => {
+                currentPage = 1;
                 renderOrders(currentFilter, searchInput.value);
             }, 300));
         }
@@ -1218,6 +1259,14 @@ const DataEasyApp = (function() {
         // ==========================================
         // EXPORT SINGLE ORDER
         // ==========================================
+        function formatExportDate(dateVal) {
+            const d = new Date(dateVal);
+            const day = d.getDate();
+            const month = d.toLocaleString('en-US', { month: 'long' });
+            const year = d.getFullYear();
+            const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+            return `${day} ${month}, ${year} - ${time}`;
+        }
         function exportSingleOrder(orderId) {
             const order = allOrders.find(o => o.id === orderId);
             
@@ -1227,14 +1276,14 @@ const DataEasyApp = (function() {
             }
 
             // Build CSV content
-            const orderDateTime = new Date(order.createdAt).toLocaleString();
+            const orderDateTime = formatExportDate(order.createdAt);
             let csv = 'Date/Time,Phone Number,Network,Package,Amount\n';
             
             if (order.items) {
                 order.items.forEach(item => {
                     const phone = item.phoneNumber || '';
                     if (phone) {
-                        csv += `"${orderDateTime}",${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0}\n`;
+                        csv += `${orderDateTime},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0}\n`;
                     }
                 });
             }
@@ -1316,7 +1365,7 @@ const DataEasyApp = (function() {
                 let csv = 'Date/Time,Order ID,Phone Number,Network,Package,Amount,Payment Status,Delivery Status\n';
                 
                 exportOrders.forEach(order => {
-                    const orderDate = new Date(order.createdAt).toLocaleString();
+                    const orderDate = formatExportDate(order.createdAt);
                     const paymentStatus = order.paymentStatus || 'Completed';
                     const deliveryStatus = order.deliveryStatus || 'Processing';
                     
@@ -1324,11 +1373,11 @@ const DataEasyApp = (function() {
                         order.items.forEach(item => {
                             const phone = item.phoneNumber || '';
                             if (phone) {
-                                csv += `"${orderDate}",${order.id},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0},${paymentStatus},${deliveryStatus}\n`;
+                                csv += `${orderDate},${order.id},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0},${paymentStatus},${deliveryStatus}\n`;
                             }
                         });
                     } else {
-                        csv += `"${orderDate}",${order.id},-,-,-,${order.total},${paymentStatus},${deliveryStatus}\n`;
+                        csv += `${orderDate},${order.id},-,-,-,${order.total},${paymentStatus},${deliveryStatus}\n`;
                     }
                 });
 
@@ -1363,14 +1412,14 @@ const DataEasyApp = (function() {
         }
 
         // Build CSV content
-        const orderDateTime = new Date(order.createdAt).toLocaleString();
+        const orderDateTime = formatExportDate(order.createdAt);
         let csv = 'Date/Time,Phone Number,Network,Package,Amount\n';
         
         if (order.items) {
             order.items.forEach(item => {
                 const phone = item.phoneNumber || item.phoneNumbers?.[0] || '';
                 if (phone) {
-                    csv += `"${orderDateTime}",${phone},${item.network || order.network || ''},${item.data || item.package?.data || 'N/A'},${item.price || item.package?.price || 0}\n`;
+                    csv += `${orderDateTime},${phone},${item.network || order.network || ''},${item.data || item.package?.data || 'N/A'},${item.price || item.package?.price || 0}\n`;
                 }
             });
         }
@@ -1625,7 +1674,7 @@ const DataEasyApp = (function() {
     function exportOrderDetails(order) {
         if (!order || !order.items) return;
 
-        const orderDateTime = new Date(order.createdAt || Date.now()).toLocaleString();
+        const orderDateTime = formatExportDate(order.createdAt || Date.now());
         let csv = 'Date/Time,Phone Number,Data Size,Price\n';
         
         order.items.forEach(item => {
@@ -1637,11 +1686,11 @@ const DataEasyApp = (function() {
             
             if (phones.length > 0) {
                 phones.forEach(phone => {
-                    csv += `"${orderDateTime}",${phone},${dataSize},${itemPrice.toFixed(2)}\n`;
+                    csv += `${orderDateTime},${phone},${dataSize},${itemPrice.toFixed(2)}\n`;
                 });
             } else {
                 for (let i = 0; i < (item.quantity || 1); i++) {
-                    csv += `"${orderDateTime}",N/A,${dataSize},${itemPrice.toFixed(2)}\n`;
+                    csv += `${orderDateTime},N/A,${dataSize},${itemPrice.toFixed(2)}\n`;
                 }
             }
         });
