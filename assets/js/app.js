@@ -1265,7 +1265,7 @@ const DataEasyApp = (function() {
             const month = d.toLocaleString('en-US', { month: 'long' });
             const year = d.getFullYear();
             const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
-            return `${day} ${month}, ${year} - ${time}`;
+            return `${day} ${month} ${year} - ${time}`;
         }
         function exportSingleOrder(orderId) {
             const order = allOrders.find(o => o.id === orderId);
