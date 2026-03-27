@@ -917,6 +917,8 @@ const DataEasyApp = (function() {
 
         let currentFilter = 'all';
         let allOrders = [];
+        let dateFrom = null;
+        let dateTo = null;
 
         // Fetch orders from API or localStorage
         async function fetchOrders() {
@@ -963,6 +965,17 @@ const DataEasyApp = (function() {
                 orders = orders.filter(o => new Date(o.createdAt).toDateString() === today);
             } else if (filter === 'yesterday') {
                 orders = orders.filter(o => new Date(o.createdAt).toDateString() === yesterday);
+            } else if (filter === 'date' && (dateFrom || dateTo)) {
+                if (dateFrom) {
+                    const from = new Date(dateFrom);
+                    from.setHours(0, 0, 0, 0);
+                    orders = orders.filter(o => new Date(o.createdAt) >= from);
+                }
+                if (dateTo) {
+                    const to = new Date(dateTo);
+                    to.setHours(23, 59, 59, 999);
+                    orders = orders.filter(o => new Date(o.createdAt) <= to);
+                }
             }
 
             // Apply search
@@ -1139,10 +1152,38 @@ const DataEasyApp = (function() {
                 });
                 tab.classList.remove('text-gray-400');
                 tab.classList.add('bg-blue-600', 'text-white');
+
+                // Show/hide date picker row
+                const dateRow = document.getElementById('date-filter-row');
+                if (dateRow) {
+                    if (currentFilter === 'date') {
+                        dateRow.classList.remove('hidden');
+                    } else {
+                        dateRow.classList.add('hidden');
+                    }
+                }
                 
-                renderOrders(currentFilter, searchInput?.value || '');
+                if (currentFilter !== 'date') {
+                    renderOrders(currentFilter, searchInput?.value || '');
+                }
             });
         });
+
+        // Date filter apply
+        const applyDateBtn = document.getElementById('apply-date-filter');
+        if (applyDateBtn) {
+            applyDateBtn.addEventListener('click', () => {
+                const fromInput = document.getElementById('filter-date-from');
+                const toInput = document.getElementById('filter-date-to');
+                dateFrom = fromInput?.value || null;
+                dateTo = toInput?.value || null;
+                if (!dateFrom && !dateTo) {
+                    Toast.error('Please select at least one date');
+                    return;
+                }
+                renderOrders('date', searchInput?.value || '');
+            });
+        }
 
         // Search form
         if (searchForm) {
@@ -1186,13 +1227,14 @@ const DataEasyApp = (function() {
             }
 
             // Build CSV content
-            let csv = 'Phone Number,Network,Package,Amount\n';
+            const orderDateTime = new Date(order.createdAt).toLocaleString();
+            let csv = 'Date/Time,Phone Number,Network,Package,Amount\n';
             
             if (order.items) {
                 order.items.forEach(item => {
                     const phone = item.phoneNumber || '';
                     if (phone) {
-                        csv += `${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0}\n`;
+                        csv += `${orderDateTime},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0}\n`;
                     }
                 });
             }
@@ -1224,24 +1266,56 @@ const DataEasyApp = (function() {
         });
 
         // ==========================================
-        // EXPORT ALL ORDERS (Today's Orders)
+        // EXPORT ALL ORDERS (Filtered Orders)
         // ==========================================
         const exportAllBtn = document.getElementById('export-all-orders-btn');
         if (exportAllBtn) {
             exportAllBtn.addEventListener('click', () => {
-                // Filter to today's orders only
-                const today = new Date().toDateString();
-                const todayOrders = allOrders.filter(o => new Date(o.createdAt).toDateString() === today);
+                // Get currently filtered orders
+                let exportOrders = [...allOrders];
+                exportOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-                if (todayOrders.length === 0) {
-                    Toast.error('No orders to export for today');
+                const today = new Date().toDateString();
+                const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+                if (currentFilter === 'today') {
+                    exportOrders = exportOrders.filter(o => new Date(o.createdAt).toDateString() === today);
+                } else if (currentFilter === 'yesterday') {
+                    exportOrders = exportOrders.filter(o => new Date(o.createdAt).toDateString() === yesterday);
+                } else if (currentFilter === 'date' && (dateFrom || dateTo)) {
+                    if (dateFrom) {
+                        const from = new Date(dateFrom);
+                        from.setHours(0, 0, 0, 0);
+                        exportOrders = exportOrders.filter(o => new Date(o.createdAt) >= from);
+                    }
+                    if (dateTo) {
+                        const to = new Date(dateTo);
+                        to.setHours(23, 59, 59, 999);
+                        exportOrders = exportOrders.filter(o => new Date(o.createdAt) <= to);
+                    }
+                }
+
+                // Apply search filter too
+                const searchVal = searchInput?.value || '';
+                if (searchVal) {
+                    const searchLower = searchVal.toLowerCase();
+                    exportOrders = exportOrders.filter(o =>
+                        o.id.toLowerCase().includes(searchLower) ||
+                        (o.items && o.items.some(item =>
+                            (item.phoneNumber || '').includes(searchVal)
+                        ))
+                    );
+                }
+
+                if (exportOrders.length === 0) {
+                    Toast.error('No orders to export for the selected filter');
                     return;
                 }
 
                 // Build CSV content with all orders
-                let csv = 'Order ID,Date,Phone Number,Network,Package,Amount,Payment Status,Delivery Status\n';
+                let csv = 'Date/Time,Order ID,Phone Number,Network,Package,Amount,Payment Status,Delivery Status\n';
                 
-                todayOrders.forEach(order => {
+                exportOrders.forEach(order => {
                     const orderDate = new Date(order.createdAt).toLocaleString();
                     const paymentStatus = order.paymentStatus || 'Completed';
                     const deliveryStatus = order.deliveryStatus || 'Processing';
@@ -1250,11 +1324,11 @@ const DataEasyApp = (function() {
                         order.items.forEach(item => {
                             const phone = item.phoneNumber || '';
                             if (phone) {
-                                csv += `${order.id},${orderDate},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0},${paymentStatus},${deliveryStatus}\n`;
+                                csv += `${orderDate},${order.id},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0},${paymentStatus},${deliveryStatus}\n`;
                             }
                         });
                     } else {
-                        csv += `${order.id},${orderDate},-,-,-,${order.total},${paymentStatus},${deliveryStatus}\n`;
+                        csv += `${orderDate},${order.id},-,-,-,${order.total},${paymentStatus},${deliveryStatus}\n`;
                     }
                 });
 
@@ -1264,13 +1338,14 @@ const DataEasyApp = (function() {
                 const a = document.createElement('a');
                 a.href = url;
                 const dateStr = new Date().toISOString().split('T')[0];
-                a.download = `orders-${dateStr}.csv`;
+                const filterLabel = currentFilter === 'date' ? `${dateFrom || 'start'}_to_${dateTo || 'end'}` : currentFilter;
+                a.download = `orders-${filterLabel}-${dateStr}.csv`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
 
-                Toast.success(`Exported ${todayOrders.length} order(s) successfully`);
+                Toast.success(`Exported ${exportOrders.length} order(s) successfully`);
             });
         }
     }
@@ -1288,13 +1363,14 @@ const DataEasyApp = (function() {
         }
 
         // Build CSV content
-        let csv = 'Phone Number,Network,Package,Amount\n';
+        const orderDateTime = new Date(order.createdAt).toLocaleString();
+        let csv = 'Date/Time,Phone Number,Network,Package,Amount\n';
         
         if (order.items) {
             order.items.forEach(item => {
                 const phone = item.phoneNumber || item.phoneNumbers?.[0] || '';
                 if (phone) {
-                    csv += `${phone},${item.network || order.network || ''},${item.data || item.package?.data || 'N/A'},${item.price || item.package?.price || 0}\n`;
+                    csv += `${orderDateTime},${phone},${item.network || order.network || ''},${item.data || item.package?.data || 'N/A'},${item.price || item.package?.price || 0}\n`;
                 }
             });
         }
@@ -1549,7 +1625,8 @@ const DataEasyApp = (function() {
     function exportOrderDetails(order) {
         if (!order || !order.items) return;
 
-        let csv = 'Phone Number,Data Size,Price\n';
+        const orderDateTime = new Date(order.createdAt || Date.now()).toLocaleString();
+        let csv = 'Date/Time,Phone Number,Data Size,Price\n';
         
         order.items.forEach(item => {
             // Handle both API format (item.data) and localStorage format (item.package.data)
@@ -1560,11 +1637,11 @@ const DataEasyApp = (function() {
             
             if (phones.length > 0) {
                 phones.forEach(phone => {
-                    csv += `${phone},${dataSize},${itemPrice.toFixed(2)}\n`;
+                    csv += `${orderDateTime},${phone},${dataSize},${itemPrice.toFixed(2)}\n`;
                 });
             } else {
                 for (let i = 0; i < (item.quantity || 1); i++) {
-                    csv += `N/A,${dataSize},${itemPrice.toFixed(2)}\n`;
+                    csv += `${orderDateTime},N/A,${dataSize},${itemPrice.toFixed(2)}\n`;
                 }
             }
         });
