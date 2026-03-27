@@ -1234,7 +1234,7 @@ const DataEasyApp = (function() {
                 order.items.forEach(item => {
                     const phone = item.phoneNumber || '';
                     if (phone) {
-                        csv += `${orderDateTime},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0}\n`;
+                        csv += `"${orderDateTime}",${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0}\n`;
                     }
                 });
             }
@@ -1324,11 +1324,11 @@ const DataEasyApp = (function() {
                         order.items.forEach(item => {
                             const phone = item.phoneNumber || '';
                             if (phone) {
-                                csv += `${orderDate},${order.id},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0},${paymentStatus},${deliveryStatus}\n`;
+                                csv += `"${orderDate}",${order.id},${phone},${item.network || order.network || ''},${item.data || item.packageName || 'N/A'},${item.price || 0},${paymentStatus},${deliveryStatus}\n`;
                             }
                         });
                     } else {
-                        csv += `${orderDate},${order.id},-,-,-,${order.total},${paymentStatus},${deliveryStatus}\n`;
+                        csv += `"${orderDate}",${order.id},-,-,-,${order.total},${paymentStatus},${deliveryStatus}\n`;
                     }
                 });
 
@@ -1370,7 +1370,7 @@ const DataEasyApp = (function() {
             order.items.forEach(item => {
                 const phone = item.phoneNumber || item.phoneNumbers?.[0] || '';
                 if (phone) {
-                    csv += `${orderDateTime},${phone},${item.network || order.network || ''},${item.data || item.package?.data || 'N/A'},${item.price || item.package?.price || 0}\n`;
+                    csv += `"${orderDateTime}",${phone},${item.network || order.network || ''},${item.data || item.package?.data || 'N/A'},${item.price || item.package?.price || 0}\n`;
                 }
             });
         }
@@ -1637,11 +1637,11 @@ const DataEasyApp = (function() {
             
             if (phones.length > 0) {
                 phones.forEach(phone => {
-                    csv += `${orderDateTime},${phone},${dataSize},${itemPrice.toFixed(2)}\n`;
+                    csv += `"${orderDateTime}",${phone},${dataSize},${itemPrice.toFixed(2)}\n`;
                 });
             } else {
                 for (let i = 0; i < (item.quantity || 1); i++) {
-                    csv += `${orderDateTime},N/A,${dataSize},${itemPrice.toFixed(2)}\n`;
+                    csv += `"${orderDateTime}",N/A,${dataSize},${itemPrice.toFixed(2)}\n`;
                 }
             }
         });
