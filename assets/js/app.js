@@ -923,19 +923,35 @@ const DataEasyApp = (function() {
         const ordersPerPage = 20;
 
         // Fetch orders from API or localStorage
-        async function fetchOrders() {
+        async function fetchOrders(params = {}) {
             // Try API first
             if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
                 try {
-                    const response = await DataEasyAPI.Users.getOrders({ limit: 500 });
-                    if (response.success) {
-                        allOrders = response.orders.map(order => ({
-                            ...order,
-                            id: order.orderId,
-                            createdAt: order.createdAt
-                        }));
-                        return;
+                    let page = 1;
+                    const perPage = 1000;
+                    let fetched = [];
+                    let hasMore = true;
+
+                    while (hasMore) {
+                        const response = await DataEasyAPI.Users.getOrders({ limit: perPage, page, ...params });
+                        if (response.success && response.orders.length > 0) {
+                            fetched = fetched.concat(response.orders.map(order => ({
+                                ...order,
+                                id: order.orderId,
+                                createdAt: order.createdAt
+                            })));
+                            if (response.pagination && page < response.pagination.pages) {
+                                page++;
+                            } else {
+                                hasMore = false;
+                            }
+                        } else {
+                            hasMore = false;
+                        }
                     }
+
+                    allOrders = fetched;
+                    return;
                 } catch (e) {
                     console.log('API failed, using localStorage');
                 }
@@ -949,8 +965,28 @@ const DataEasyApp = (function() {
             }
         }
 
-        // Initial fetch
-        await fetchOrders();
+        // Build server-side date params based on current filter
+        function getDateParams(filter) {
+            const params = {};
+            if (filter === 'today') {
+                params.dateFrom = new Date().toISOString().split('T')[0];
+                params.dateTo = params.dateFrom;
+            } else if (filter === 'yesterday') {
+                const y = new Date(Date.now() - 86400000);
+                params.dateFrom = y.toISOString().split('T')[0];
+                params.dateTo = params.dateFrom;
+            } else if (filter === 'date') {
+                if (dateFrom) params.dateFrom = dateFrom;
+                if (dateTo) params.dateTo = dateTo;
+            }
+            // 'all' = no date params, fetch everything
+            return params;
+        }
+
+        // Initial fetch (default: last 30 days to keep it fast)
+        const defaultFrom = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+        await fetchOrders({ dateFrom: defaultFrom });
+        currentFilter = 'all';
 
         // Render orders
         function renderOrders(filter = 'all', search = '') {
@@ -1164,7 +1200,7 @@ const DataEasyApp = (function() {
 
         // Filter tabs
         filterTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
+            tab.addEventListener('click', async () => {
                 currentFilter = tab.dataset.filter;
                 currentPage = 1;
                 
@@ -1186,6 +1222,12 @@ const DataEasyApp = (function() {
                 }
                 
                 if (currentFilter !== 'date') {
+                    const params = getDateParams(currentFilter);
+                    // For 'all', default to last 30 days
+                    if (currentFilter === 'all' && !params.dateFrom) {
+                        params.dateFrom = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+                    }
+                    await fetchOrders(params);
                     renderOrders(currentFilter, searchInput?.value || '');
                 }
             });
@@ -1194,7 +1236,7 @@ const DataEasyApp = (function() {
         // Date filter apply
         const applyDateBtn = document.getElementById('apply-date-filter');
         if (applyDateBtn) {
-            applyDateBtn.addEventListener('click', () => {
+            applyDateBtn.addEventListener('click', async () => {
                 const fromInput = document.getElementById('filter-date-from');
                 const toInput = document.getElementById('filter-date-to');
                 dateFrom = fromInput?.value || null;
@@ -1204,6 +1246,7 @@ const DataEasyApp = (function() {
                     return;
                 }
                 currentPage = 1;
+                await fetchOrders(getDateParams('date'));
                 renderOrders('date', searchInput?.value || '');
             });
         }
@@ -1250,7 +1293,11 @@ const DataEasyApp = (function() {
         
         if (hasActiveOrders()) {
             const refreshInterval = setInterval(async () => {
-                await fetchOrders();
+                const params = getDateParams(currentFilter);
+                if (currentFilter === 'all' && !params.dateFrom) {
+                    params.dateFrom = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+                }
+                await fetchOrders(params);
                 renderOrders(currentFilter, searchInput?.value || '');
                 if (!hasActiveOrders()) clearInterval(refreshInterval);
             }, 15000);

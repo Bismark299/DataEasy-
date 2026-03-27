@@ -77,18 +77,32 @@ exports.updateProfile = async (req, res) => {
  */
 exports.getUserOrders = async (req, res) => {
     try {
-        const { page = 1, limit = 500, status } = req.query;
+        const { page = 1, limit = 200, status, dateFrom, dateTo } = req.query;
+        const parsedLimit = Math.min(parseInt(limit), 2000);
 
         const where = { userId: req.user.id };
         if (status) {
             where.deliveryStatus = status;
         }
 
+        // Server-side date filtering
+        if (dateFrom || dateTo) {
+            where.createdAt = {};
+            if (dateFrom) {
+                where.createdAt[Op.gte] = new Date(dateFrom);
+            }
+            if (dateTo) {
+                const to = new Date(dateTo);
+                to.setHours(23, 59, 59, 999);
+                where.createdAt[Op.lte] = to;
+            }
+        }
+
         const { count, rows: orders } = await Order.findAndCountAll({
             where,
             order: [['createdAt', 'DESC']],
-            offset: (page - 1) * parseInt(limit),
-            limit: Math.min(parseInt(limit), 500)
+            offset: (parseInt(page) - 1) * parsedLimit,
+            limit: parsedLimit
         });
 
         res.json({
@@ -96,9 +110,9 @@ exports.getUserOrders = async (req, res) => {
             orders,
             pagination: {
                 page: parseInt(page),
-                limit: parseInt(limit),
+                limit: parsedLimit,
                 total: count,
-                pages: Math.ceil(count / limit)
+                pages: Math.ceil(count / parsedLimit)
             }
         });
     } catch (error) {
