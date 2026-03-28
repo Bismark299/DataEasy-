@@ -561,7 +561,6 @@
                     return;
                 }
             } catch (error) {
-                console.error('Error loading header stats from API:', error);
             }
             
             // Fallback: calculate manually if API fails
@@ -613,7 +612,6 @@
                 document.getElementById('headerTotalSold').textContent = `₵ ${totalSold.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 document.getElementById('headerProfit').textContent = `₵ ${totalProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             } catch (error) {
-                console.error('Error loading header stats:', error);
                 document.getElementById('headerTotalSold').textContent = '₵ --';
                 document.getElementById('headerProfit').textContent = '₵ --';
             }
@@ -1020,7 +1018,6 @@
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
-                    console.error('Error retrying item:', error);
                     showToast('error', 'Error', error.message || 'Failed to retry item');
                     loadOrders();
                 }
@@ -1035,7 +1032,6 @@
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
-                    console.error('Error completing item:', error);
                     showToast('error', 'Error', error.message || 'Failed to complete item');
                 }
             });
@@ -1068,7 +1064,6 @@
                             });
                             showToast('success', 'Success', `Item cancelled. Refunded GH₵${itemAmount.toFixed(2)} to customer`);
                         } catch (refundError) {
-                            console.error('Refund failed:', refundError);
                             showToast('warning', 'Partial Success', `Item cancelled but refund failed. Please manually refund GH₵${itemAmount.toFixed(2)}`);
                         }
                     } else {
@@ -1078,7 +1073,6 @@
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
-                    console.error('Error cancelling item:', error);
                     showToast('error', 'Error', error.message || 'Failed to cancel item');
                 }
             });
@@ -1092,7 +1086,6 @@
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
-                    console.error('Error retrying order:', error);
                     showToast('error', 'Error', error.message || 'Failed to retry order');
                 }
             });
@@ -1128,7 +1121,6 @@
                     showToast('error', 'Sync Failed', data.error || 'Failed to sync with MCBIS');
                 }
             } catch (error) {
-                console.error('Sync error:', error);
                 showToast('error', 'Error', 'Failed to sync with MCBIS');
             } finally {
                 syncBtn.disabled = false;
@@ -1264,7 +1256,6 @@
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
-                    console.error('Error completing order:', error);
                     showToast('error', 'Error', error.message || 'Failed to complete order');
                 }
             });
@@ -1279,7 +1270,6 @@
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
-                    console.error('Error cancelling order:', error);
                     showToast('error', 'Error', error.message || 'Failed to cancel order');
                 }
             });
@@ -1296,7 +1286,6 @@
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
-                    console.error('Error in bulk complete:', error);
                     showToast('error', 'Error', 'Some orders failed to complete');
                 }
             });
@@ -1313,7 +1302,6 @@
                     closeModal('confirmModal');
                     loadOrders();
                 } catch (error) {
-                    console.error('Error in bulk cancel:', error);
                     showToast('error', 'Error', 'Some orders failed to cancel');
                 }
             });

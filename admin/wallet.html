@@ -610,7 +610,6 @@
                     return;
                 }
             } catch (error) {
-                console.error('Error loading header stats:', error);
                 document.getElementById('headerTotalSold').textContent = '₵ --';
                 document.getElementById('headerProfit').textContent = '₵ --';
             }
@@ -1077,7 +1076,6 @@
                 loadDealerWallets();
                 loadTransactions();
             } catch (error) {
-                console.error('Error funding wallet:', error);
                 showToast('error', 'Error', error.message || 'Failed to fund wallet');
             }
         }
@@ -1104,7 +1102,6 @@
                 loadDealerWallets();
                 loadTransactions();
             } catch (error) {
-                console.error('Error debiting wallet:', error);
                 showToast('error', 'Error', error.message || 'Failed to debit wallet');
             }
         }

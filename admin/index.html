@@ -773,7 +773,6 @@
                     showToast('error', 'Sync Failed', data.error || 'Failed to sync with MCBIS');
                 }
             } catch (error) {
-                console.error('Sync error:', error);
                 showToast('error', 'Error', 'Failed to sync with MCBIS');
             } finally {
                 syncBtn.disabled = false;
@@ -789,7 +788,6 @@
                     loadOrders()
                 ]);
             } catch (error) {
-                console.error('Error loading dashboard:', error);
                 showToast('error', 'Error', 'Failed to load dashboard data');
             } finally {
                 document.getElementById('loadingOverlay').classList.add('hidden');
@@ -812,7 +810,6 @@
                     });
                 }
             } catch (error) {
-                console.error('Error loading packages:', error);
             }
         }
 
@@ -877,7 +874,6 @@
                     document.getElementById('dateFilter').value = ghanaDate;
                 }
             } catch (error) {
-                console.error('Error loading stats:', error);
             }
         }
 
@@ -893,7 +889,6 @@
                 filterOrders();
 
             } catch (error) {
-                console.error('Error loading orders:', error);
                 document.getElementById('ordersTableBody').innerHTML = `
                     <tr>
                         <td colspan="11" class="px-4 py-8 text-center text-gray-400">
@@ -1108,12 +1103,10 @@
                         showToast('warning', 'Partial', `${result.failed} items failed to update`);
                     }
                 } catch (err) {
-                    console.error('Bulk update failed:', err);
                     showToast('error', 'Error', 'Failed to update item statuses');
                 }
             } catch (err) {
                 showToast('error', 'Error', 'Failed to copy to clipboard');
-                console.error('Copy failed:', err);
             }
         }
 
@@ -1585,7 +1578,6 @@
                     await loadOrders();
                 }
             } catch (error) {
-                console.error('Match complete error:', error);
                 showToast('error', 'Error', 'Failed to complete orders');
             } finally {
                 btn.disabled = false;
@@ -1629,7 +1621,6 @@
                     await DataEasyAPI.admin.updateItemStatus(item.orderId, item.itemIndex, 'Delivered');
                     successCount++;
                 } catch (error) {
-                    console.error(`Error completing item:`, error);
                 }
             }
             
@@ -1674,7 +1665,6 @@
                     await DataEasyAPI.admin.updateItemStatus(item.orderId, item.itemIndex, 'Failed');
                     successCount++;
                 } catch (error) {
-                    console.error(`Error cancelling item:`, error);
                 }
             }
             
@@ -1787,7 +1777,6 @@
                 showToast('success', 'Success', 'Item is being retried');
                 loadOrders();
             } catch (error) {
-                console.error('Error retrying item:', error);
                 showToast('error', 'Error', error.message || 'Failed to retry item');
             }
         }
@@ -1806,7 +1795,6 @@
                 showToast('success', 'Success', 'Item marked as delivered');
                 loadOrders();
             } catch (error) {
-                console.error('Error completing item:', error);
                 showToast('error', 'Error', error.message || 'Failed to complete item');
             }
         }
@@ -1825,7 +1813,6 @@
                 showToast('success', 'Success', 'Item cancelled and refunded');
                 loadOrders();
             } catch (error) {
-                console.error('Error cancelling item:', error);
                 showToast('error', 'Error', error.message || 'Failed to cancel item');
             }
         }

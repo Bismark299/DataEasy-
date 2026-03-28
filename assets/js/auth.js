@@ -30,7 +30,6 @@ const DataEasyAuth = (function() {
             try {
                 const available = await DataEasyAPI.isBackendAvailable();
                 useAPI = available;
-                console.log(useAPI ? '✅ Using API backend' : '⚠️ Using localStorage fallback');
             } catch (e) {
                 useAPI = false;
             }
@@ -149,8 +148,7 @@ const DataEasyAuth = (function() {
                         return { success: true, isAdmin: true, admin: adminResponse };
                     }
                 } catch (e) {
-                    // Not admin or admin login failed, continue to user login
-                    console.log('Admin login failed, trying user login...');
+                    // Not admin, continue to user login
                 }
             }
 
@@ -290,7 +288,7 @@ const DataEasyAuth = (function() {
                     return currentUser;
                 }
             } catch (e) {
-                console.log('Failed to get user from API');
+                // Fall back to localStorage
             }
         }
         
@@ -716,8 +714,6 @@ const DataEasyAuth = (function() {
 
         // Update UI
         updateAuthUI();
-
-        console.log('✅ DataEasy Auth initialized');
     }
 
     // Auto-init

@@ -90,17 +90,14 @@ const DataEasyCart = (function() {
             const currentRole = getCurrentUserRole();
             const cachedRole = data.userRole || 'guest';
             if (currentRole !== cachedRole) {
-                console.log(`✓ User role changed (${cachedRole} → ${currentRole}), will fetch fresh prices`);
                 localStorage.removeItem(PACKAGES_CACHE_KEY);
                 return null;
             }
             
             // Return cached data if still fresh
             if (age < PACKAGES_CACHE_TTL) {
-                console.log(`✓ Using cached packages (${Math.round(age/1000)}s old, role: ${cachedRole})`);
                 return data;
             }
-            console.log('✓ Package cache expired, will fetch fresh');
             return null;
         } catch (e) {
             return null;
@@ -123,7 +120,6 @@ const DataEasyCart = (function() {
      */
     function clearPackagesCache() {
         localStorage.removeItem(PACKAGES_CACHE_KEY);
-        console.log('✓ Packages cache cleared');
     }
 
     // ==========================================
@@ -205,7 +201,6 @@ const DataEasyCart = (function() {
         // Check if packages have been loaded from API
         if (!packagesLoaded) {
             if (!silent) Toast.error('Packages not loaded. Please wait or refresh the page.');
-            console.error('Cannot add item: packages not loaded from API');
             return false;
         }
         
@@ -218,7 +213,6 @@ const DataEasyCart = (function() {
         // Verify package has a valid price from database
         if (typeof pkg.price !== 'number' || pkg.price <= 0) {
             if (!silent) Toast.error('Invalid package price. Please refresh the page.');
-            console.error('Invalid price for package:', packageId, pkg.price);
             return false;
         }
 
@@ -761,7 +755,6 @@ const DataEasyCart = (function() {
     // ==========================================
     function init() {
         loadCart();
-        console.log('✅ DataEasy Cart initialized');
     }
 
     // Auto-init
@@ -838,18 +831,15 @@ const DataEasyCart = (function() {
                     // Update network availability from server
                     if (data.networkAvailability) {
                         networkAvailability = { ...networkAvailability, ...data.networkAvailability };
-                        console.log('✓ Network availability loaded:', networkAvailability);
                     }
                     
                     // Update UI settings from server
                     if (data.uiSettings) {
                         uiSettings = { ...uiSettings, ...data.uiSettings };
-                        console.log('✓ UI settings loaded:', uiSettings);
                     }
                     
                     packagesLoaded = true;
                     packagesLoadError = null;
-                    console.log('✓ Packages synced from API (database prices, role:', data.userRole || 'guest', ')');
                     
                     // Cache the result
                     setCachedPackages({ packages: data.packages, networkAvailability, uiSettings, userRole: data.userRole });
@@ -895,18 +885,15 @@ const DataEasyCart = (function() {
                 // Update network availability from server
                 if (data.networkAvailability) {
                     networkAvailability = { ...networkAvailability, ...data.networkAvailability };
-                    console.log('✓ Network availability loaded:', networkAvailability);
                 }
                 
                 // Update UI settings from server
                 if (data.uiSettings) {
                     uiSettings = { ...uiSettings, ...data.uiSettings };
-                    console.log('✓ UI settings loaded:', uiSettings);
                 }
                 
                 packagesLoaded = true;
                 packagesLoadError = null;
-                console.log('✓ Packages synced from API (database prices)');
                 
                 // Emit event for UI refresh (includes network availability and UI settings)
                 EventBus.emit('packages:loaded', { packages, networkAvailability, uiSettings });
@@ -916,7 +903,6 @@ const DataEasyCart = (function() {
             }
         } catch (error) {
             packagesLoadError = error.message;
-            console.error('✗ Failed to load packages from API:', error.message);
             // DO NOT fall back to static data - fail closed
             // Packages remain empty, preventing orders with unknown prices
             Toast.error('Unable to load packages. Please refresh the page.');

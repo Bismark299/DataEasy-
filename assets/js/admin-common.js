@@ -205,10 +205,8 @@ const AdminCommon = (function() {
                 if (headerMcbisBalance) {
                     headerMcbisBalance.textContent = errorText;
                 }
-                console.warn('MCBIS Balance Error:', response.message);
             }
         } catch (error) {
-            console.error('MCBIS Balance Error:', error);
             const headerMcbisBalance = document.getElementById('headerMcbisBalance');
             if (headerMcbisBalance) {
                 headerMcbisBalance.textContent = '₵ --';
@@ -288,7 +286,7 @@ const AdminCommon = (function() {
             }
 
         } catch (error) {
-            console.error('Error loading header stats:', error);
+            // Stats load failed silently
         }
     }
 
@@ -904,5 +902,3 @@ window.showAlert = AdminCommon.showAlert;
 window.showToast = AdminCommon.showToast;
 window.debounce = AdminCommon.debounce;
 window.getStatusBadge = AdminCommon.getStatusBadge;
-
-console.log('✅ Admin Common utilities loaded');

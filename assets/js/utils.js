@@ -15,7 +15,6 @@ const DataEasyUtils = (function() {
                 localStorage.setItem(`dataeasy_${key}`, JSON.stringify(value));
                 return true;
             } catch (e) {
-                console.error('Storage set error:', e);
                 return false;
             }
         },
@@ -25,7 +24,6 @@ const DataEasyUtils = (function() {
                 const item = localStorage.getItem(`dataeasy_${key}`);
                 return item ? JSON.parse(item) : defaultValue;
             } catch (e) {
-                console.error('Storage get error:', e);
                 return defaultValue;
             }
         },
@@ -35,7 +33,6 @@ const DataEasyUtils = (function() {
                 localStorage.removeItem(`dataeasy_${key}`);
                 return true;
             } catch (e) {
-                console.error('Storage remove error:', e);
                 return false;
             }
         },
@@ -47,7 +44,6 @@ const DataEasyUtils = (function() {
                     .forEach(key => localStorage.removeItem(key));
                 return true;
             } catch (e) {
-                console.error('Storage clear error:', e);
                 return false;
             }
         }
@@ -471,7 +467,6 @@ const DataEasyUtils = (function() {
 
             // Wait for config to load
             if (window.PAYSTACK_CONFIG_PROMISE) {
-                console.log('⏳ Waiting for Paystack config...');
                 await window.PAYSTACK_CONFIG_PROMISE;
             }
 
@@ -482,13 +477,10 @@ const DataEasyUtils = (function() {
             
             // Check if key is configured
             if (!this.publicKey || !this.publicKey.startsWith('pk_')) {
-                console.error('❌ Paystack key not configured:', this.publicKey);
                 Toast.error('Payment system not configured. Please contact support.');
                 return;
             }
             
-            console.log('🔑 Using Paystack key:', this.publicKey.substring(0, 15) + '...');
-
             const handler = PaystackPop.setup({
                 key: this.publicKey,
                 email: email,
@@ -544,7 +536,6 @@ const DataEasyUtils = (function() {
     // ==========================================
     function init() {
         Toast.init();
-        console.log('✅ DataEasy Utils initialized');
     }
 
     // Auto-init when DOM ready

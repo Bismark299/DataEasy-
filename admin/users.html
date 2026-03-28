@@ -596,7 +596,6 @@
                     return;
                 }
             } catch (error) {
-                console.error('Error loading header stats:', error);
                 document.getElementById('headerTotalSold').textContent = '₵ --';
                 document.getElementById('headerProfit').textContent = '₵ --';
             }
@@ -861,7 +860,6 @@
                         buttonText: 'Got it'
                     });
                 } catch (error) {
-                    console.error('Error resetting password:', error);
                     showToast('error', 'Error', error.message || 'Failed to reset password');
                 }
             }
@@ -968,7 +966,6 @@
                 closeModal('userModal');
                 loadUsers();
             } catch (error) {
-                console.error('Error saving user:', error);
                 showToast('error', 'Error', error.message || 'Failed to save user');
             }
         }
@@ -1016,7 +1013,6 @@
                 closeModal('fundWalletModal');
                 loadUsers();
             } catch (error) {
-                console.error('Error adjusting wallet:', error);
                 showToast('error', 'Error', error.message || 'Failed to adjust wallet');
             }
         }
@@ -1038,7 +1034,6 @@
                 closeModal('deleteConfirmModal');
                 loadUsers();
             } catch (error) {
-                console.error('Error deleting user:', error);
                 showToast('error', 'Error', error.message || 'Failed to delete user');
             }
         }

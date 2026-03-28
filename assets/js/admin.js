@@ -38,7 +38,6 @@
             try {
                 const available = await DataEasyAPI.isBackendAvailable();
                 useAPI = available && DataEasyAPI.Auth.isAdminAuthenticated();
-                console.log(useAPI ? '✅ Admin using API backend' : '⚠️ Admin using localStorage fallback');
             } catch (e) {
                 useAPI = false;
             }
@@ -126,7 +125,7 @@
                     }));
                 }
             } catch (e) {
-                console.log('API error, falling back to localStorage');
+                // Fall back to localStorage
             }
         }
 
@@ -174,7 +173,7 @@
                     }));
                 }
             } catch (e) {
-                console.log('API error, falling back to localStorage');
+                // Fall back to localStorage
             }
         }
 
@@ -205,7 +204,7 @@
                     }));
                 }
             } catch (e) {
-                console.log('API error, falling back to localStorage');
+                // Fall back to localStorage
             }
         }
 
@@ -324,7 +323,7 @@
                     };
                 }
             } catch (e) {
-                console.log('API error, falling back to localStorage');
+                // Fall back to localStorage
             }
         }
 
@@ -1019,7 +1018,6 @@
             });
         } else {
             // Fallback for pages without admin-common.js
-            console.log(message);
         }
     }
 

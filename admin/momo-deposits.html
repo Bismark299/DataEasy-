@@ -430,7 +430,6 @@
                 updatePagination();
                 updateStats();
             } catch (error) {
-                console.error('Error loading deposits:', error);
                 document.getElementById('depositsTable').innerHTML = `
                     <tr>
                         <td colspan="8" class="px-4 py-12 text-center text-red-500">
@@ -580,7 +579,6 @@
                         </div>
                     `).join('') || '<p class="text-gray-400 p-3 text-center">No users found</p>';
                 } catch (error) {
-                    console.error('Search error:', error);
                 }
             }, 300);
         });
@@ -630,7 +628,6 @@
                     showToast(`Error: ${data.error || 'Failed to credit deposit'}`, 'error');
                 }
             } catch (error) {
-                console.error('Credit error:', error);
                 showToast('Failed to credit deposit. Please try again.', 'error');
             } finally {
                 btn.disabled = false;

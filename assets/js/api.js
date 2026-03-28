@@ -111,7 +111,6 @@ const DataEasyAPI = (function() {
 
             return data;
         } catch (error) {
-            console.error('API Error:', error);
             throw error;
         }
     }
@@ -670,39 +669,30 @@ const DataEasyAPI = (function() {
         async openPopup(email, amount, onSuccess, onClose) {
             // Wait for config to load if not ready
             if (window.PAYSTACK_CONFIG_PROMISE) {
-                console.log('⏳ Waiting for Paystack config to load...');
                 await window.PAYSTACK_CONFIG_PROMISE;
             }
             
             // Check if Paystack is configured
             if (!window.PAYSTACK_CONFIGURED) {
-                console.error('❌ Paystack is not configured on the server');
                 throw new Error('Payment system not configured. Admin needs to set PAYSTACK_PUBLIC_KEY in Render environment variables.');
             }
             
             // Check if Paystack key exists
             if (!this.publicKey) {
-                console.error('❌ Paystack public key is empty');
                 throw new Error('Payment system not configured. Please contact support.');
             }
             
             // Validate key format
             if (!this.publicKey.startsWith('pk_')) {
-                console.error('❌ Invalid Paystack key format:', this.publicKey.substring(0, 10));
                 throw new Error('Invalid payment configuration. Please contact support.');
             }
             
-            console.log('🔑 Using Paystack key:', this.publicKey.substring(0, 15) + '...');
-            
             if (typeof PaystackPop === 'undefined') {
-                console.error('❌ PaystackPop not loaded. Check if https://js.paystack.co/v1/inline.js is loaded.');
                 throw new Error('Payment system not available. Please refresh the page.');
             }
 
             // First create transaction record on backend to get reference and fee info
-            console.log('🔄 Initializing topup for amount:', amount);
             const initResponse = await Wallet.initializeTopup(amount);
-            console.log('📝 Init response:', initResponse);
             
             if (!initResponse.success) {
                 throw new Error(initResponse.error || 'Failed to initialize payment');
@@ -712,14 +702,6 @@ const DataEasyAPI = (function() {
             // Use totalAmount (with fee) for Paystack, user receives baseAmount
             const amountToPay = initResponse.totalAmount || initResponse.baseAmount || amount;
             const feeAmount = initResponse.feeAmount || 0;
-            
-            console.log('📝 Backend reference:', backendReference);
-            console.log('💰 Amount breakdown:', {
-                userWillReceive: initResponse.baseAmount,
-                feeAmount: feeAmount,
-                totalToPay: amountToPay,
-                amountInPesewas: Math.round(amountToPay * 100)
-            });
 
             const handler = PaystackPop.setup({
                 key: this.publicKey,
@@ -728,24 +710,18 @@ const DataEasyAPI = (function() {
                 currency: 'GHS',
                 ref: backendReference,
                 callback: function(response) {
-                    console.log('💳 Paystack callback received:', response);
-                    // Verify payment on backend (handle async inside sync callback)
+                    // Verify payment on backend
                     Wallet.verifyTopup(backendReference)
                         .then(function(verification) {
-                            console.log('✅ Verification result:', verification);
                             if (onSuccess) onSuccess(verification);
                         })
                         .catch(function(error) {
-                            console.error('❌ Payment verification failed:', error);
                             if (onSuccess) onSuccess({ success: false, error: error.message });
                         });
                 },
                 onClose: function() {
-                    console.log('🚪 Paystack popup closed');
                     // Cancel the pending transaction since user didn't complete payment
-                    Wallet.cancelTopup(backendReference)
-                        .then(() => console.log('✅ Pending transaction cancelled'))
-                        .catch(err => console.error('❌ Failed to cancel pending transaction:', err));
+                    Wallet.cancelTopup(backendReference).catch(() => {});
                     if (onClose) onClose();
                 }
             });
