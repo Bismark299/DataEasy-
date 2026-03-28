@@ -1121,7 +1121,7 @@
             const dateFilter = document.getElementById('dateFilter').value;
             const orderNoFilter = document.getElementById('orderNoFilter').value.toLowerCase();
             const agentCodeFilter = document.getElementById('agentCodeFilter').value.toLowerCase();
-            const phoneFilter = document.getElementById('phoneFilter').value;
+            const phoneFilter = document.getElementById('phoneFilter').value.replace(/\D/g, '');
             const networkFilter = document.getElementById('networkFilter').value;
             const statusFilter = document.getElementById('statusFilter').value;
             const paymentFilter = document.getElementById('paymentFilter').value;
@@ -1130,17 +1130,14 @@
                 const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
                 const orderId = (order.orderId || order.id || '').toString().toLowerCase();
                 const agentCode = (order.user?.agentCode || '').toLowerCase();
-                const phone = (order.items?.[0]?.phone || order.items?.[0]?.phoneNumber || order.recipientNumber || '').replace(/\D/g, '');
                 const network = order.network || '';
                 const status = (order.deliveryStatus || order.status || 'Pending').toLowerCase();
-                // Map 'delivered' to 'completed' for filter matching
                 const normalizedStatus = status === 'delivered' ? 'completed' : status;
                 const paymentStatus = (order.paymentStatus || 'Completed').toLowerCase();
 
                 if (dateFilter && orderDate !== dateFilter) return false;
                 if (orderNoFilter && !orderId.includes(orderNoFilter)) return false;
                 if (agentCodeFilter && !agentCode.includes(agentCodeFilter)) return false;
-                if (phoneFilter && !phone.includes(phoneFilter.replace(/\D/g, ''))) return false;
                 if (networkFilter && network !== networkFilter) return false;
                 if (statusFilter && normalizedStatus !== statusFilter) return false;
                 if (paymentFilter && paymentStatus !== paymentFilter) return false;
@@ -1149,27 +1146,25 @@
             });
 
             currentPage = 1;
-            calculateStats(); // Calculate stats based on filtered orders
-            renderOrdersTable();
+            calculateStats();
+            renderOrdersTable(phoneFilter);
         }
 
-        function renderOrdersTable() {
+        function renderOrdersTable(phoneFilter) {
             const tbody = document.getElementById('ordersTableBody');
             const mobileCards = document.getElementById('mobileOrderCards');
             
-            // Expand orders into individual items - each item becomes a row (same logic as orders)
+            // Expand orders into individual items - each item becomes a row
             let expandedItems = [];
             filteredOrders.forEach(order => {
                 const items = order.items || [];
                 if (items.length === 0) {
-                    // Order with no items - show as single row
                     expandedItems.push({
                         ...order,
                         itemData: null,
                         itemIndex: 0
                     });
                 } else {
-                    // Each item becomes its own row
                     items.forEach((item, index) => {
                         expandedItems.push({
                             ...order,
@@ -1179,6 +1174,14 @@
                     });
                 }
             });
+
+            // If phone filter is active, only show items whose phoneNumber matches
+            if (phoneFilter) {
+                expandedItems = expandedItems.filter(row => {
+                    const itemPhone = (row.itemData?.phoneNumber || row.itemData?.phone || '').replace(/\D/g, '');
+                    return itemPhone.includes(phoneFilter);
+                });
+            }
             
             const start = (currentPage - 1) * ordersPerPage;
             const end = start + ordersPerPage;

@@ -75,7 +75,6 @@ const DataEasyCart = (function() {
                 }
             }
         } catch (e) { /* ignore */ }
-            console.error(e);
         return 'guest'; // Default for non-logged in users
     }
     

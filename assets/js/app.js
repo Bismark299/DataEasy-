@@ -1021,8 +1021,10 @@ const DataEasyApp = (function() {
             }
 
             // Apply search
+            let searchFilter = '';
             if (search) {
                 const searchLower = search.toLowerCase();
+                searchFilter = search;
                 orders = orders.filter(o => 
                     o.id.toLowerCase().includes(searchLower) ||
                     (o.items && o.items.some(item => 
@@ -1077,8 +1079,20 @@ const DataEasyApp = (function() {
                 return rows;
             }
 
-            // Flatten ALL filtered orders, then paginate the flat rows
-            const allRows = flattenOrders(orders);
+            // Flatten ALL filtered orders, then filter by phone at item level
+            let allRows = flattenOrders(orders);
+
+            // If searching by phone number, only show the matching rows (not the whole order)
+            if (searchFilter) {
+                const sf = searchFilter.toLowerCase();
+                allRows = allRows.filter(row =>
+                    (row.phone || '').includes(searchFilter) ||
+                    (row.orderId || '').toLowerCase().includes(sf) ||
+                    (row.network || '').toLowerCase().includes(sf) ||
+                    (row.package || '').toLowerCase().includes(sf)
+                );
+            }
+
             const totalRows = allRows.length;
             const totalPages = Math.ceil(totalRows / ordersPerPage);
             if (currentPage > totalPages) currentPage = totalPages || 1;

@@ -752,8 +752,20 @@
 
         async function loadOrders() {
             try {
-                const response = await DataEasyAPI.admin.getOrders({ limit: 1000 });
-                allOrders = response.orders || response || [];
+                let allFetched = [];
+                let page = 1;
+                let hasMore = true;
+                while (hasMore) {
+                    const response = await DataEasyAPI.admin.getOrders({ limit: 1000, page });
+                    const orders = response.orders || [];
+                    allFetched = allFetched.concat(orders);
+                    if (response.pagination && page < response.pagination.pages) {
+                        page++;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+                allOrders = allFetched;
                 filterOrders();
             } catch (error) {
                 console.error(error);
@@ -814,7 +826,7 @@
 
         function filterOrders() {
             const orderNo = document.getElementById('orderNoFilter').value.toLowerCase();
-            const phone = document.getElementById('phoneFilter').value.toLowerCase();
+            const phone = document.getElementById('phoneFilter').value.replace(/\D/g, '');
             const dateFrom = document.getElementById('dateFromFilter').value;
             const dateTo = document.getElementById('dateToFilter').value;
             const network = document.getElementById('networkFilter').value;
@@ -822,17 +834,11 @@
             const payment = document.getElementById('paymentFilter').value;
             const agent = document.getElementById('agentFilter').value;
 
+            // First: filter at order level (everything except phone)
             let filtered = allOrders.filter(order => {
-                const items = order.items || [];
-                const firstItem = items[0] || {};
-
                 if (orderNo) {
                     const orderIdMatch = String(order.orderId || order.id).toLowerCase().includes(orderNo);
                     if (!orderIdMatch) return false;
-                }
-                if (phone) {
-                    const phoneMatch = (firstItem.phone || order.recipientNumber || '').includes(phone);
-                    if (!phoneMatch) return false;
                 }
                 if (dateFrom || dateTo) {
                     const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
@@ -841,7 +847,6 @@
                 }
                 if (network && (order.network || '').toLowerCase() !== network.toLowerCase()) return false;
                 const orderStatus = (order.deliveryStatus || order.status || 'pending').toLowerCase();
-                // Map 'delivered' to 'completed' for filter matching
                 const normalizedStatus = orderStatus === 'delivered' ? 'completed' : orderStatus;
                 if (status && normalizedStatus !== status) return false;
                 const paymentStatus = (order.paymentStatus || 'completed').toLowerCase();
@@ -850,9 +855,15 @@
                 return true;
             });
 
-            // Update stats to reflect filtered orders
+            // Update stats based on order-level filter
             updateStats(filtered);
-            renderOrders(filtered);
+
+            // Second: if phone filter is active, filter at item level (only show matching items)
+            if (phone) {
+                renderOrders(filtered, phone);
+            } else {
+                renderOrders(filtered);
+            }
         }
 
         function filterByNetwork(network) {
@@ -860,7 +871,7 @@
             filterOrders();
         }
 
-        function renderOrders(orders) {
+        function renderOrders(orders, phoneFilter) {
             const tbody = document.getElementById('ordersTableBody');
             const perPage = 50;
             
@@ -869,14 +880,12 @@
             orders.forEach(order => {
                 const items = order.items || [];
                 if (items.length === 0) {
-                    // Order with no items - show as single row
                     expandedItems.push({
                         ...order,
                         itemData: null,
                         itemIndex: 0
                     });
                 } else {
-                    // Each item becomes its own row
                     items.forEach((item, index) => {
                         expandedItems.push({
                             ...order,
@@ -886,6 +895,14 @@
                     });
                 }
             });
+
+            // If phone filter is active, only show items whose phoneNumber matches
+            if (phoneFilter) {
+                expandedItems = expandedItems.filter(row => {
+                    const itemPhone = (row.itemData?.phoneNumber || row.itemData?.phone || '').replace(/\D/g, '');
+                    return itemPhone.includes(phoneFilter);
+                });
+            }
             
             const start = (currentPage - 1) * perPage;
             const end = start + perPage;
@@ -1144,22 +1161,84 @@
                 return;
             }
 
-            const headers = ['Order ID', 'Date', 'Agent', 'Recipient', 'Network', 'Data', 'Amount', 'Payment Status', 'Order Status'];
-            const rows = allOrders.map(order => {
-                const items = order.items || [];
-                const firstItem = items[0] || {};
-                return [
-                    order.orderId || order.id,
-                    new Date(order.createdAt).toLocaleString(),
-                    order.user?.fullName || 'N/A',
-                    firstItem.phone || order.recipientNumber || 'N/A',
-                    order.network || 'N/A',
-                    firstItem.packageName || 'N/A',
-                    parseFloat(order.total || 0).toFixed(2),
-                    order.paymentStatus || 'completed',
-                    order.deliveryStatus || order.status || 'pending'
-                ];
+            // Apply current filters to export only what's visible
+            const phoneFilter = document.getElementById('phoneFilter').value.replace(/\D/g, '');
+            const orderNo = document.getElementById('orderNoFilter').value.toLowerCase();
+            const dateFrom = document.getElementById('dateFromFilter').value;
+            const dateTo = document.getElementById('dateToFilter').value;
+            const network = document.getElementById('networkFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const payment = document.getElementById('paymentFilter').value;
+            const agent = document.getElementById('agentFilter').value;
+
+            let filtered = allOrders.filter(order => {
+                if (orderNo && !String(order.orderId || order.id).toLowerCase().includes(orderNo)) return false;
+                if (dateFrom || dateTo) {
+                    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+                    if (dateFrom && orderDate < dateFrom) return false;
+                    if (dateTo && orderDate > dateTo) return false;
+                }
+                if (network && (order.network || '').toLowerCase() !== network.toLowerCase()) return false;
+                const orderStatus = (order.deliveryStatus || order.status || 'pending').toLowerCase();
+                const normalizedStatus = orderStatus === 'delivered' ? 'completed' : orderStatus;
+                if (status && normalizedStatus !== status) return false;
+                const paymentStatus = (order.paymentStatus || 'completed').toLowerCase();
+                if (payment && paymentStatus !== payment) return false;
+                if (agent && String(order.userId) !== agent) return false;
+                return true;
             });
+
+            function getNetwork(item, order) {
+                if (order.network) return order.network;
+                const pid = (item.packageId || '').toLowerCase();
+                if (pid.startsWith('mtn')) return 'MTN';
+                if (pid.startsWith('at') || pid.startsWith('airteltigo')) return 'AirtelTigo';
+                if (pid.startsWith('tc') || pid.startsWith('telecel')) return 'Telecel';
+                return 'N/A';
+            }
+
+            function csvSafe(val) {
+                const s = String(val || '');
+                if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+                    return '"' + s.replace(/"/g, '""') + '"';
+                }
+                return s;
+            }
+
+            const headers = ['Date', 'Order ID', 'Agent', 'Recipient', 'Network', 'Data', 'Amount', 'Payment', 'Order Status'];
+            const rows = [];
+
+            filtered.forEach(order => {
+                const items = order.items || [];
+                if (items.length === 0) items.push({});
+
+                items.forEach(item => {
+                    const recipient = item.phoneNumber || 'N/A';
+
+                    // Skip if phone filter is active and doesn't match
+                    if (phoneFilter) {
+                        const itemPhone = (recipient).replace(/\D/g, '');
+                        if (!itemPhone.includes(phoneFilter)) return;
+                    }
+
+                    rows.push([
+                        csvSafe(new Date(order.createdAt).toLocaleString()),
+                        csvSafe(order.orderId || order.id),
+                        csvSafe(order.user?.fullName || order.user?.name || 'N/A'),
+                        csvSafe(recipient),
+                        csvSafe(getNetwork(item, order)),
+                        csvSafe(item.packageName || item.data || 'N/A'),
+                        parseFloat(item.price || order.total || 0).toFixed(2),
+                        csvSafe(order.paymentStatus || 'completed'),
+                        csvSafe(item.deliveryStatus || order.deliveryStatus || order.status || 'pending')
+                    ]);
+                });
+            });
+
+            if (rows.length === 0) {
+                showToast('warning', 'Warning', 'No orders match current filters');
+                return;
+            }
 
             const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1168,7 +1247,7 @@
             link.download = `orders_${new Date().toISOString().split('T')[0]}.csv`;
             link.click();
 
-            showToast('success', 'Success', `Exported ${allOrders.length} orders`);
+            showToast('success', 'Success', `Exported ${rows.length} orders`);
         }
 
         function toggleOrderSelection(orderId) {
