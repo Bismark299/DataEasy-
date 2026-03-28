@@ -857,7 +857,7 @@ const DataEasyApp = (function() {
                         });
                     }
                 } catch (e) {
-                    console.log('Could not fetch today transactions');
+                    // Silently handle today transactions fetch failure
                 }
             } catch (e) {
                 // Fallback to localStorage
@@ -953,7 +953,7 @@ const DataEasyApp = (function() {
                     allOrders = fetched;
                     return;
                 } catch (e) {
-                    console.log('API failed, using localStorage');
+                    // Fall back to localStorage
                 }
             }
             
@@ -1545,7 +1545,7 @@ const DataEasyApp = (function() {
                     order.id = order.orderId;  // Normalize id field
                 }
             } catch (e) {
-                console.log('API failed, trying localStorage');
+                // Fall back to localStorage
             }
         }
 
@@ -1868,7 +1868,6 @@ const DataEasyApp = (function() {
 
             return deliveryStatus;
         } catch (e) {
-            console.error('Failed to fetch delivery status:', e);
             if (!silent) {
                 if (loadingEl) loadingEl.classList.add('hidden');
                 if (resultEl) {
@@ -1953,7 +1952,6 @@ const DataEasyApp = (function() {
                     amount,
                     async (verification) => {
                         DOM.setLoading(button, false);
-                        console.log('Payment verification result:', verification);
                         if (verification && verification.success) {
                             Toast.success(`GH₵${amount.toFixed(2)} added to wallet successfully!`);
                             amountInput.value = '';
@@ -1970,7 +1968,6 @@ const DataEasyApp = (function() {
                 );
                 return;
             } catch (error) {
-                console.error('API payment error:', error);
                 Toast.error(error.message || 'Payment failed');
                 DOM.setLoading(button, false);
             }
@@ -2081,7 +2078,7 @@ const DataEasyApp = (function() {
                     }));
                 }
             } catch (e) {
-                console.log('API failed, using localStorage');
+                // Fall back to localStorage
             }
         }
 
@@ -2518,8 +2515,6 @@ const DataEasyApp = (function() {
                 if (backdrop) backdrop.classList.add('hidden');
             }
         });
-
-        console.log('✅ DataEasy App initialized');
     }
 
     // Auto-init

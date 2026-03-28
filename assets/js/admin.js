@@ -12,9 +12,8 @@
     // ==========================================
     // ADMIN CONFIGURATION
     // ==========================================
-    const ADMIN_CREDENTIALS = [
-        { username: 'admin', password: 'admin123', name: 'Administrator', role: 'admin' }
-    ];
+    // Admin auth is handled by the backend API - no hardcoded credentials
+    const ADMIN_CREDENTIALS = [];
 
     let useAPI = false; // Will be set based on backend availability
 

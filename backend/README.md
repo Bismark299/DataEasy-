@@ -25,13 +25,13 @@ PORT=5000
 MONGODB_URI=mongodb://localhost:27017/dataeasy
 JWT_SECRET=your-super-secret-jwt-key-change-this
 
-# Paystack Keys
-PAYSTACK_SECRET_KEY=sk_test_your_secret_key
-PAYSTACK_PUBLIC_KEY=pk_test_fa6266bd089971ce550966de52efe3add069fe55
+# Paystack Keys (get from https://dashboard.paystack.com/settings/developer)
+PAYSTACK_SECRET_KEY=sk_test_your_secret_key_here
+PAYSTACK_PUBLIC_KEY=pk_test_your_public_key_here
 
-# Admin Credentials
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
+# Admin Credentials (CHANGE THESE)
+ADMIN_USERNAME=your_admin_username
+ADMIN_PASSWORD=your_strong_password_here
 ```
 
 ### 3. Start MongoDB

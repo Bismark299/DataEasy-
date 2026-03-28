@@ -335,7 +335,7 @@
                     document.getElementById('headerProfit').textContent = `₵ ${(stats.profitToday || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
                 }
             } catch (error) {
-                console.error('Error loading header stats:', error);
+                // Stats load failed silently
             }
         }
 
@@ -487,7 +487,6 @@
                         }
                     } else {
                         hasMore = false;
-                        console.error('Failed to load orders:', ordersRes.status);
                     }
                 }
 
@@ -507,11 +506,9 @@
                     const users = usersData.users || [];
                     updateAgentsReport(users);
                 } else {
-                    console.error('Failed to load users:', usersRes.status);
                     showEmptyState('agents-table-body', 5, 'Failed to load agents. Please try again.');
                 }
             } catch (error) {
-                console.error('Error loading reports:', error);
                 showEmptyState('sales-table-body', 6, 'Error loading data. Please refresh.');
                 showEmptyState('agents-table-body', 5, 'Error loading data. Please refresh.');
             } finally {

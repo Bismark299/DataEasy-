@@ -32,29 +32,19 @@
             return res.json();
         })
         .then(data => {
-            console.log('📦 Config response:', data);
             if (data.success && data.config.paystackPublicKey) {
                 window.PAYSTACK_PUBLIC_KEY = data.config.paystackPublicKey;
                 window.PAYSTACK_CONFIG_LOADED = true;
                 window.PAYSTACK_CONFIGURED = data.config.paystackConfigured !== false;
-                console.log('✅ Paystack key loaded:', window.PAYSTACK_PUBLIC_KEY.substring(0, 15) + '...');
             } else {
-                console.error('❌ Paystack key not configured in backend. Set PAYSTACK_PUBLIC_KEY environment variable in Render.');
                 window.PAYSTACK_CONFIG_LOADED = true;
                 window.PAYSTACK_CONFIGURED = false;
             }
             return true;
         })
         .catch(err => {
-            console.error('❌ Could not fetch config:', err.message);
             window.PAYSTACK_CONFIG_LOADED = true;
             window.PAYSTACK_CONFIGURED = false;
             return false;
         });
-
-    // Log configuration
-    console.log('🔧 Config:', {
-        environment: isProduction ? 'production' : 'development',
-        apiBaseUrl: window.API_BASE_URL
-    });
 })();
