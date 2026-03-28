@@ -39,6 +39,7 @@
                 const available = await DataEasyAPI.isBackendAvailable();
                 useAPI = available && DataEasyAPI.Auth.isAdminAuthenticated();
             } catch (e) {
+                console.error(e);
                 useAPI = false;
             }
         }
@@ -63,6 +64,7 @@
             try {
                 return JSON.parse(adminData);
             } catch (e) {
+                console.error(e);
                 return null;
             }
         }
@@ -125,6 +127,7 @@
                     }));
                 }
             } catch (e) {
+                console.error(e);
                 // Fall back to localStorage
             }
         }
@@ -173,6 +176,7 @@
                     }));
                 }
             } catch (e) {
+                console.error(e);
                 // Fall back to localStorage
             }
         }
@@ -204,6 +208,7 @@
                     }));
                 }
             } catch (e) {
+                console.error(e);
                 // Fall back to localStorage
             }
         }
@@ -241,6 +246,7 @@
                     return true;
                 }
             } catch (e) {
+                console.error(e);
                 Toast.error(e.message || 'Failed to adjust wallet');
                 return false;
             }
@@ -267,6 +273,7 @@
                     return true;
                 }
             } catch (e) {
+                console.error(e);
                 Toast.error(e.message || 'Failed to update order');
                 return false;
             }
@@ -323,6 +330,7 @@
                     };
                 }
             } catch (e) {
+                console.error(e);
                 // Fall back to localStorage
             }
         }

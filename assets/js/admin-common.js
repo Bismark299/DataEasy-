@@ -207,6 +207,7 @@ const AdminCommon = (function() {
                 }
             }
         } catch (error) {
+            console.error(error);
             const headerMcbisBalance = document.getElementById('headerMcbisBalance');
             if (headerMcbisBalance) {
                 headerMcbisBalance.textContent = '₵ --';
@@ -286,6 +287,7 @@ const AdminCommon = (function() {
             }
 
         } catch (error) {
+            console.error(error);
             // Stats load failed silently
         }
     }

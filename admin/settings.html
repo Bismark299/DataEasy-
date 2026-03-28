@@ -915,6 +915,7 @@
                     return;
                 }
             } catch (error) {
+                console.error(error);
                 document.getElementById('headerTotalSold').textContent = '₵ --';
                 document.getElementById('headerProfit').textContent = '₵ --';
             }
@@ -974,6 +975,7 @@
                     showToast('error', 'Error', response.error || 'Failed to save network availability');
                 }
             } catch (apiError) {
+                console.error(apiError);
                 showToast('error', 'Error', 'Failed to save to server. Settings saved locally.');
             }
         }
@@ -988,6 +990,7 @@
                     return;
                 }
             } catch (error) {
+                console.error(error);
             }
             
             // Fallback to localStorage
@@ -1080,6 +1083,7 @@
                         document.getElementById('momoName').value = s.momoName || 'Bismark Kwame Oteng';
                     }
                 } catch (appError) {
+                    console.error(appError);
                     // Fallback to localStorage
                     const settings = JSON.parse(localStorage.getItem('dataeasy_settings') || '{}');
                     if (settings.appName) document.getElementById('appName').value = settings.appName;
@@ -1105,6 +1109,7 @@
                         document.getElementById('topup_fee_percentage').value = feeResponse.settings.feePercentage || 2;
                     }
                 } catch (feeError) {
+                    console.error(feeError);
                     // Fallback to local
                     document.getElementById('topup_fees_enabled').checked = settings.topup_fees_enabled !== false;
                     if (settings.topup_fee_percentage !== undefined) {
@@ -1122,6 +1127,7 @@
                 
                 document.getElementById('requireOTP').checked = settings.requireOTP || false;
             } catch (error) {
+                console.error(error);
             }
         }
 
@@ -1189,6 +1195,7 @@
                         momoName: settings.momoName
                     });
                 } catch (appError) {
+                    console.error(appError);
                 }
                 
                 // Save fee settings to server
@@ -1198,10 +1205,12 @@
                         topup_fee_percentage: settings.topup_fee_percentage
                     });
                 } catch (feeError) {
+                    console.error(feeError);
                 }
 
                 showToast('success', 'Success', 'Settings saved successfully');
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', 'Failed to save settings');
             } finally {
                 document.getElementById('loadingOverlay').classList.add('hidden');
@@ -1266,6 +1275,7 @@
                 document.getElementById('newPassword').value = '';
                 document.getElementById('confirmPassword').value = '';
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to change password');
             }
         }
@@ -1331,6 +1341,7 @@
                     showToast('error', 'Connection Failed', response.message || 'Could not connect to MCBIS API');
                 }
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Connection Error', error.message || 'Failed to connect to MCBIS API');
             }
         }
@@ -1379,6 +1390,7 @@
                     showToast('error', 'Failed', response.message || 'Could not fetch balance');
                 }
             } catch (error) {
+                console.error(error);
                 const errorText = '₵ Error';
                 if (document.getElementById('headerMcbisBalance')) {
                     document.getElementById('headerMcbisBalance').textContent = errorText;
@@ -1401,6 +1413,7 @@
                 // In a full implementation, this would loop through pending orders and check their status
                 showToast('success', '🔄 Sync Complete', 'Order status sync completed. No pending orders to update.');
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Sync Error', error.message || 'Failed to sync orders');
             }
         }
@@ -1481,6 +1494,7 @@
                     return;
                 }
             } catch (error) {
+                console.error(error);
             }
             
             // Fallback to localStorage
@@ -1547,6 +1561,7 @@
                 if (response.success) {
                 }
             } catch (error) {
+                console.error(error);
             }
         }
 
@@ -1561,6 +1576,7 @@
                     updateCircuitBreakerUI(response.circuitBreaker);
                 }
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', 'Failed to fetch circuit breaker status');
             }
         }
@@ -1620,6 +1636,7 @@
                     showToast('error', 'Error', response.error || 'Failed to reset circuit breaker');
                 }
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to reset circuit breaker');
             }
         }
@@ -1662,6 +1679,7 @@
                     showToast('error', 'Error', response.error || 'Failed to execute emergency stop');
                 }
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to execute emergency stop');
             }
         }
@@ -1688,6 +1706,7 @@
                     showToast('error', 'Error', response.error || 'Reconciliation failed');
                 }
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Reconciliation failed');
             }
         }
@@ -1714,6 +1733,7 @@
                     }
                 }
             } catch (error) {
+                console.error(error);
             }
         }
 
@@ -1734,6 +1754,7 @@
                     }
                 }
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to fetch transactions');
             }
         }

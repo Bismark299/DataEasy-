@@ -799,6 +799,7 @@ const DataEasyApp = (function() {
                                 }, 1000);
                             }
                         } catch (error) {
+                            console.error(error);
                             DOM.setLoading(checkoutBtn, false);
                             Toast.error(error.message || 'Checkout failed');
                         }
@@ -857,9 +858,11 @@ const DataEasyApp = (function() {
                         });
                     }
                 } catch (e) {
+                    console.error(e);
                     // Silently handle today transactions fetch failure
                 }
             } catch (e) {
+                console.error(e);
                 // Fallback to localStorage
                 const wallet = Storage.get('wallet', { balance: 0 });
                 balance = wallet.balance;
@@ -953,6 +956,7 @@ const DataEasyApp = (function() {
                     allOrders = fetched;
                     return;
                 } catch (e) {
+                    console.error(e);
                     // Fall back to localStorage
                 }
             }
@@ -1545,6 +1549,7 @@ const DataEasyApp = (function() {
                     order.id = order.orderId;  // Normalize id field
                 }
             } catch (e) {
+                console.error(e);
                 // Fall back to localStorage
             }
         }
@@ -1868,6 +1873,7 @@ const DataEasyApp = (function() {
 
             return deliveryStatus;
         } catch (e) {
+            console.error(e);
             if (!silent) {
                 if (loadingEl) loadingEl.classList.add('hidden');
                 if (resultEl) {
@@ -1968,6 +1974,7 @@ const DataEasyApp = (function() {
                 );
                 return;
             } catch (error) {
+                console.error(error);
                 Toast.error(error.message || 'Payment failed');
                 DOM.setLoading(button, false);
             }
@@ -2078,6 +2085,7 @@ const DataEasyApp = (function() {
                     }));
                 }
             } catch (e) {
+                console.error(e);
                 // Fall back to localStorage
             }
         }

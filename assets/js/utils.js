@@ -15,6 +15,7 @@ const DataEasyUtils = (function() {
                 localStorage.setItem(`dataeasy_${key}`, JSON.stringify(value));
                 return true;
             } catch (e) {
+                console.error(e);
                 return false;
             }
         },
@@ -24,6 +25,7 @@ const DataEasyUtils = (function() {
                 const item = localStorage.getItem(`dataeasy_${key}`);
                 return item ? JSON.parse(item) : defaultValue;
             } catch (e) {
+                console.error(e);
                 return defaultValue;
             }
         },
@@ -33,6 +35,7 @@ const DataEasyUtils = (function() {
                 localStorage.removeItem(`dataeasy_${key}`);
                 return true;
             } catch (e) {
+                console.error(e);
                 return false;
             }
         },
@@ -44,6 +47,7 @@ const DataEasyUtils = (function() {
                     .forEach(key => localStorage.removeItem(key));
                 return true;
             } catch (e) {
+                console.error(e);
                 return false;
             }
         }

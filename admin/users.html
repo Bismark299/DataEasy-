@@ -596,6 +596,7 @@
                     return;
                 }
             } catch (error) {
+                console.error(error);
                 document.getElementById('headerTotalSold').textContent = '₵ --';
                 document.getElementById('headerProfit').textContent = '₵ --';
             }
@@ -670,6 +671,7 @@
                 updateStats();
                 filterUsers();
             } catch (error) {
+                console.error(error);
                 allUsers = [];
                 filterUsers();
                 if (error.message.includes('Failed to fetch')) {
@@ -860,6 +862,7 @@
                         buttonText: 'Got it'
                     });
                 } catch (error) {
+                    console.error(error);
                     showToast('error', 'Error', error.message || 'Failed to reset password');
                 }
             }
@@ -966,6 +969,7 @@
                 closeModal('userModal');
                 loadUsers();
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to save user');
             }
         }
@@ -1013,6 +1017,7 @@
                 closeModal('fundWalletModal');
                 loadUsers();
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to adjust wallet');
             }
         }
@@ -1034,6 +1039,7 @@
                 closeModal('deleteConfirmModal');
                 loadUsers();
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to delete user');
             }
         }

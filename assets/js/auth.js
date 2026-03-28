@@ -31,6 +31,7 @@ const DataEasyAuth = (function() {
                 const available = await DataEasyAPI.isBackendAvailable();
                 useAPI = available;
             } catch (e) {
+                console.error(e);
                 useAPI = false;
             }
         }
@@ -66,6 +67,7 @@ const DataEasyAuth = (function() {
                 Toast.error(response.message || 'Registration failed');
                 return { success: false, message: response.message };
             } catch (error) {
+                console.error(error);
                 Toast.error(error.message || 'Registration failed');
                 return { success: false, message: error.message };
             }
@@ -148,6 +150,7 @@ const DataEasyAuth = (function() {
                         return { success: true, isAdmin: true, admin: adminResponse };
                     }
                 } catch (e) {
+                    console.error(e);
                     // Not admin, continue to user login
                 }
             }
@@ -168,6 +171,7 @@ const DataEasyAuth = (function() {
                 Toast.error(response.message || 'Login failed');
                 return { success: false, message: response.message };
             } catch (error) {
+                console.error(error);
                 Toast.error(error.message || 'Login failed');
                 return { success: false, message: error.message };
             }
@@ -288,6 +292,7 @@ const DataEasyAuth = (function() {
                     return currentUser;
                 }
             } catch (e) {
+                console.error(e);
                 // Fall back to localStorage
             }
         }
@@ -336,6 +341,7 @@ const DataEasyAuth = (function() {
                     return { success: true, user: response.user };
                 }
             } catch (error) {
+                console.error(error);
                 Toast.error(error.message || 'Failed to update profile');
                 return { success: false, message: error.message };
             }
@@ -390,6 +396,7 @@ const DataEasyAuth = (function() {
                     return { success: true };
                 }
             } catch (error) {
+                console.error(error);
                 Toast.error(error.message || 'Failed to change password');
                 return { success: false, message: error.message };
             }

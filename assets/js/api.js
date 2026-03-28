@@ -23,6 +23,7 @@ const DataEasyAPI = (function() {
                 const parsed = JSON.parse(session);
                 return parsed.token;
             } catch (e) {
+                console.error(e);
                 return null;
             }
         }
@@ -111,6 +112,7 @@ const DataEasyAPI = (function() {
 
             return data;
         } catch (error) {
+            console.error(error);
             throw error;
         }
     }
@@ -199,6 +201,7 @@ const DataEasyAPI = (function() {
                 const parsed = JSON.parse(session);
                 return new Date(parsed.expiresAt) > new Date();
             } catch (e) {
+                console.error(e);
                 return false;
             }
         },
@@ -749,6 +752,7 @@ const DataEasyAPI = (function() {
             });
             return response.ok;
         } catch (e) {
+            console.error(e);
             return false;
         }
     }

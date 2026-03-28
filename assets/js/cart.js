@@ -75,6 +75,7 @@ const DataEasyCart = (function() {
                 }
             }
         } catch (e) { /* ignore */ }
+            console.error(e);
         return 'guest'; // Default for non-logged in users
     }
     
@@ -100,6 +101,7 @@ const DataEasyCart = (function() {
             }
             return null;
         } catch (e) {
+            console.error(e);
             return null;
         }
     }
@@ -111,6 +113,7 @@ const DataEasyCart = (function() {
                 timestamp: Date.now()
             }));
         } catch (e) {
+            console.error(e);
             // localStorage might be full, ignore
         }
     }
@@ -675,6 +678,7 @@ const DataEasyCart = (function() {
                     return null;
                 }
             } catch (error) {
+                console.error(error);
                 Toast.error(error.message || 'Failed to place order');
                 return null;
             }
@@ -869,6 +873,7 @@ const DataEasyCart = (function() {
                         headers['Authorization'] = `Bearer ${parsed.token}`;
                     }
                 } catch (e) { /* ignore */ }
+                    console.error(e);
             }
             
             const response = await fetch(`${baseUrl}/orders/packages`, { headers });
@@ -902,6 +907,7 @@ const DataEasyCart = (function() {
                 throw new Error(data.message || 'Failed to load packages from server');
             }
         } catch (error) {
+            console.error(error);
             packagesLoadError = error.message;
             // DO NOT fall back to static data - fail closed
             // Packages remain empty, preventing orders with unknown prices

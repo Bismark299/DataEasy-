@@ -610,6 +610,7 @@
                     return;
                 }
             } catch (error) {
+                console.error(error);
                 document.getElementById('headerTotalSold').textContent = '₵ --';
                 document.getElementById('headerProfit').textContent = '₵ --';
             }
@@ -674,6 +675,7 @@
                 updateStats();
                 filterTransactions();
             } catch (error) {
+                console.error(error);
                 allTransactions = [];
                 filterTransactions();
                 if (!error.message.includes('Failed to fetch')) {
@@ -928,6 +930,7 @@
                 allDealers = response.users || response || [];
                 filterDealers();
             } catch (error) {
+                console.error(error);
                 allDealers = [];
                 filterDealers();
                 if (error.message.includes('Failed to fetch')) {
@@ -1076,6 +1079,7 @@
                 loadDealerWallets();
                 loadTransactions();
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to fund wallet');
             }
         }
@@ -1102,6 +1106,7 @@
                 loadDealerWallets();
                 loadTransactions();
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to debit wallet');
             }
         }

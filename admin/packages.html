@@ -586,6 +586,7 @@
                     return;
                 }
             } catch (error) {
+                console.error(error);
                 document.getElementById('headerTotalSold').textContent = '₵ --';
                 document.getElementById('headerProfit').textContent = '₵ --';
             }
@@ -667,6 +668,7 @@
                 updateStats();
                 filterPackages();
             } catch (error) {
+                console.error(error);
                 allPackages = [];
                 renderNetworkCards();
                 filterPackages();
@@ -1030,6 +1032,7 @@
                 closeModal('packageModal');
                 loadPackages();
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to save package');
             }
         }
@@ -1046,6 +1049,7 @@
                 showToast('success', 'Success', `Package ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
                 loadPackages();
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', 'Failed to update package status');
             }
         }
@@ -1066,6 +1070,7 @@
                 closeModal('confirmModal');
                 loadPackages();
             } catch (error) {
+                console.error(error);
                 showToast('error', 'Error', error.message || 'Failed to delete package');
             }
         }

@@ -300,6 +300,7 @@
                     }
                 }
             } catch (e) {
+                console.error(e);
             }
         }
 
@@ -370,6 +371,7 @@
                     btns.appendChild(btn);
                 }
             } catch (e) {
+                console.error(e);
                 showToast('error', 'Error', e.message || 'Failed to load keys');
             }
         };
@@ -403,6 +405,7 @@
                     showToast('error', 'Error', data.error);
                 }
             } catch (e) {
+                console.error(e);
                 showToast('error', 'Error', 'Failed to revoke key');
             } finally {
                 btn.disabled = false;
