@@ -231,12 +231,25 @@ exports.getDashboard = async (req, res) => {
  */
 exports.getAllOrders = async (req, res) => {
     try {
-        const { page = 1, limit = 50, status, network, search } = req.query;
+        const { page = 1, limit = 50, status, network, search, dateFrom, dateTo } = req.query;
 
         const where = {};
         if (status && status !== 'all') where.deliveryStatus = status;
         if (network && network !== 'all') where.network = network;
         if (search) where.orderId = { [Op.iLike]: `%${search}%` };
+
+        // Server-side date filtering
+        if (dateFrom || dateTo) {
+            where.createdAt = {};
+            if (dateFrom) {
+                where.createdAt[Op.gte] = new Date(dateFrom);
+            }
+            if (dateTo) {
+                const to = new Date(dateTo);
+                to.setHours(23, 59, 59, 999);
+                where.createdAt[Op.lte] = to;
+            }
+        }
 
         const { count, rows: orders } = await Order.findAndCountAll({
             where,

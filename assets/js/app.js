@@ -1022,22 +1022,64 @@ const DataEasyApp = (function() {
                 orders = orders.filter(o => 
                     o.id.toLowerCase().includes(searchLower) ||
                     (o.items && o.items.some(item => 
-                        (item.phoneNumber || '').includes(search)
+                        (item.phoneNumber || '').includes(search) ||
+                        (item.phoneNumbers || []).some(p => p.includes(search)) ||
+                        (item.network || '').toLowerCase().includes(searchLower) ||
+                        (item.data || '').toLowerCase().includes(searchLower)
                     ))
                 );
             }
 
-            // Update order count
-            const totalOrders = orders.length;
-            const totalPages = Math.ceil(totalOrders / ordersPerPage);
+            // Flatten orders into individual rows (one per phone number)
+            function flattenOrders(ordersList) {
+                const rows = [];
+                ordersList.forEach(order => {
+                    const orderDate = new Date(order.createdAt);
+                    const dateStr = orderDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeStr = orderDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+                    const dateDisplay = `${dateStr} - ${timeStr}`;
+
+                    if (order.items && order.items.length > 0) {
+                        order.items.forEach(item => {
+                            // Extract network from packageId (e.g. 'mtn-1gb' -> 'MTN') or item/order fields
+                            let network = item.network || order.network || '';
+                            if (!network && item.packageId) {
+                                const prefix = item.packageId.split('-')[0].toLowerCase();
+                                if (prefix === 'mtn') network = 'MTN';
+                                else if (prefix === 'at') network = 'AirtelTigo';
+                                else if (prefix === 'tc') network = 'Telecel';
+                                else network = prefix.toUpperCase();
+                            }
+                            if (!network) network = 'MTN';
+                            const packageData = item.data || item.packageName || item.package?.data || 'N/A';
+                            const itemPrice = item.price || item.package?.price || 0;
+                            const itemStatus = item.deliveryStatus || order.deliveryStatus || 'Pending';
+                            const phoneNumbers = item.phoneNumbers || (item.phoneNumber ? [item.phoneNumber] : []);
+
+                            if (phoneNumbers.length > 0) {
+                                phoneNumbers.forEach(phone => {
+                                    rows.push({ date: dateDisplay, orderId: order.id, phone, package: packageData, network, price: itemPrice, status: itemStatus, processedAt: item.deliveredAt || order.processedAt });
+                                });
+                            } else {
+                                for (let i = 0; i < (item.quantity || 1); i++) {
+                                    rows.push({ date: dateDisplay, orderId: order.id, phone: '—', package: packageData, network, price: itemPrice, status: itemStatus, processedAt: item.deliveredAt || order.processedAt });
+                                }
+                            }
+                        });
+                    } else {
+                        rows.push({ date: dateDisplay, orderId: order.id, phone: '—', package: '—', network: '—', price: order.total || 0, status: order.deliveryStatus || 'Pending', processedAt: order.processedAt });
+                    }
+                });
+                return rows;
+            }
+
+            // Flatten ALL filtered orders, then paginate the flat rows
+            const allRows = flattenOrders(orders);
+            const totalRows = allRows.length;
+            const totalPages = Math.ceil(totalRows / ordersPerPage);
             if (currentPage > totalPages) currentPage = totalPages || 1;
             const startIdx = (currentPage - 1) * ordersPerPage;
-            const paginatedOrders = orders.slice(startIdx, startIdx + ordersPerPage);
-
-            const countText = `Showing ${startIdx + 1}-${Math.min(startIdx + ordersPerPage, totalOrders)} of ${totalOrders} order${totalOrders !== 1 ? 's' : ''}`;
-            document.querySelectorAll('.orders-count, #orders-count').forEach(el => {
-                el.textContent = countText;
-            });
+            const paginatedRows = allRows.slice(startIdx, startIdx + ordersPerPage);
 
             // Render pagination controls
             const paginationContainer = document.getElementById('pagination-controls');
@@ -1052,12 +1094,11 @@ const DataEasyApp = (function() {
                 }
             }
 
-            if (orders.length === 0) {
-                // Show empty state
+            if (totalRows === 0) {
                 if (ordersTableBody) {
                     ordersTableBody.innerHTML = `
                         <tr class="border-b border-gray-700">
-                            <td colspan="6" class="py-12 text-center">
+                            <td colspan="7" class="py-12 text-center">
                                 <div class="flex flex-col items-center">
                                     <div class="bg-gray-800 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                                         <i class="fas fa-receipt text-gray-500 text-2xl"></i>
@@ -1085,58 +1126,39 @@ const DataEasyApp = (function() {
 
             // Render desktop table
             if (ordersTableBody) {
-                ordersTableBody.innerHTML = paginatedOrders.map(order => {
-                    const itemCount = order.items ? order.items.length : 0;
-                    const paymentStatus = order.paymentStatus || 'Completed';
-                    const deliveryStatus = order.deliveryStatus || 'Processing';
-                    
-                    // Format date like: February 2, 2026 - 5:11 am
-                    const orderDate = new Date(order.createdAt);
-                    const dateStr = orderDate.toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                    });
-                    const timeStr = orderDate.toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        hour12: true 
-                    }).toLowerCase();
-                    
-                    // Use processedAt for delivery time (when it was actually delivered)
-                    const deliveredDate = order.processedAt ? new Date(order.processedAt) : orderDate;
-                    const deliveredTimeStr = deliveredDate.toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        hour12: true 
-                    }).toLowerCase();
-                    const deliveredDateStr = `${deliveredDate.getDate()}/${deliveredDate.toLocaleString('en-US', {month: 'long'})}/${deliveredDate.getFullYear()}`;
-                    
+                ordersTableBody.innerHTML = paginatedRows.map(row => {
                     // Delivery status display
                     let deliveryDisplay = '';
-                    if (deliveryStatus === 'Delivered' || deliveryStatus === 'Submitted') {
-                        deliveryDisplay = `<span class="text-green-400">Sent<br><span class="text-xs">${deliveredTimeStr} - ${deliveredDateStr}</span></span>`;
-                    } else if (deliveryStatus === 'Processing') {
+                    const st = (row.status || '').toLowerCase();
+                    if (st === 'delivered' || st === 'submitted' || st === 'completed') {
+                        let timeInfo = '';
+                        if (row.processedAt) {
+                            const d = new Date(row.processedAt);
+                            timeInfo = `<br><span class="text-xs">${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()}</span>`;
+                        }
+                        deliveryDisplay = `<span class="text-green-400">Sent${timeInfo}</span>`;
+                    } else if (st === 'processing') {
                         deliveryDisplay = `<span class="text-yellow-400">Processing...</span>`;
-                    } else if (deliveryStatus === 'Pending') {
+                    } else if (st === 'pending') {
                         deliveryDisplay = `<span class="text-orange-400">Pending</span>`;
-                    } else if (deliveryStatus === 'Failed') {
+                    } else if (st === 'failed') {
                         deliveryDisplay = `<span class="text-red-400">Failed</span>`;
                     } else {
                         deliveryDisplay = `<span class="text-gray-400">—</span>`;
                     }
-                    
+
+                    const networkClass = row.network.toLowerCase() === 'mtn' ? 'text-yellow-400' :
+                                        row.network.toLowerCase() === 'at' || row.network.toLowerCase().includes('airtel') ? 'text-red-400' : 'text-gray-400';
+
                     return `
                         <tr class="border-b border-gray-700 hover:bg-gray-800/30 transition">
-                            <td class="py-4 px-3 md:px-4 text-white font-medium">${order.id}</td>
-                            <td class="py-4 px-3 md:px-4 text-gray-400 text-sm">${dateStr} - ${timeStr}</td>
-                            <td class="py-4 px-3 md:px-4 text-green-400">${paymentStatus}</td>
-                            <td class="py-4 px-3 md:px-4 text-white">${Format.currency(order.total)} <span class="text-gray-400 text-sm">for ${itemCount} items</span></td>
-                            <td class="py-4 px-3 md:px-4 text-sm">${deliveryDisplay}</td>
-                            <td class="py-4 px-3 md:px-4">
-                                <a href="order-details?id=${order.id}" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded transition inline-block">View</a>
-                                <button class="export-single-order-btn bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-1.5 rounded transition ml-1" data-order-id="${order.id}">Export</button>
-                            </td>
+                            <td class="py-3 px-3 md:px-4 text-gray-400 text-sm">${row.date}</td>
+                            <td class="py-3 px-3 md:px-4 text-white text-sm font-medium">${row.orderId}</td>
+                            <td class="py-3 px-3 md:px-4 text-white text-sm">${row.phone !== '—' ? Format.phone(row.phone) : '—'}</td>
+                            <td class="py-3 px-3 md:px-4 text-white text-sm">${row.package}</td>
+                            <td class="py-3 px-3 md:px-4 ${networkClass} text-sm font-medium">${row.network}</td>
+                            <td class="py-3 px-3 md:px-4 text-white text-sm">${Format.currency(row.price)}</td>
+                            <td class="py-3 px-3 md:px-4 text-sm">${deliveryDisplay}</td>
                         </tr>
                     `;
                 }).join('');
@@ -1144,52 +1166,59 @@ const DataEasyApp = (function() {
 
             // Render mobile cards
             if (mobileOrdersList) {
-                mobileOrdersList.innerHTML = paginatedOrders.map(order => {
-                    const itemCount = order.items ? order.items.length : 0;
-                    const paymentStatus = order.paymentStatus || 'Completed';
-                    const deliveryStatus = order.deliveryStatus || 'Processing';
-                    const deliveryTime = order.processedAt ? Format.time(order.processedAt) : Format.time(order.createdAt);
-                    const deliveryDate = order.processedAt ? Format.date(order.processedAt) : Format.date(order.createdAt);
-                    
-                    let deliveryText = deliveryStatus;
-                    if (deliveryStatus === 'Delivered' || deliveryStatus === 'Submitted' || deliveryStatus.includes('Submitted')) {
-                        deliveryText = `Sent<br>${deliveryTime} - ${deliveryDate}`;
+                mobileOrdersList.innerHTML = paginatedRows.map(row => {
+                    const st = (row.status || '').toLowerCase();
+                    let deliveryText = row.status;
+                    if (st === 'delivered' || st === 'submitted' || st === 'completed') {
+                        deliveryText = 'Sent';
+                        if (row.processedAt) {
+                            const d = new Date(row.processedAt);
+                            deliveryText += ` - ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()}`;
+                        }
+                    } else if (st === 'processing') {
+                        deliveryText = 'Processing...';
+                    } else if (st === 'failed') {
+                        deliveryText = 'Failed';
                     }
                     
-                    const deliveryClass = (deliveryStatus === 'Delivered' || deliveryStatus === 'Submitted' || deliveryStatus.includes('Submitted')) ? 'text-green-400' :
-                                         deliveryStatus === 'Processing' ? 'text-yellow-400' :
-                                         deliveryStatus === 'Pending' ? 'text-orange-400' :
-                                         deliveryStatus === 'Failed' ? 'text-red-400' : 'text-gray-400';
+                    const deliveryClass = (st === 'delivered' || st === 'submitted' || st === 'completed') ? 'text-green-400' :
+                                         st === 'processing' ? 'text-yellow-400' :
+                                         st === 'pending' ? 'text-orange-400' :
+                                         st === 'failed' ? 'text-red-400' : 'text-gray-400';
+
+                    const networkClass = row.network.toLowerCase() === 'mtn' ? 'text-yellow-400' :
+                                        row.network.toLowerCase() === 'at' || row.network.toLowerCase().includes('airtel') ? 'text-red-400' : 'text-gray-400';
                     
                     return `
-                        <div class="bg-card-bg rounded-lg border border-gray-600 mb-4 overflow-hidden">
+                        <div class="bg-card-bg rounded-lg border border-gray-600 mb-3 overflow-hidden">
                             <div class="divide-y divide-gray-700">
                                 <div class="flex justify-between items-center px-4 py-2">
-                                    <span class="text-gray-400 font-semibold text-sm">ORDER ID:</span>
-                                    <a href="order-details?id=${order.id}" class="text-blue-400 hover:text-blue-300 font-medium">${order.id}</a>
-                                </div>
-                                <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">DATE:</span>
-                                    <span class="text-white text-sm">${Format.date(order.createdAt)} - ${Format.time(order.createdAt)}</span>
+                                    <span class="text-white text-sm">${row.date}</span>
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
-                                    <span class="text-gray-400 font-semibold text-sm">PAYMENT STATUS:</span>
-                                    <span class="text-white text-sm">${paymentStatus}</span>
+                                    <span class="text-gray-400 font-semibold text-sm">ORDER ID:</span>
+                                    <span class="text-white text-sm font-medium">${row.orderId}</span>
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
-                                    <span class="text-gray-400 font-semibold text-sm">TOTAL:</span>
-                                    <span class="text-white text-sm">₵${parseFloat(order.total).toFixed(2)} for ${itemCount} items</span>
-                                </div>
-                                <div class="flex justify-between items-start px-4 py-2">
-                                    <span class="text-gray-400 font-semibold text-sm">DELIVERY STATUS:</span>
-                                    <span class="${deliveryClass} text-sm text-right">${deliveryText}</span>
+                                    <span class="text-gray-400 font-semibold text-sm">NUMBER:</span>
+                                    <span class="text-white text-sm font-bold">${row.phone !== '—' ? Format.phone(row.phone) : '—'}</span>
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
-                                    <span class="text-gray-400 font-semibold text-sm">ACTIONS:</span>
-                                    <div class="flex gap-2">
-                                        <a href="order-details?id=${order.id}" class="px-4 py-1.5 border border-blue-500 text-blue-400 text-sm rounded hover:bg-blue-500/10 transition">View</a>
-                                        <button class="export-single-order-btn px-4 py-1.5 border border-blue-500 text-blue-400 text-sm rounded hover:bg-blue-500/10 transition" data-order-id="${order.id}">Export</button>
-                                    </div>
+                                    <span class="text-gray-400 font-semibold text-sm">PACKAGE:</span>
+                                    <span class="text-white text-sm">${row.package}</span>
+                                </div>
+                                <div class="flex justify-between items-center px-4 py-2">
+                                    <span class="text-gray-400 font-semibold text-sm">NETWORK:</span>
+                                    <span class="${networkClass} text-sm font-medium">${row.network}</span>
+                                </div>
+                                <div class="flex justify-between items-center px-4 py-2">
+                                    <span class="text-gray-400 font-semibold text-sm">PRICE:</span>
+                                    <span class="text-white text-sm">${Format.currency(row.price)}</span>
+                                </div>
+                                <div class="flex justify-between items-center px-4 py-2">
+                                    <span class="text-gray-400 font-semibold text-sm">STATUS:</span>
+                                    <span class="${deliveryClass} text-sm">${deliveryText}</span>
                                 </div>
                             </div>
                         </div>

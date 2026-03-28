@@ -363,10 +363,10 @@
             if (navSales) navSales.classList.add('active');
         }
 
-        // Set default dates
+        // Set default dates - last 90 days to show all recent sales
         const today = new Date();
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        document.getElementById('start-date').valueAsDate = firstDayOfMonth;
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000);
+        document.getElementById('start-date').valueAsDate = ninetyDaysAgo;
         document.getElementById('end-date').valueAsDate = today;
 
         // Sidebar toggle
@@ -452,14 +452,11 @@
                 
                 if (packagesRes.ok) {
                     const packagesData = await packagesRes.json();
-                    // API returns grouped packages: { packages: { MTN: [...], AirtelTigo: [...], Telecel: [...] } }
                     const groupedPackages = packagesData.packages || {};
                     
-                    // Build cost price lookup map by package ID using admin-set prices
                     Object.keys(groupedPackages).forEach(network => {
                         const networkPackages = groupedPackages[network] || [];
                         networkPackages.forEach(pkg => {
-                            // Map by ID - this is the packageId used in orders (e.g., "mtn-1gb")
                             if (pkg.costPrice !== null && pkg.costPrice !== undefined) {
                                 packageCostMap[pkg.id] = parseFloat(pkg.costPrice);
                             }
@@ -467,31 +464,43 @@
                     });
                 }
 
-                // Load orders and users in PARALLEL for faster loading
-                const [ordersRes, usersRes] = await Promise.all([
-                    fetch(`${API_BASE_URL}/admin/orders?limit=500`, {
+                // Fetch ALL orders using server-side date filtering + pagination
+                let allOrders = [];
+                let page = 1;
+                const perPage = 1000;
+                let hasMore = true;
+                const dateParams = startDate ? `&dateFrom=${startDate}` : '';
+                const dateParams2 = endDate ? `&dateTo=${endDate}` : '';
+
+                while (hasMore) {
+                    const ordersRes = await fetch(`${API_BASE_URL}/admin/orders?limit=${perPage}&page=${page}${dateParams}${dateParams2}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
-                    }),
-                    fetch(`${API_BASE_URL}/admin/users?limit=200`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    })
-                ]);
-                
-                if (ordersRes.ok) {
-                    const ordersData = await ordersRes.json();
-                    const orders = ordersData.orders || [];
-                    
-                    // Filter by date
-                    const filteredOrders = orders.filter(order => {
-                        const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-                        return (!startDate || orderDate >= startDate) && (!endDate || orderDate <= endDate);
                     });
-                    
-                    updateSalesReport(filteredOrders);
-                } else {
-                    console.error('Failed to load orders:', ordersRes.status);
-                    showEmptyState('sales-table-body', 6, 'Failed to load orders. Please try again.');
+                    if (ordersRes.ok) {
+                        const ordersData = await ordersRes.json();
+                        const orders = ordersData.orders || [];
+                        allOrders = allOrders.concat(orders);
+                        if (ordersData.pagination && page < ordersData.pagination.pages) {
+                            page++;
+                        } else {
+                            hasMore = false;
+                        }
+                    } else {
+                        hasMore = false;
+                        console.error('Failed to load orders:', ordersRes.status);
+                    }
                 }
+
+                if (allOrders.length > 0) {
+                    updateSalesReport(allOrders);
+                } else {
+                    showEmptyState('sales-table-body', 6, 'No orders found for the selected period.');
+                }
+
+                // Load users for agents report
+                const usersRes = await fetch(`${API_BASE_URL}/admin/users?limit=200`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
                 if (usersRes.ok) {
                     const usersData = await usersRes.json();
