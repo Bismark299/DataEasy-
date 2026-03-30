@@ -238,8 +238,8 @@
                             <label class="block text-sm text-gray-700 mb-1">Filter By Type:</label>
                             <select id="typeFilter" class="w-48 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-sidebar focus:border-transparent outline-none bg-white">
                                 <option value="">-- All Types --</option>
-                                <option value="credit">Credit (Completed)</option>
-                                <option value="debit">Debit (Completed)</option>
+                                <option value="credit">Credit</option>
+                                <option value="debit">Debit</option>
                             </select>
                         </div>
                         <div>
@@ -261,6 +261,28 @@
                                 <option value="order">Order</option>
                                 <option value="refund">Refund</option>
                             </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-700 mb-1">Date From:</label>
+                            <input type="date" id="dateFromFilter" class="w-44 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-sidebar focus:border-transparent outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-700 mb-1">Date To:</label>
+                            <input type="date" id="dateToFilter" class="w-44 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-sidebar focus:border-transparent outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-700 mb-1">Per Page:</label>
+                            <select id="perPageFilter" class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-sidebar focus:border-transparent outline-none bg-white">
+                                <option value="100" selected>100</option>
+                                <option value="500">500</option>
+                                <option value="1000">1000</option>
+                                <option value="2000">2000</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button onclick="clearFilters()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition">
+                                <i class="fas fa-times mr-1"></i>Clear
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -395,7 +417,7 @@
         let allTransactions = [];
         let allDealers = [];
         let currentPage = 1;
-        let perPage = 50;
+        let perPage = 100;
         let dealerCurrentPage = 1;
         let currentTab = 'dealerWallet';
 
@@ -666,12 +688,28 @@
             document.getElementById('typeFilter').addEventListener('change', filterTransactions);
             document.getElementById('statusFilter').addEventListener('change', filterTransactions);
             document.getElementById('sourceFilter').addEventListener('change', filterTransactions);
+            document.getElementById('dateFromFilter').addEventListener('change', filterTransactions);
+            document.getElementById('dateToFilter').addEventListener('change', filterTransactions);
+            document.getElementById('perPageFilter').addEventListener('change', function() {
+                perPage = parseInt(this.value);
+                currentPage = 1;
+                filterTransactions();
+            });
         }
 
         async function loadTransactions() {
             try {
-                const response = await DataEasyAPI.admin.getTransactions();
-                allTransactions = response.transactions || response || [];
+                let all = [];
+                let page = 1;
+                const batchSize = 1000;
+                while (true) {
+                    const response = await DataEasyAPI.admin.getTransactions({ page, limit: batchSize });
+                    const txns = response.transactions || [];
+                    all = all.concat(txns);
+                    if (!response.pagination || page >= response.pagination.pages) break;
+                    page++;
+                }
+                allTransactions = all;
                 updateStats();
                 filterTransactions();
             } catch (error) {
@@ -696,6 +734,8 @@
             const type = document.getElementById('typeFilter').value;
             const status = document.getElementById('statusFilter').value;
             const source = document.getElementById('sourceFilter').value;
+            const dateFrom = document.getElementById('dateFromFilter').value;
+            const dateTo = document.getElementById('dateToFilter').value;
 
             let filtered = allTransactions.filter(tx => {
                 if (search) {
@@ -704,24 +744,26 @@
                         (tx.user?.agentCode || '').toLowerCase().includes(search);
                     if (!searchMatch) return false;
                 }
-                // When filtering by type, only show completed transactions (proper accounting)
-                if (type) {
-                    if (tx.type !== type) return false;
-                    if (tx.status !== 'completed') return false;
-                }
-                // Status filter
+                if (type && tx.type !== type) return false;
                 if (status && tx.status !== status) return false;
-                // Source filter (paymentMethod)
                 if (source && tx.paymentMethod !== source) return false;
+                if (dateFrom) {
+                    const txDate = new Date(tx.createdAt).toISOString().slice(0, 10);
+                    if (txDate < dateFrom) return false;
+                }
+                if (dateTo) {
+                    const txDate = new Date(tx.createdAt).toISOString().slice(0, 10);
+                    if (txDate > dateTo) return false;
+                }
                 return true;
             });
 
+            currentPage = 1;
             renderTransactions(filtered);
         }
 
         function renderTransactions(transactions) {
             const tbody = document.getElementById('transactionsTableBody');
-            const perPage = 50;
             
             const start = (currentPage - 1) * perPage;
             const end = start + perPage;
@@ -815,6 +857,10 @@
             document.getElementById('typeFilter').value = '';
             document.getElementById('statusFilter').value = '';
             document.getElementById('sourceFilter').value = '';
+            document.getElementById('dateFromFilter').value = '';
+            document.getElementById('dateToFilter').value = '';
+            document.getElementById('perPageFilter').value = '100';
+            perPage = 100;
             currentPage = 1;
             filterTransactions();
         }
