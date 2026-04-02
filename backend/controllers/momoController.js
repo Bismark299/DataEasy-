@@ -3,7 +3,7 @@
  * Handles incoming MoMo deposits from SMS listener app
  */
 
-const { User, Wallet, Transaction, MoMoDeposit } = require('../models');
+const { User, Wallet, Transaction, MoMoDeposit, Setting } = require('../models');
 const { sequelize } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
@@ -24,7 +24,7 @@ const VALID_TRANSACTION_ID_PATTERN = /^\d{10,12}$/;
 const MAX_DEPOSIT_AMOUNT = 50000; // GHS 50,000
 
 // Minimum deposit amount
-const MIN_DEPOSIT_AMOUNT = 0.01; // GHS 0.01
+const MIN_DEPOSIT_AMOUNT = 5; // GHS 5.00
 
 // Maximum age of SMS (reject if older than 24 hours)
 const MAX_SMS_AGE_MS = 24 * 60 * 60 * 1000;
@@ -163,13 +163,14 @@ const processDeposit = async (req, res) => {
         
         const depositAmount = parseFloat(amount);
         
-        // 4. Amount reasonability check
-        if (depositAmount < MIN_DEPOSIT_AMOUNT) {
+        // 4. Amount reasonability check - use admin-configured minimum from DB
+        const minDeposit = await Setting.getValue('min_deposit', MIN_DEPOSIT_AMOUNT);
+        if (depositAmount < minDeposit) {
             await t.rollback();
-            logger.warn('MoMo deposit: Amount too small', { amount: depositAmount });
+            logger.warn('MoMo deposit: Amount too small', { amount: depositAmount, minDeposit });
             return res.status(400).json({
                 success: false,
-                error: `Minimum deposit is GHS ${MIN_DEPOSIT_AMOUNT}`
+                error: `Minimum deposit is GHS ${minDeposit}`
             });
         }
         

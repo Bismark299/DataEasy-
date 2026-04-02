@@ -200,7 +200,7 @@ module.exports = (sequelize) => {
     // Get deposit limit settings
     Setting.getDepositLimits = async function() {
         return {
-            minDeposit: await this.getValue('min_deposit', 1),
+            minDeposit: await this.getValue('min_deposit', 5),
             maxDeposit: await this.getValue('max_deposit', 5000)
         };
     };
