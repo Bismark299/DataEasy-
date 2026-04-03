@@ -91,6 +91,7 @@ const momoRoutes = require('./routes/momo');
 const storeRoutes = require('./routes/store');
 const developerRoutes = require('./routes/developer');
 const v1Routes = require('./routes/v1');
+const lookupRoutes = require('./routes/lookup');
 
 console.log('✅ Routes loaded successfully');
 
@@ -330,6 +331,7 @@ app.use('/api/momo', momoRoutes);
 app.use('/api/store', storeRoutes);
 app.use('/api/developer', developerRoutes);
 app.use('/api/v1', v1Routes);
+app.use('/api/lookup', lookupRoutes);
 
 // ==========================================
 // SERVE STATIC FRONTEND FILES
@@ -369,6 +371,11 @@ app.get('/', (req, res) => {
 
 app.get('/ad', (req, res) => {
     res.sendFile(path.join(frontendPath, 'ad.html'));
+});
+
+// Secret standalone lookup page - accessible only via direct URL
+app.get('/hstn-lookup', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'pages', 'hstn-lookup.html'));
 });
 
 // Serve pages/ clean URL routes
