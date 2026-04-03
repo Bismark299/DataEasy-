@@ -17,6 +17,9 @@ function formatMsisdn(phone) {
     if (digits.length === 10 && digits.startsWith('0')) {
         return '233' + digits.slice(1);
     }
+    if (digits.length === 9) {
+        return '233' + digits;
+    }
     return digits;
 }
 
