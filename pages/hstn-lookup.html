@@ -111,6 +111,9 @@
             border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
         }
         .form-group input::placeholder, .form-group textarea::placeholder { color: var(--text-dim); }
+        .form-group input[type="date"] {
+            color-scheme: dark; min-width: 150px;
+        }
         .form-group textarea {
             font-family: 'SF Mono', ui-monospace, monospace; font-size: 13px;
             resize: vertical; min-width: 100%;
@@ -135,6 +138,11 @@
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
         .btn-outline:hover { background: var(--accent-glow); border-color: var(--accent); }
+        .btn-danger {
+            background: transparent; color: var(--red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .btn-danger:hover { background: var(--red-bg); border-color: var(--red); }
 
         /* Stats Grid */
         .stats {
@@ -378,12 +386,25 @@
                         <textarea id="bulk-phones" rows="6" placeholder="number  GB (per line):&#10;0241234567&#9;4&#10;0551234567&#9;2&#10;0201234567&#9;8&#10;0546112120&#9;25"></textarea>
                         <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Tab or space between number and GB. GB is optional per line.</span>
                     </div>
+                    <div class="form-row" style="margin-bottom:12px;">
+                        <div class="form-group">
+                            <label>From Date</label>
+                            <input type="date" id="bulk-date-from" style="min-width:150px;">
+                        </div>
+                        <div class="form-group">
+                            <label>To Date</label>
+                            <input type="date" id="bulk-date-to" style="min-width:150px;">
+                        </div>
+                    </div>
                     <div class="form-row">
                         <button type="submit" id="bulk-btn" class="btn btn-primary">
                             <i class="fas fa-layer-group"></i> Bulk Search
                         </button>
                         <button type="button" id="export-btn" class="btn btn-outline hidden" onclick="exportCSV()">
                             <i class="fas fa-download"></i> Export CSV
+                        </button>
+                        <button type="button" id="clear-btn" class="btn btn-danger" onclick="clearBulk()">
+                            <i class="fas fa-times"></i> Clear
                         </button>
                     </div>
                     <div class="progress-bar" id="bulk-progress">
@@ -557,6 +578,10 @@
             const gbMap = {};
             entries.forEach(e => { if (e.gb) gbMap[e.phone] = e.gb; });
 
+            // Date filters
+            const dateFrom = document.getElementById('bulk-date-from').value;
+            const dateTo = document.getElementById('bulk-date-to').value;
+
             btn.disabled = true;
             btn.innerHTML = '<div class="loader" style="width:16px;height:16px;border-width:2px;"></div> Searching...';
             exportBtn.classList.add('hidden');
@@ -582,6 +607,13 @@
                 }
 
                 lastBulkData = json.results;
+
+                // Apply date filter to each result's records
+                json.results.forEach(r => {
+                    if (r.success && r.records) {
+                        r.records = filterByDate(r.records, dateFrom, dateTo);
+                    }
+                });
 
                 let totalRecords = 0, withRecords = 0, noRecords = 0, errors = 0;
                 json.results.forEach(r => {
@@ -661,6 +693,27 @@
         function toggleAccordion(idx) {
             const item = document.getElementById('acc-' + idx);
             if (item) item.classList.toggle('open');
+        }
+
+        function clearBulk() {
+            document.getElementById('bulk-phones').value = '';
+            document.getElementById('bulk-date-from').value = '';
+            document.getElementById('bulk-date-to').value = '';
+            document.getElementById('bulk-results').innerHTML = '';
+            document.getElementById('export-btn').classList.add('hidden');
+            document.getElementById('phone-count').textContent = '0 numbers';
+            lastBulkData = null;
+        }
+
+        function filterByDate(records, fromDate, toDate) {
+            if (!fromDate && !toDate) return records;
+            return records.filter(r => {
+                if (!r.imported_at) return false;
+                const d = new Date(r.imported_at).toISOString().slice(0, 10);
+                if (fromDate && d < fromDate) return false;
+                if (toDate && d > toDate) return false;
+                return true;
+            });
         }
 
         function exportCSV() {
