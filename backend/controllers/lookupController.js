@@ -150,3 +150,54 @@ exports.bulkSearch = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
+
+/**
+ * Download export CSV file
+ * POST /api/lookup/export-download
+ */
+exports.exportDownload = async (req, res) => {
+    try {
+        const { path: rawPath } = req.body;
+        if (!rawPath || typeof rawPath !== 'string') {
+            return res.status(400).json({ success: false, error: 'File path is required' });
+        }
+
+        // The URL may be "/exports/download?path=/data/..." — extract the actual path
+        let filePath = rawPath;
+        if (rawPath.includes('?path=')) {
+            filePath = decodeURIComponent(rawPath.split('?path=')[1]);
+        }
+
+        const response = await axios.get(`${LOOKUP_BASE_URL}/exports/download`, {
+            headers: { 'X-API-Key': LOOKUP_API_KEY },
+            params: { path: filePath },
+            timeout: 30000,
+            responseType: 'text'
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="export.csv"');
+        res.send(response.data);
+    } catch (error) {
+        logger.error('Export download error', { error: error.message });
+        const msg = error.response?.data?.error || error.message;
+        res.status(error.response?.status || 500).json({ success: false, error: msg });
+    }
+};
+
+/**
+ * Get system health status
+ * GET /api/lookup/health
+ */
+exports.health = async (req, res) => {
+    try {
+        const response = await axios.get(`${LOOKUP_BASE_URL}/health`, {
+            headers: { 'X-API-Key': LOOKUP_API_KEY },
+            timeout: 10000
+        });
+        res.json({ success: true, health: response.data });
+    } catch (error) {
+        logger.error('Health check error', { error: error.message });
+        res.status(500).json({ success: false, error: error.message });
+    }
+};

@@ -314,8 +314,29 @@
         }
         .num-table tbody tr:last-child td { border-bottom: none; }
         .num-table .gb { color: var(--accent); font-weight: 600; }
+        .source-file { font-size: 11px; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; word-break: break-word; }
         .num-empty { padding: 16px 18px; color: var(--text-dim); font-size: 13px; }
         .num-error { padding: 14px 18px; color: var(--red); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .dl-link { color: var(--accent); text-decoration: none; font-size: 11px; cursor: pointer; }
+        .dl-link:hover { text-decoration: underline; }
+        .health-bar {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px; margin-bottom: 24px;
+        }
+        .health-item {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 14px 16px;
+        }
+        .health-item .hl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 4px; }
+        .health-item .hv { font-size: 16px; font-weight: 700; color: var(--text); }
+        .health-item .hv.ok { color: var(--green); }
+        .health-item .hv.warn { color: var(--accent); }
+        .health-item .hv.bad { color: var(--red); }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 12px 18px; font-size: 12px; }
+        .detail-grid .dg-label { color: var(--text-dim); }
+        .detail-grid .dg-val { color: var(--text); font-weight: 500; text-align: right; word-break: break-all; }
+        .detail-toggle { padding: 8px 18px; font-size: 11px; color: var(--accent); cursor: pointer; background: none; border: none; font-weight: 600; }
+        .detail-toggle:hover { text-decoration: underline; }
 
         /* Toast */
         .toast {
@@ -405,6 +426,9 @@
             </div>
         </div>
 
+        <!-- Health Status -->
+        <div id="health-section" class="health-bar" style="display:none;"></div>
+
         <!-- Tabs -->
         <div class="tabs">
             <button id="tab-single" class="tab active" onclick="switchTab('single')">
@@ -481,6 +505,31 @@
     <script>
         const API_BASE = window.location.origin + '/api/lookup';
         let lastBulkData = null;
+
+        /* ---- Load health on page open ---- */
+        (async function loadHealth() {
+            try {
+                const res = await fetch(API_BASE + '/health');
+                const json = await res.json();
+                if (!json.success || !json.health) return;
+                const h = json.health;
+                const section = document.getElementById('health-section');
+                var statusCls = h.status === 'ok' ? 'ok' : 'bad';
+                var staleCls = h.stale ? 'bad' : 'ok';
+                var qpCls = h.queue_pending > 10 ? 'warn' : 'ok';
+                var qfCls = h.queue_failed > 0 ? 'warn' : 'ok';
+                var qdCls = h.queue_dead > 0 ? 'bad' : 'ok';
+                var lastSync = h.last_success_at ? new Date(h.last_success_at).toLocaleString('en-GB', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '-';
+                section.innerHTML = ''
+                    + '<div class="health-item"><div class="hl">System</div><div class="hv ' + statusCls + '">' + (h.status || '-').toUpperCase() + '</div></div>'
+                    + '<div class="health-item"><div class="hl">Last Sync</div><div class="hv">' + lastSync + '</div></div>'
+                    + '<div class="health-item"><div class="hl">Next Export ID</div><div class="hv">' + (h.next_export_id || '-') + '</div></div>'
+                    + '<div class="health-item"><div class="hl">Queue Pending</div><div class="hv ' + qpCls + '">' + (h.queue_pending ?? '-') + '</div></div>'
+                    + '<div class="health-item"><div class="hl">Queue Failed</div><div class="hv ' + qfCls + '">' + (h.queue_failed ?? '-') + '</div></div>'
+                    + '<div class="health-item"><div class="hl">Queue Dead</div><div class="hv ' + qdCls + '">' + (h.queue_dead ?? '-') + '</div></div>';
+                section.style.display = '';
+            } catch(e) {}
+        })();
 
         /* ---- Theme toggle ---- */
         (function initTheme() {
@@ -568,37 +617,60 @@
 
             let html = '<div class="table-wrap ' + (animate ? 'animate-in' : '') + '">';
             html += '<table class="desktop-table"><thead><tr>';
-            html += '<th>MSISDN</th><th>Status</th><th>Data</th><th>Name</th><th>Fail Reason</th><th>Imported</th>';
+            html += '<th>Created</th><th>MSISDN</th><th>Data GB</th><th>Voice Min</th><th>Source File</th><th>Fail Reason</th><th>Imported</th><th>Export ID</th><th>Files</th><th>Status</th>';
             html += '</tr></thead><tbody>';
 
-            records.forEach(r => {
+            records.forEach(function(r, ri) {
+                var sf = r.success_original_filename || r.failed_original_filename || '';
+                sf = sf.trim();
                 html += '<tr>';
+                html += '<td>' + fmtDate(r.created_at) + '</td>';
                 html += '<td class="cell-phone">' + toLocal(r.msisdn) + '</td>';
-                html += '<td>' + badge(r.source) + '</td>';
-                html += '<td class="cell-gb">' + (r.data_gb ? r.data_gb.toFixed(2) + ' GB' : '-') + '</td>';
-                html += '<td>' + (r.beneficiary_name || '<span style="color:var(--text-dim)">\u2014</span>') + '</td>';
-                html += '<td>' + (r.failed_reason || '<span style="color:var(--text-dim)">\u2014</span>') + '</td>';
+                html += '<td class="cell-gb">' + (r.data_gb ? r.data_gb.toFixed(2) : '-') + '</td>';
+                html += '<td>' + (r.voice_minutes || '-') + '</td>';
+                html += '<td class="source-file">' + (sf || dim('-')) + '</td>';
+                html += '<td>' + (r.failed_reason || dim('-')) + '</td>';
                 html += '<td>' + fmtDate(r.imported_at) + '</td>';
+                html += '<td>' + (r.portal_export_id || '-') + '</td>';
+                html += '<td>';
+                if (r.success_download_url) html += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(r.success_download_url) + '\')" title="Download success CSV"><i class="fas fa-check-circle" style="color:var(--green)"></i></a> ';
+                if (r.failed_download_url) html += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(r.failed_download_url) + '\')" title="Download failed CSV"><i class="fas fa-times-circle" style="color:var(--red)"></i></a>';
+                if (!r.success_download_url && !r.failed_download_url) html += dim('-');
+                html += '</td>';
+                html += '<td>' + badge(r.source) + '</td>';
                 html += '</tr>';
             });
             html += '</tbody></table>';
 
             // Mobile cards
             html += '<div class="mobile-cards">';
-            records.forEach(r => {
+            records.forEach(function(r) {
+                var sf = r.success_original_filename || r.failed_original_filename || '';
+                sf = sf.trim();
                 html += '<div class="mobile-card">';
-                html += '<div class="mobile-row"><span class="mlabel">MSISDN</span><span class="mvalue cell-phone">' + toLocal(r.msisdn) + '</span></div>';
-                html += '<div class="mobile-row"><span class="mlabel">Status</span><span class="mvalue">' + badge(r.source) + '</span></div>';
-                html += '<div class="mobile-row"><span class="mlabel">Data</span><span class="mvalue cell-gb">' + (r.data_gb ? r.data_gb.toFixed(2) + ' GB' : '-') + '</span></div>';
-                html += '<div class="mobile-row"><span class="mlabel">Name</span><span class="mvalue">' + (r.beneficiary_name || '\u2014') + '</span></div>';
-                html += '<div class="mobile-row"><span class="mlabel">Fail Reason</span><span class="mvalue">' + (r.failed_reason || '\u2014') + '</span></div>';
-                html += '<div class="mobile-row"><span class="mlabel">Imported</span><span class="mvalue">' + fmtDate(r.imported_at) + '</span></div>';
+                html += mrow('Created', fmtDate(r.created_at));
+                html += mrow('MSISDN', '<span class="cell-phone">' + toLocal(r.msisdn) + '</span>');
+                html += mrow('Data GB', '<span class="cell-gb">' + (r.data_gb ? r.data_gb.toFixed(2) : '-') + '</span>');
+                html += mrow('Voice Min', r.voice_minutes || '-');
+                html += mrow('Source File', '<span class="source-file">' + (sf || '\u2014') + '</span>');
+                html += mrow('Fail Reason', r.failed_reason || '\u2014');
+                html += mrow('Imported', fmtDate(r.imported_at));
+                html += mrow('Export ID', r.portal_export_id || '-');
+                var dlHtml = '';
+                if (r.success_download_url) dlHtml += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(r.success_download_url) + '\')">Success CSV</a> ';
+                if (r.failed_download_url) dlHtml += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(r.failed_download_url) + '\')">Failed CSV</a>';
+                html += mrow('Downloads', dlHtml || '\u2014');
+                html += mrow('Status', badge(r.source));
                 html += '</div>';
             });
             html += '</div></div>';
 
             return html;
         }
+
+        function dim(t) { return '<span style="color:var(--text-dim)">' + t + '</span>'; }
+        function mrow(label, val) { return '<div class="mobile-row"><span class="mlabel">' + label + '</span><span class="mvalue">' + val + '</span></div>'; }
+        function encodeAttr(s) { return s.replace(/'/g, "\\'").replace(/&/g, '&amp;'); }
 
         // Single search
         document.getElementById('single-form').addEventListener('submit', async (e) => {
@@ -736,14 +808,26 @@
                     } else {
                         html += '<div class="num-records">';
                         html += '<table class="num-table"><thead><tr>';
-                        html += '<th>Date</th><th>Number</th><th>Data</th><th>Status</th>';
+                        html += '<th>Date</th><th>Number</th><th>Data GB</th><th>MB</th><th>Airtime</th><th>Voice</th><th>SMS</th><th>Source File</th><th>Status</th><th>Files</th>';
                         html += '</tr></thead><tbody>';
-                        r.records.forEach(rec => {
+                        r.records.forEach(function(rec) {
+                            var sf = rec.success_original_filename || rec.failed_original_filename || '';
+                            sf = sf.trim();
                             html += '<tr>';
                             html += '<td>' + fmtDate(rec.imported_at) + '</td>';
                             html += '<td>' + toLocal(rec.msisdn) + '</td>';
-                            html += '<td class="gb">' + (rec.data_gb ? rec.data_gb.toFixed(2) + ' GB' : '-') + '</td>';
+                            html += '<td class="gb">' + (rec.data_gb ? rec.data_gb.toFixed(2) : '-') + '</td>';
+                            html += '<td>' + (rec.data_mb || '-') + '</td>';
+                            html += '<td>' + (rec.airtime || '-') + '</td>';
+                            html += '<td>' + (rec.voice_minutes || '-') + '</td>';
+                            html += '<td>' + (rec.sms_units || '-') + '</td>';
+                            html += '<td class="source-file">' + (sf || '-') + '</td>';
                             html += '<td>' + badge(rec.source) + '</td>';
+                            html += '<td>';
+                            if (rec.success_download_url) html += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(rec.success_download_url) + '\')" title="Success CSV"><i class="fas fa-check-circle" style="color:var(--green)"></i></a> ';
+                            if (rec.failed_download_url) html += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(rec.failed_download_url) + '\')" title="Failed CSV"><i class="fas fa-times-circle" style="color:var(--red)"></i></a>';
+                            if (!rec.success_download_url && !rec.failed_download_url) html += '-';
+                            html += '</td>';
                             html += '</tr>';
                         });
                         html += '</tbody></table>';
@@ -791,17 +875,29 @@
         function exportCSV() {
             if (!lastBulkData) return;
 
-            const rows = [['MSISDN', 'Source', 'Data GB', 'Name', 'Fail Reason', 'Imported']];
+            const rows = [['MSISDN', 'Status', 'Data GB', 'Data MB', 'Airtime', 'Voice Minutes', 'SMS Units', 'Beneficiary Name', 'Source File', 'Failed Reason', 'Imported At', 'Created At', 'Portal Export ID', 'Batch ID', 'Row Hash', 'Success Download URL', 'Failed Download URL']];
             lastBulkData.forEach(r => {
                 if (r.records) {
                     r.records.forEach(rec => {
+                        var sf = rec.success_original_filename || rec.failed_original_filename || '';
                         rows.push([
                             toLocal(rec.msisdn),
                             rec.source || '',
                             rec.data_gb ? rec.data_gb.toFixed(2) : '',
+                            rec.data_mb || '',
+                            rec.airtime || '',
+                            rec.voice_minutes || '',
+                            rec.sms_units || '',
                             rec.beneficiary_name || '',
+                            sf.trim(),
                             rec.failed_reason || '',
-                            rec.imported_at || ''
+                            rec.imported_at || '',
+                            rec.created_at || '',
+                            rec.portal_export_id || '',
+                            rec.batch_id || '',
+                            rec.row_hash || '',
+                            rec.success_download_url || '',
+                            rec.failed_download_url || ''
                         ]);
                     });
                 }
@@ -818,6 +914,31 @@
             a.remove();
             URL.revokeObjectURL(url);
             showToast('CSV exported successfully');
+        }
+
+        async function downloadExport(path) {
+            try {
+                showToast('Downloading...');
+                const res = await fetch(API_BASE + '/export-download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: path })
+                });
+                if (!res.ok) throw new Error('Download failed');
+                const blob = await res.blob();
+                var filename = path.split('/').pop() || 'export.csv';
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                showToast('Downloaded: ' + filename);
+            } catch(e) {
+                showToast('Download failed: ' + e.message);
+            }
         }
     </script>
 </body>

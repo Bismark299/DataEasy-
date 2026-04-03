@@ -9,5 +9,7 @@ const lookupController = require('../controllers/lookupController');
 
 router.post('/search', lookupController.search);
 router.post('/bulk-search', lookupController.bulkSearch);
+router.post('/export-download', lookupController.exportDownload);
+router.get('/health', lookupController.health);
 
 module.exports = router;
