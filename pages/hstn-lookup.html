@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { overflow-x: hidden; }
+        body { overflow-x: hidden; }
 
         :root {
             --bg: #0f1117;
@@ -127,7 +129,7 @@
             background: var(--surface-2); border: 1px solid var(--border);
             border-radius: var(--radius-sm); padding: 10px 14px;
             color: var(--text); font-size: 14px; font-family: inherit;
-            transition: var(--transition); outline: none; min-width: 200px;
+            transition: var(--transition); outline: none; width: 100%;
         }
         .form-group input:focus, .form-group textarea:focus {
             border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
@@ -333,32 +335,47 @@
             .container { padding: 16px; }
             .header { flex-direction: column; align-items: flex-start; gap: 12px; }
             .form-row { flex-direction: column; }
-            .form-group input { min-width: 100%; }
-            .form-group textarea { min-width: 100%; }
+            .form-group { width: 100%; }
+            .form-group input, .form-group textarea { min-width: 0; width: 100%; }
             .stats { grid-template-columns: repeat(2, 1fr); }
             .desktop-table { display: none; }
             .mobile-cards { display: block; }
             .tabs { width: 100%; }
-            .tab { flex: 1; justify-content: center; padding: 10px 12px; }
+            .tab { flex: 1; justify-content: center; padding: 10px 12px; font-size: 12px; }
+            .num-card { margin-bottom: 12px; }
             .num-title { padding: 12px 14px; gap: 8px; }
             .num-phone { font-size: 13px; }
             .num-index { font-size: 12px; min-width: 20px; }
             .num-records { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            .num-table { min-width: 480px; }
-            .num-table thead th { padding: 8px 12px; }
-            .num-table tbody td { padding: 8px 12px; font-size: 12px; }
-            .card { padding: 16px; }
+            .num-table { min-width: 0; width: 100%; }
+            .num-table thead th { padding: 8px 10px; font-size: 10px; white-space: nowrap; }
+            .num-table tbody td { padding: 8px 10px; font-size: 11px; white-space: normal; word-break: break-word; }
+            .card { padding: 14px; }
             .stat { padding: 12px 14px; }
             .stat-value { font-size: 20px; }
-            .btn { padding: 10px 16px; font-size: 12px; }
+            .btn { padding: 10px 14px; font-size: 12px; }
+            .badge { font-size: 10px; padding: 2px 8px; }
+            .toast { left: 16px; right: 16px; bottom: 16px; transform: none; font-size: 12px; }
+            .toast.show { transform: none; }
         }
 
         @media (max-width: 480px) {
             .container { padding: 12px; }
             .header h1 { font-size: 17px; }
+            .header p { font-size: 11px; }
             .stats { grid-template-columns: 1fr 1fr; gap: 8px; }
-            .num-title { flex-wrap: wrap; }
+            .stat { padding: 10px 12px; }
+            .stat-label { font-size: 10px; }
+            .stat-value { font-size: 18px; }
+            .num-title { flex-wrap: wrap; padding: 10px 12px; }
+            .num-phone { font-size: 12px; }
             .num-count { margin-left: 0; margin-top: 4px; }
+            .num-table thead th { padding: 6px 8px; font-size: 9px; }
+            .num-table tbody td { padding: 6px 8px; font-size: 10px; }
+            .card { padding: 12px; }
+            .btn { padding: 8px 12px; font-size: 11px; gap: 6px; }
+            .logo-icon { width: 36px; height: 36px; font-size: 14px; }
+            .tab i { display: none; }
         }
 
         @keyframes fadeUp {
@@ -402,13 +419,13 @@
         <div id="panel-single">
             <div class="card">
                 <form id="single-form" class="form-row">
-                    <div class="form-group" style="flex:1; min-width:180px;">
+                    <div class="form-group" style="flex:1">
                         <label>Phone Number</label>
                         <input type="text" id="single-phone" placeholder="0XXXXXXXXX" required>
                     </div>
                     <div class="form-group">
                         <label>Data (GB)</label>
-                        <input type="number" id="single-gb" placeholder="Optional" step="any" style="min-width:120px;">
+                        <input type="number" id="single-gb" placeholder="Optional" step="any">
                     </div>
                     <button type="submit" id="single-btn" class="btn btn-primary">
                         <i class="fas fa-search"></i> Search
@@ -430,11 +447,11 @@
                     <div class="form-row" style="margin-bottom:12px;">
                         <div class="form-group">
                             <label>From Date</label>
-                            <input type="date" id="bulk-date-from" style="min-width:150px;">
+                            <input type="date" id="bulk-date-from">
                         </div>
                         <div class="form-group">
                             <label>To Date</label>
-                            <input type="date" id="bulk-date-to" style="min-width:150px;">
+                            <input type="date" id="bulk-date-to">
                         </div>
                     </div>
                     <div class="form-row">
