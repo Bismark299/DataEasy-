@@ -81,10 +81,6 @@ exports.bulkSearch = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Phone numbers array is required' });
         }
 
-        if (phones.length > 200) {
-            return res.status(400).json({ success: false, error: 'Maximum 200 numbers per bulk search' });
-        }
-
         // Normalize: phones can be strings or {phone, gb} objects
         const entries = phones.map(p => {
             if (typeof p === 'object' && p.phone) {

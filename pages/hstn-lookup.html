@@ -485,6 +485,18 @@
                         <button type="button" id="export-btn" class="btn btn-outline hidden" onclick="exportCSV()">
                             <i class="fas fa-download"></i> Export CSV
                         </button>
+                        <button type="button" id="export-info-btn" class="btn btn-outline hidden" onclick="exportInfo()" style="color:var(--green); border-color:rgba(34,197,94,0.3);">
+                            <i class="fas fa-file-excel"></i> Export Info
+                        </button>
+                        <button type="button" id="copy-info-btn" class="btn btn-outline hidden" onclick="copyInfo()" style="color:var(--green); border-color:rgba(34,197,94,0.3); padding:10px 12px;">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button type="button" id="export-noinfo-btn" class="btn btn-outline hidden" onclick="exportNoInfo()" style="color:var(--red); border-color:rgba(239,68,68,0.3);">
+                            <i class="fas fa-file-excel"></i> Export No Info
+                        </button>
+                        <button type="button" id="copy-noinfo-btn" class="btn btn-outline hidden" onclick="copyNoInfo()" style="color:var(--red); border-color:rgba(239,68,68,0.3); padding:10px 12px;">
+                            <i class="fas fa-copy"></i>
+                        </button>
                         <button type="button" id="clear-btn" class="btn btn-danger" onclick="clearBulk()">
                             <i class="fas fa-times"></i> Clear
                         </button>
@@ -726,10 +738,6 @@
 
             const entries = parseBulkLines(phonesRaw);
             if (entries.length === 0) return;
-            if (entries.length > 200) {
-                container.innerHTML = '<div class="error-msg"><i class="fas fa-exclamation-circle"></i> Maximum 200 numbers per search</div>';
-                return;
-            }
 
             // Build a map of phone->gb from input for display
             const gbMap = {};
@@ -742,6 +750,10 @@
             btn.disabled = true;
             btn.innerHTML = '<div class="loader" style="width:16px;height:16px;border-width:2px;"></div> Searching...';
             exportBtn.classList.add('hidden');
+            document.getElementById('export-info-btn').classList.add('hidden');
+            document.getElementById('copy-info-btn').classList.add('hidden');
+            document.getElementById('export-noinfo-btn').classList.add('hidden');
+            document.getElementById('copy-noinfo-btn').classList.add('hidden');
             progressBar.style.display = 'block';
             progressFill.style.width = '10%';
             progressLabel.textContent = 'Searching ' + entries.length + ' number(s)...';
@@ -782,8 +794,9 @@
                 let html = '<div class="stats animate-in">';
                 html += '<div class="stat yellow"><div class="stat-label">Searched</div><div class="stat-value">' + entries.length + '</div></div>';
                 html += '<div class="stat green"><div class="stat-label">With Records</div><div class="stat-value">' + withRecords + '</div></div>';
+                html += '<div class="stat red"><div class="stat-label">No Info</div><div class="stat-value">' + noRecords + '</div></div>';
                 html += '<div class="stat blue"><div class="stat-label">Total Records</div><div class="stat-value">' + totalRecords + '</div></div>';
-                html += '<div class="stat red"><div class="stat-label">Errors</div><div class="stat-value">' + errors + '</div></div>';
+                if (errors > 0) html += '<div class="stat red"><div class="stat-label">Errors</div><div class="stat-value">' + errors + '</div></div>';
                 html += '</div>';
 
                 // Per-number cards (numbered, always open, screenshot-friendly)
@@ -838,8 +851,12 @@
                 });
 
                 container.innerHTML = html;
+                exportBtn.classList.toggle('hidden', totalRecords === 0);
+                document.getElementById('export-info-btn').classList.toggle('hidden', withRecords === 0);
+                document.getElementById('copy-info-btn').classList.toggle('hidden', withRecords === 0);
+                document.getElementById('export-noinfo-btn').classList.toggle('hidden', noRecords === 0);
+                document.getElementById('copy-noinfo-btn').classList.toggle('hidden', noRecords === 0);
                 if (totalRecords > 0) {
-                    exportBtn.classList.remove('hidden');
                     showToast('Found ' + totalRecords + ' records across ' + withRecords + ' numbers');
                 }
             } catch (err) {
@@ -857,6 +874,10 @@
             document.getElementById('bulk-date-to').value = '';
             document.getElementById('bulk-results').innerHTML = '';
             document.getElementById('export-btn').classList.add('hidden');
+            document.getElementById('export-info-btn').classList.add('hidden');
+            document.getElementById('copy-info-btn').classList.add('hidden');
+            document.getElementById('export-noinfo-btn').classList.add('hidden');
+            document.getElementById('copy-noinfo-btn').classList.add('hidden');
             document.getElementById('phone-count').textContent = '0 numbers';
             lastBulkData = null;
         }
@@ -870,6 +891,11 @@
                 if (toDate && d > toDate) return false;
                 return true;
             });
+        }
+
+        function fmtDateCSV(d) {
+            if (!d) return '';
+            return d.replace('T', ' ').replace('Z', '').replace(/\.\d+$/, '');
         }
 
         function exportCSV() {
@@ -891,8 +917,8 @@
                             rec.beneficiary_name || '',
                             sf.trim(),
                             rec.failed_reason || '',
-                            rec.imported_at || '',
-                            rec.created_at || '',
+                            fmtDateCSV(rec.imported_at),
+                            fmtDateCSV(rec.created_at),
                             rec.portal_export_id || '',
                             rec.batch_id || '',
                             rec.row_hash || '',
@@ -914,6 +940,129 @@
             a.remove();
             URL.revokeObjectURL(url);
             showToast('CSV exported successfully');
+        }
+
+        function exportInfo() {
+            if (!lastBulkData) return;
+
+            const dateFrom = document.getElementById('bulk-date-from').value;
+            const dateTo = document.getElementById('bulk-date-to').value;
+
+            const rows = [['Date', 'Number', 'Data GB', 'MB', 'Airtime', 'Voice', 'SMS', 'Source File', 'Status']];
+            let count = 0;
+
+            lastBulkData.forEach(r => {
+                if (!r.success) return;
+                const filtered = filterByDate(r.records || [], dateFrom, dateTo);
+                if (filtered.length === 0) return;
+                filtered.forEach(rec => {
+                    var sf = rec.success_original_filename || rec.failed_original_filename || '';
+                    rows.push([
+                        fmtDateCSV(rec.imported_at),
+                        toLocal(rec.msisdn),
+                        rec.data_gb ? rec.data_gb.toFixed(2) : '',
+                        rec.data_mb || '',
+                        rec.airtime || '',
+                        rec.voice_minutes || '',
+                        rec.sms_units || '',
+                        sf.trim(),
+                        rec.source || ''
+                    ]);
+                    count++;
+                });
+            });
+
+            if (count === 0) {
+                showToast('No numbers with records');
+                return;
+            }
+
+            const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'info_numbers_' + new Date().toISOString().slice(0, 10) + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast('Exported ' + count + ' record(s) with info');
+        }
+
+        function copyInfo() {
+            if (!lastBulkData) return;
+            const dateFrom = document.getElementById('bulk-date-from').value;
+            const dateTo = document.getElementById('bulk-date-to').value;
+            const inputEntries = parseBulkLines(document.getElementById('bulk-phones').value);
+            const gbLookup = {};
+            inputEntries.forEach(e => { gbLookup[e.phone] = e.gb; });
+            const lines = [];
+            lastBulkData.forEach(r => {
+                if (!r.success) return;
+                const filtered = filterByDate(r.records || [], dateFrom, dateTo);
+                if (filtered.length === 0) return;
+                const gb = gbLookup[r.phone];
+                lines.push(r.phone + '\t' + (gb || ''));
+            });
+            if (lines.length === 0) { showToast('No numbers with records'); return; }
+            navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with info'));
+        }
+
+        function exportNoInfo() {
+            if (!lastBulkData) return;
+
+            const dateFrom = document.getElementById('bulk-date-from').value;
+            const dateTo = document.getElementById('bulk-date-to').value;
+
+            const noInfoEntries = lastBulkData.filter(r => {
+                if (!r.success) return true;
+                const filtered = filterByDate(r.records || [], dateFrom, dateTo);
+                return filtered.length === 0;
+            });
+
+            if (noInfoEntries.length === 0) {
+                showToast('All numbers have records');
+                return;
+            }
+
+            const rows = [['Date', 'Number', 'Data GB', 'MB', 'Airtime', 'Voice', 'SMS', 'Source File', 'Status']];
+            const inputEntries = parseBulkLines(document.getElementById('bulk-phones').value);
+            const gbLookup = {};
+            inputEntries.forEach(e => { gbLookup[e.phone] = e.gb; });
+            noInfoEntries.forEach(r => {
+                rows.push(['', r.phone, gbLookup[r.phone] || '', '', '', '', '', '', '']);
+            });
+
+            const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'no_info_numbers_' + new Date().toISOString().slice(0, 10) + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast('Exported ' + noInfoEntries.length + ' number(s) with no info');
+        }
+
+        function copyNoInfo() {
+            if (!lastBulkData) return;
+            const dateFrom = document.getElementById('bulk-date-from').value;
+            const dateTo = document.getElementById('bulk-date-to').value;
+            const inputEntries = parseBulkLines(document.getElementById('bulk-phones').value);
+            const gbLookup = {};
+            inputEntries.forEach(e => { gbLookup[e.phone] = e.gb; });
+            const lines = [];
+            lastBulkData.forEach(r => {
+                const hasRecords = r.success && filterByDate(r.records || [], dateFrom, dateTo).length > 0;
+                if (hasRecords) return;
+                const gb = gbLookup[r.phone];
+                lines.push(r.phone + '\t' + (gb || ''));
+            });
+            if (lines.length === 0) { showToast('All numbers have records'); return; }
+            navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with no info'));
         }
 
         async function downloadExport(path) {
