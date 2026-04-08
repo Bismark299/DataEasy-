@@ -866,8 +866,32 @@ exports.adjustWallet = async (req, res) => {
             return res.status(400).json({ error: 'Invalid amount' });
         }
 
-        // No per-adjustment limit enforced
-        // No daily limit enforced
+        // Enforce per-adjustment limit
+        if (amount > WALLET_ADJUSTMENT_LIMIT) {
+            await t.rollback();
+            return res.status(400).json({ 
+                error: `Maximum adjustment is GH₵${WALLET_ADJUSTMENT_LIMIT.toFixed(2)} per transaction` 
+            });
+        }
+
+        // Enforce daily adjustment limit per admin
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayAdjustments = await Transaction.sum('amount', {
+            where: {
+                paymentMethod: 'manual',
+                status: 'completed',
+                createdAt: { [Op.gte]: today }
+            },
+            transaction: t
+        }) || 0;
+
+        if (todayAdjustments + amount > DAILY_ADJUSTMENT_LIMIT) {
+            await t.rollback();
+            return res.status(400).json({ 
+                error: `Daily adjustment limit of GH₵${DAILY_ADJUSTMENT_LIMIT.toFixed(2)} would be exceeded. Today's total: GH₵${todayAdjustments.toFixed(2)}` 
+            });
+        }
 
         const user = await User.findByPk(req.params.userId, { transaction: t });
         if (!user) {
@@ -1939,8 +1963,8 @@ exports.updateAppSettings = async (req, res) => {
         // Deposit limits
         if (minDeposit !== undefined) {
             const min = parseFloat(minDeposit);
-            if (min < 0) {
-                return res.status(400).json({ success: false, error: 'Minimum deposit cannot be negative' });
+            if (min < 1) {
+                return res.status(400).json({ success: false, error: 'Minimum deposit must be at least GH₵1' });
             }
             await Setting.setValue('min_deposit', min, 'number', 'Minimum deposit amount');
             updates.push('minDeposit');

@@ -1941,12 +1941,21 @@ const DataEasyApp = (function() {
         const amount = parseFloat(amountInput.value);
         
         if (!amount || amount < 1) {
-            Toast.error('Please enter a valid amount (minimum GH₵1)');
+            Toast.error('Please enter a valid amount');
             return;
         }
 
-        if (amount > 10000) {
-            Toast.error('Maximum top-up amount is GH₵10,000');
+        // Fetch admin-configured deposit limits from server
+        try {
+            if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
+                const feeCheck = await DataEasyAPI.Wallet.calculateFee(amount);
+                if (!feeCheck.success) {
+                    Toast.error(feeCheck.error || 'Amount is outside allowed deposit limits');
+                    return;
+                }
+            }
+        } catch (limitErr) {
+            Toast.error(limitErr.message || 'Could not verify deposit limits');
             return;
         }
 

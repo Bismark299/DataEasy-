@@ -87,10 +87,22 @@ const orderValidation = [
 
 /**
  * Wallet topup validation
+ * Uses DB-configured minimum deposit instead of hardcoded value
  */
 const topupValidation = [
     body('amount')
-        .isFloat({ min: 1 }).withMessage('Amount must be at least GH₵1'),
+        .isFloat({ min: 1 }).withMessage('Amount must be a valid number')
+        .custom(async (value) => {
+            const { Setting } = require('../models');
+            const limits = await Setting.getDepositLimits();
+            if (parseFloat(value) < limits.minDeposit) {
+                throw new Error(`Minimum topup amount is GH₵${limits.minDeposit.toFixed(2)}`);
+            }
+            if (parseFloat(value) > limits.maxDeposit) {
+                throw new Error(`Maximum topup amount is GH₵${limits.maxDeposit.toFixed(2)}`);
+            }
+            return true;
+        }),
     handleValidationErrors
 ];
 

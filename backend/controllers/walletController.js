@@ -50,6 +50,14 @@ exports.calculateFee = async (req, res) => {
             return res.status(400).json({ error: 'Invalid amount' });
         }
 
+        // Also check against admin-configured minimum deposit
+        const depositLimits = await Setting.getDepositLimits();
+        if (amount < depositLimits.minDeposit) {
+            return res.status(400).json({ 
+                error: `Minimum topup amount is GH₵${depositLimits.minDeposit.toFixed(2)}` 
+            });
+        }
+
         const feeInfo = await Setting.calculateTopupFee(amount);
         
         res.json({
