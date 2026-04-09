@@ -114,7 +114,7 @@ const requirePermission = (...requiredPermissions) => {
 const apiKeyRateLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: (req) => {
-        return (req.apiKey && req.apiKey.rateLimit) ? req.apiKey.rateLimit : 60;
+        return (req.apiKey && req.apiKey.rateLimit) ? req.apiKey.rateLimit : 100;
     },
     keyGenerator: (req) => {
         return req.apiKey ? req.apiKey.id : req.ip;
