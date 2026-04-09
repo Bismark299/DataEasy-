@@ -187,6 +187,50 @@ exports.updateKey = async (req, res) => {
 };
 
 /**
+ * Reset (regenerate) an API key — new key, same settings
+ * POST /api/developer/keys/:keyId/reset
+ */
+exports.resetKey = async (req, res) => {
+    try {
+        const key = await ApiKey.findOne({ where: { id: req.params.keyId, userId: req.user.id } });
+        if (!key) {
+            return res.status(404).json({ success: false, error: 'API key not found.' });
+        }
+        if (!key.isActive) {
+            return res.status(400).json({ success: false, error: 'Cannot reset a revoked key.' });
+        }
+
+        const { fullKey, keyHash, keyPrefix } = ApiKey.generateKey();
+
+        key.keyHash = keyHash;
+        key.keyPrefix = keyPrefix;
+        key.requestCount = 0;
+        key.lastUsedAt = null;
+        key.lastUsedIP = null;
+        await key.save();
+
+        logger.info('API key reset', { userId: req.user.id, keyId: key.id });
+
+        res.json({
+            success: true,
+            message: 'API key regenerated. Copy the new key now — it will not be shown again.',
+            key: {
+                id: key.id,
+                name: key.name,
+                apiKey: fullKey,
+                prefix: key.keyPrefix,
+                permissions: key.permissions,
+                rateLimit: key.rateLimit,
+                createdAt: key.createdAt
+            }
+        });
+    } catch (error) {
+        logger.error('Failed to reset API key', { error: error.message, userId: req.user.id });
+        res.status(500).json({ success: false, error: 'Failed to reset API key.' });
+    }
+};
+
+/**
  * Revoke (deactivate) an API key
  * DELETE /api/developer/keys/:keyId
  */

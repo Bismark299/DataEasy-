@@ -12,17 +12,16 @@ const { optionalIdempotency } = require('../middleware/idempotency');
 
 // All routes require API key authentication
 router.use(apiKeyAuth);
-router.use(apiKeyRateLimiter);
 
-// Packages
+// Packages (read-only, no strict rate limit — covered by global limiter)
 router.get('/packages', requirePermission('packages:read'), developerApiController.getPackages);
 
-// Orders (idempotency prevents duplicate orders on retries)
-router.post('/orders', requirePermission('orders:create'), optionalIdempotency, developerApiController.createOrder);
+// Orders: POST is rate-limited strictly, GET reads are not (prevents polling from blocking order creation)
+router.post('/orders', requirePermission('orders:create'), apiKeyRateLimiter, optionalIdempotency, developerApiController.createOrder);
 router.get('/orders', requirePermission('orders:read'), developerApiController.getOrders);
 router.get('/orders/:orderId', requirePermission('orders:read'), developerApiController.getOrder);
 
-// Account / Wallet
+// Account / Wallet (read-only)
 router.get('/balance', requirePermission('account:read'), developerApiController.getBalance);
 router.get('/account', requirePermission('account:read'), developerApiController.getAccount);
 

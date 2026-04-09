@@ -779,6 +779,11 @@ const DataEasyAPI = (function() {
                 body: JSON.stringify(data)
             });
         },
+        async resetKey(keyId) {
+            return request(`/developer/keys/${keyId}/reset`, {
+                method: 'POST'
+            });
+        },
         async revokeKey(keyId) {
             return request(`/developer/keys/${keyId}`, {
                 method: 'DELETE'

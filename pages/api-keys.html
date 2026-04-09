@@ -223,9 +223,14 @@ const order = await fetch('<span id="exampleBaseUrl2"></span>/api/v1/orders', {
                                 ${k.allowedDomains && k.allowedDomains.length > 0 ? `<p class="text-xs text-gray-500 mt-1"><i class="fas fa-globe mr-1"></i>Domains: ${k.allowedDomains.map(d => escapeHtml(d)).join(', ')}</p>` : ''}
                             </div>
                             ${k.isActive ? `
-                                <button onclick="revokeKey('${k.id}', '${escapeHtml(k.name)}')" class="text-red-400 hover:text-red-300 text-xs font-medium px-3 py-1.5 border border-red-800 rounded-lg hover:bg-red-900/30 transition flex-shrink-0">
-                                    <i class="fas fa-ban mr-1"></i>Revoke
-                                </button>
+                                <div class="flex gap-2 flex-shrink-0">
+                                    <button onclick="resetKey('${k.id}', '${escapeHtml(k.name)}')" class="text-yellow-400 hover:text-yellow-300 text-xs font-medium px-3 py-1.5 border border-yellow-800 rounded-lg hover:bg-yellow-900/30 transition">
+                                        <i class="fas fa-sync-alt mr-1"></i>Reset
+                                    </button>
+                                    <button onclick="revokeKey('${k.id}', '${escapeHtml(k.name)}')" class="text-red-400 hover:text-red-300 text-xs font-medium px-3 py-1.5 border border-red-800 rounded-lg hover:bg-red-900/30 transition">
+                                        <i class="fas fa-ban mr-1"></i>Revoke
+                                    </button>
+                                </div>
                             ` : ''}
                         </div>
                     </div>
@@ -292,6 +297,24 @@ const order = await fetch('<span id="exampleBaseUrl2"></span>/api/v1/orders', {
                 document.body.removeChild(ta);
                 toast('Copied to clipboard!', 'success');
             });
+        };
+
+        // Reset (regenerate) key
+        window.resetKey = async function(keyId, keyName) {
+            if (!confirm(`Reset API key "${keyName}"? The old key will stop working immediately. You'll get a new key to copy.`)) return;
+            try {
+                const data = await DataEasyAPI.Developer.resetKey(keyId);
+                if (data.success) {
+                    document.getElementById('newKeyDisplay').classList.remove('hidden');
+                    document.getElementById('newKeyValue').textContent = data.key.apiKey;
+                    toast('API key regenerated! Copy your new key now.', 'success');
+                    loadKeys();
+                } else {
+                    toast(data.error || 'Failed to reset key', 'error');
+                }
+            } catch (e) {
+                toast(e.message || 'Failed to reset key', 'error');
+            }
         };
 
         // Revoke key

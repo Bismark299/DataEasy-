@@ -16,6 +16,7 @@ router.post('/keys', apiKeyController.createKey);
 router.get('/keys', apiKeyController.listKeys);
 router.get('/keys/:keyId', apiKeyController.getKey);
 router.put('/keys/:keyId', apiKeyController.updateKey);
+router.post('/keys/:keyId/reset', apiKeyController.resetKey);
 router.delete('/keys/:keyId', apiKeyController.revokeKey);
 
 module.exports = router;
