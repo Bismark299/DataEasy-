@@ -46,8 +46,8 @@ exports.calculateFee = async (req, res) => {
     try {
         const amount = parseFloat(req.query.amount);
         
-        if (isNaN(amount) || amount < 1) {
-            return res.status(400).json({ error: 'Invalid amount' });
+        if (isNaN(amount) || amount < 5) {
+            return res.status(400).json({ error: 'Minimum topup amount is GH₵5.00' });
         }
 
         // Also check against admin-configured minimum deposit
@@ -124,8 +124,8 @@ exports.initializeTopup = async (req, res) => {
         const baseAmount = Math.round(parseFloat(req.body.amount) * 100) / 100;
         logger.debug('Initialize topup request', { baseAmount, userId: req.user.id });
 
-        if (isNaN(baseAmount) || baseAmount < 1) {
-            return res.status(400).json({ error: 'Minimum topup amount is GH₵1' });
+        if (isNaN(baseAmount) || baseAmount < 5) {
+            return res.status(400).json({ error: 'Minimum topup amount is GH₵5.00' });
         }
 
         // Check deposit limits from settings
@@ -133,11 +133,6 @@ exports.initializeTopup = async (req, res) => {
         if (baseAmount < depositLimits.minDeposit) {
             return res.status(400).json({ 
                 error: `Minimum topup amount is GH₵${depositLimits.minDeposit.toFixed(2)}` 
-            });
-        }
-        if (baseAmount > depositLimits.maxDeposit) {
-            return res.status(400).json({ 
-                error: `Maximum topup amount is GH₵${depositLimits.maxDeposit.toFixed(2)}` 
             });
         }
 

@@ -91,15 +91,12 @@ const orderValidation = [
  */
 const topupValidation = [
     body('amount')
-        .isFloat({ min: 1 }).withMessage('Amount must be a valid number')
+        .isFloat({ min: 5 }).withMessage('Minimum topup amount is GH₵5.00')
         .custom(async (value) => {
             const { Setting } = require('../models');
             const limits = await Setting.getDepositLimits();
             if (parseFloat(value) < limits.minDeposit) {
                 throw new Error(`Minimum topup amount is GH₵${limits.minDeposit.toFixed(2)}`);
-            }
-            if (parseFloat(value) > limits.maxDeposit) {
-                throw new Error(`Maximum topup amount is GH₵${limits.maxDeposit.toFixed(2)}`);
             }
             return true;
         }),

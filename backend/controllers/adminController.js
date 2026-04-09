@@ -12,8 +12,7 @@ const logger = require('../utils/logger');
 const { invalidateCache } = require('../middleware/cache');
 
 // Configuration constants
-const WALLET_ADJUSTMENT_LIMIT = 1000; // Maximum GH₵1000 per adjustment
-const DAILY_ADJUSTMENT_LIMIT = 5000; // Maximum total GH₵5000 per day per admin
+
 const REQUIRE_DESCRIPTION_ABOVE = 100; // Require description for amounts > GH₵100
 
 /**
@@ -864,33 +863,6 @@ exports.adjustWallet = async (req, res) => {
         if (!amount || amount <= 0 || isNaN(amount)) {
             await t.rollback();
             return res.status(400).json({ error: 'Invalid amount' });
-        }
-
-        // Enforce per-adjustment limit
-        if (amount > WALLET_ADJUSTMENT_LIMIT) {
-            await t.rollback();
-            return res.status(400).json({ 
-                error: `Maximum adjustment is GH₵${WALLET_ADJUSTMENT_LIMIT.toFixed(2)} per transaction` 
-            });
-        }
-
-        // Enforce daily adjustment limit per admin
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayAdjustments = await Transaction.sum('amount', {
-            where: {
-                paymentMethod: 'manual',
-                status: 'completed',
-                createdAt: { [Op.gte]: today }
-            },
-            transaction: t
-        }) || 0;
-
-        if (todayAdjustments + amount > DAILY_ADJUSTMENT_LIMIT) {
-            await t.rollback();
-            return res.status(400).json({ 
-                error: `Daily adjustment limit of GH₵${DAILY_ADJUSTMENT_LIMIT.toFixed(2)} would be exceeded. Today's total: GH₵${todayAdjustments.toFixed(2)}` 
-            });
         }
 
         const user = await User.findByPk(req.params.userId, { transaction: t });
@@ -1922,7 +1894,6 @@ exports.updateAppSettings = async (req, res) => {
             supportPhone,
             maintenanceMode,
             minDeposit,
-            maxDeposit,
             maxLoginAttempts,
             lockoutMinutes,
             sessionTimeoutHours,
@@ -1963,20 +1934,13 @@ exports.updateAppSettings = async (req, res) => {
         // Deposit limits
         if (minDeposit !== undefined) {
             const min = parseFloat(minDeposit);
-            if (min < 1) {
-                return res.status(400).json({ success: false, error: 'Minimum deposit must be at least GH₵1' });
+            if (min < 5) {
+                return res.status(400).json({ success: false, error: 'Minimum deposit must be at least GH₵5' });
             }
             await Setting.setValue('min_deposit', min, 'number', 'Minimum deposit amount');
             updates.push('minDeposit');
         }
-        if (maxDeposit !== undefined) {
-            const max = parseFloat(maxDeposit);
-            if (max < 1) {
-                return res.status(400).json({ success: false, error: 'Maximum deposit must be at least 1' });
-            }
-            await Setting.setValue('max_deposit', max, 'number', 'Maximum deposit amount');
-            updates.push('maxDeposit');
-        }
+
 
         // Security settings
         if (maxLoginAttempts !== undefined) {

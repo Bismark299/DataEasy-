@@ -1940,8 +1940,8 @@ const DataEasyApp = (function() {
     async function initiatePaystackPayment(amountInput, button) {
         const amount = parseFloat(amountInput.value);
         
-        if (!amount || amount < 1) {
-            Toast.error('Please enter a valid amount');
+        if (!amount || amount < 5) {
+            Toast.error('Minimum topup amount is GH₵5.00');
             return;
         }
 
