@@ -81,7 +81,7 @@ const Wallet = sequelize.define('Wallet', {
 }, {
     tableName: 'wallets',
     timestamps: true,
-    version: true // Enable Sequelize optimistic locking
+    version: false // Locking handled by SELECT FOR UPDATE in callers
 });
 
 /**
@@ -92,7 +92,8 @@ Wallet.prototype.getAvailableBalance = function() {
 };
 
 /**
- * Atomic credit operation with optimistic locking
+ * Atomic credit operation
+ * Callers must use SELECT FOR UPDATE to prevent races
  * @param {number} amount - Amount to credit
  * @param {object} options - Sequelize options (transaction, etc.)
  */
@@ -102,9 +103,6 @@ Wallet.prototype.credit = async function(amount, options = {}) {
         throw new Error('Credit amount must be positive');
     }
 
-    const currentVersion = this.version;
-    
-    // Atomic update with version check
     const [updatedCount] = await Wallet.update(
         {
             balance: sequelize.literal(`balance + ${creditAmount}`),
@@ -112,25 +110,22 @@ Wallet.prototype.credit = async function(amount, options = {}) {
             version: sequelize.literal('version + 1')
         },
         {
-            where: {
-                id: this.id,
-                version: currentVersion
-            },
+            where: { id: this.id },
             ...options
         }
     );
 
     if (updatedCount === 0) {
-        throw new Error('Wallet was modified by another transaction. Please retry.');
+        throw new Error('Wallet not found');
     }
 
-    // Reload to get updated values
     await this.reload(options);
     return this;
 };
 
 /**
- * Atomic debit operation with optimistic locking and balance check
+ * Atomic debit operation with balance check
+ * Callers must use SELECT FOR UPDATE to prevent races
  * @param {number} amount - Amount to debit
  * @param {object} options - Sequelize options (transaction, etc.)
  */
@@ -140,9 +135,6 @@ Wallet.prototype.debit = async function(amount, options = {}) {
         throw new Error('Debit amount must be positive');
     }
 
-    const currentVersion = this.version;
-    
-    // Atomic update with version check AND balance check
     const [updatedCount] = await Wallet.update(
         {
             balance: sequelize.literal(`balance - ${debitAmount}`),
@@ -152,9 +144,8 @@ Wallet.prototype.debit = async function(amount, options = {}) {
         {
             where: {
                 id: this.id,
-                version: currentVersion,
                 balance: {
-                    [Op.gte]: debitAmount // Atomic balance check
+                    [Op.gte]: debitAmount
                 }
             },
             ...options
@@ -162,15 +153,13 @@ Wallet.prototype.debit = async function(amount, options = {}) {
     );
 
     if (updatedCount === 0) {
-        // Check if it's a version conflict or insufficient balance
         const current = await Wallet.findByPk(this.id, options);
-        if (current.balance < debitAmount) {
+        if (!current || current.balance < debitAmount) {
             throw new Error('Insufficient balance');
         }
-        throw new Error('Wallet was modified by another transaction. Please retry.');
+        throw new Error('Wallet update failed. Please retry.');
     }
 
-    // Reload to get updated values
     await this.reload(options);
     return this;
 };
