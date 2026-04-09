@@ -23,29 +23,48 @@ const getOrderStatusPoller = () => {
     return orderStatusPoller;
 };
 
+let _orderSeqInitialized = false;
+
 /**
- * Generate unique sequential order ID (same as orderController)
+ * Generate unique sequential order ID using PostgreSQL sequence
+ * Safe for concurrent access — no row locking needed
  */
 async function generateOrderId(transaction) {
-    const lastOrder = await Order.findOne({
-        order: [['createdAt', 'DESC']],
-        lock: transaction.LOCK.UPDATE,
-        transaction
-    });
-    let nextNumber = 1;
-    if (lastOrder && lastOrder.orderId) {
-        const match = lastOrder.orderId.match(/(\d+)/);
-        if (match) {
-            const num = parseInt(match[match.length - 1] || match[0]);
-            if (num < 10000) {
-                nextNumber = num + 1;
-            } else {
-                const count = await Order.count({ transaction });
-                nextNumber = count + 1;
-            }
+    if (!_orderSeqInitialized) {
+        // Create sequence if it doesn't exist
+        await sequelize.query(
+            `CREATE SEQUENCE IF NOT EXISTS order_id_seq START WITH 1 INCREMENT BY 1`,
+            { transaction }
+        );
+        
+        // Sync sequence with existing orders
+        const [maxResult] = await sequelize.query(
+            `SELECT COALESCE(MAX(CAST(NULLIF(regexp_replace("orderId", '[^0-9]', '', 'g'), '') AS INTEGER)), 0) as max_id FROM "Orders"`,
+            { transaction }
+        );
+        const currentMax = maxResult[0]?.max_id || 0;
+        
+        const [seqResult] = await sequelize.query(
+            `SELECT last_value, is_called FROM order_id_seq`,
+            { transaction }
+        );
+        const seqVal = seqResult[0]?.is_called ? parseInt(seqResult[0]?.last_value) : 0;
+        
+        if (currentMax >= seqVal) {
+            await sequelize.query(
+                `SELECT setval('order_id_seq', ${currentMax + 1}, false)`,
+                { transaction }
+            );
         }
+        _orderSeqInitialized = true;
     }
-    return String(nextNumber).padStart(4, '0');
+    
+    const [nextVal] = await sequelize.query(
+        `SELECT nextval('order_id_seq') as next_id`,
+        { transaction }
+    );
+    
+    return String(nextVal[0].next_id).padStart(4, '0');
 }
 
 /**
@@ -90,209 +109,217 @@ exports.getPackages = async (req, res) => {
  * }
  */
 exports.createOrder = async (req, res) => {
-    const t = await sequelize.transaction();
+    const MAX_RETRIES = 3;
+    
+    // Validate input before starting any transaction
+    const { items, network } = req.body;
 
-    try {
-        const { items, network } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ success: false, error: 'items array is required.' });
+    }
 
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            await t.rollback();
-            return res.status(400).json({ success: false, error: 'items array is required.' });
+    if (!network) {
+        return res.status(400).json({ success: false, error: 'network is required (MTN, AirtelTigo, Telecel).' });
+    }
+
+    if (items.length > 10) {
+        return res.status(400).json({ success: false, error: 'Maximum 10 items per order.' });
+    }
+
+    const userRole = req.user.role || 'agent';
+
+    const phoneRegex = /^0[2-59]\d{8}$/;
+    for (const item of items) {
+        if (!item.phoneNumber || !phoneRegex.test(item.phoneNumber)) {
+            return res.status(400).json({ success: false, error: `Invalid phone number: ${item.phoneNumber || '(missing)'}. Use Ghana format e.g. 0241234567` });
+        }
+        if (!item.packageId) {
+            return res.status(400).json({ success: false, error: 'Each item requires a packageId.' });
+        }
+    }
+
+    const itemNetworks = items.map(item => getNetworkFromPackageId(item.packageId));
+    const uniqueNetworks = [...new Set(itemNetworks)];
+    if (uniqueNetworks.length > 1) {
+        return res.status(400).json({ success: false, error: 'All items must be from the same network.' });
+    }
+    if (uniqueNetworks[0] !== network) {
+        return res.status(400).json({ success: false, error: 'Network mismatch between items and specified network.' });
+    }
+
+    // Build order items with price snapshots (no DB transaction needed)
+    const orderItems = [];
+    let subtotal = 0;
+
+    for (const item of items) {
+        const pkg = await findPackage(item.packageId, userRole);
+        if (!pkg) {
+            return res.status(400).json({ success: false, error: `Invalid package: ${item.packageId}` });
+        }
+        if (pkg.priceSource !== 'database') {
+            return res.status(500).json({ success: false, error: 'Pricing system error.' });
         }
 
-        if (!network) {
-            await t.rollback();
-            return res.status(400).json({ success: false, error: 'network is required (MTN, AirtelTigo, Telecel).' });
+        const itemPrice = Math.round(parseFloat(pkg.price) * 100) / 100;
+        if (isNaN(itemPrice) || itemPrice <= 0) {
+            return res.status(500).json({ success: false, error: 'Pricing error. Contact support.' });
         }
 
-        if (items.length > 10) {
-            await t.rollback();
-            return res.status(400).json({ success: false, error: 'Maximum 10 items per order.' });
-        }
+        const itemCost = pkg.costPrice ? Math.round(parseFloat(pkg.costPrice) * 100) / 100 : null;
 
-        const userRole = req.user.role || 'agent';
-
-        // Validate phone numbers
-        const phoneRegex = /^0[2-59]\d{8}$/;
-        for (const item of items) {
-            if (!item.phoneNumber || !phoneRegex.test(item.phoneNumber)) {
-                await t.rollback();
-                return res.status(400).json({ success: false, error: `Invalid phone number: ${item.phoneNumber || '(missing)'}. Use Ghana format e.g. 0241234567` });
-            }
-            if (!item.packageId) {
-                await t.rollback();
-                return res.status(400).json({ success: false, error: 'Each item requires a packageId.' });
-            }
-        }
-
-        // Validate networks match
-        const itemNetworks = items.map(item => getNetworkFromPackageId(item.packageId));
-        const uniqueNetworks = [...new Set(itemNetworks)];
-        if (uniqueNetworks.length > 1) {
-            await t.rollback();
-            return res.status(400).json({ success: false, error: 'All items must be from the same network.' });
-        }
-        if (uniqueNetworks[0] !== network) {
-            await t.rollback();
-            return res.status(400).json({ success: false, error: 'Network mismatch between items and specified network.' });
-        }
-
-        // Build order items with price snapshots
-        const orderItems = [];
-        let subtotal = 0;
-
-        for (const item of items) {
-            const pkg = await findPackage(item.packageId, userRole);
-            if (!pkg) {
-                await t.rollback();
-                return res.status(400).json({ success: false, error: `Invalid package: ${item.packageId}` });
-            }
-            if (pkg.priceSource !== 'database') {
-                await t.rollback();
-                return res.status(500).json({ success: false, error: 'Pricing system error.' });
-            }
-
-            const itemPrice = Math.round(parseFloat(pkg.price) * 100) / 100;
-            if (isNaN(itemPrice) || itemPrice <= 0) {
-                await t.rollback();
-                return res.status(500).json({ success: false, error: 'Pricing error. Contact support.' });
-            }
-
-            const itemCost = pkg.costPrice ? Math.round(parseFloat(pkg.costPrice) * 100) / 100 : null;
-
-            orderItems.push({
-                packageId: pkg.id,
-                packageName: pkg.name,
-                data: pkg.data,
-                price: itemPrice,
-                costPrice: itemCost,
-                priceLockedAt: new Date().toISOString(),
-                priceSource: 'database',
-                userRole,
-                phoneNumber: item.phoneNumber,
-                deliveryStatus: 'Pending'
-            });
-
-            subtotal += itemPrice;
-        }
-
-        subtotal = Math.round(subtotal * 100) / 100;
-        const total = subtotal;
-
-        // Wallet debit (atomic with row lock)
-        const wallet = await Wallet.findOne({
-            where: { userId: req.user.id },
-            lock: t.LOCK.UPDATE,
-            transaction: t
+        orderItems.push({
+            packageId: pkg.id,
+            packageName: pkg.name,
+            data: pkg.data,
+            price: itemPrice,
+            costPrice: itemCost,
+            priceLockedAt: new Date().toISOString(),
+            priceSource: 'database',
+            userRole,
+            phoneNumber: item.phoneNumber,
+            deliveryStatus: 'Pending'
         });
 
-        if (!wallet) {
-            await t.rollback();
-            return res.status(400).json({ success: false, error: 'Wallet not found.' });
-        }
+        subtotal += itemPrice;
+    }
 
-        if (wallet.balance < total) {
-            await t.rollback();
-            return res.status(400).json({
-                success: false,
-                error: 'Insufficient wallet balance.',
-                required: total,
-                available: parseFloat(wallet.balance)
-            });
-        }
+    subtotal = Math.round(subtotal * 100) / 100;
+    const total = subtotal;
 
-        const balanceBefore = wallet.balance;
-        await wallet.debit(total, { transaction: t });
-
-        const orderId = await generateOrderId(t);
-
-        const order = await Order.create({
-            orderId,
-            userId: req.user.id,
-            items: orderItems,
-            network,
-            subtotal,
-            total,
-            paymentStatus: 'Completed',
-            paymentMethod: 'wallet',
-            deliveryStatus: 'Processing'
-        }, { transaction: t });
-
-        await Transaction.create({
-            userId: req.user.id,
-            type: 'debit',
-            amount: total,
-            balanceBefore,
-            balanceAfter: wallet.balance,
-            description: `API Order #${order.orderId} - ${orderItems.length} item(s)`,
-            reference: `ORDER-${order.orderId}`,
-            paymentMethod: 'order',
-            status: 'completed',
-            orderId: order.id
-        }, { transaction: t });
-
-        await t.commit();
-
-        // Auto-delivery via MCBIS (same as core order flow)
+    // Retry loop for concurrent transaction conflicts
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        const t = await sequelize.transaction();
         try {
-            const shouldAutoDeliver = await Setting.shouldDeliverViaMcbis(network);
-            if (shouldAutoDeliver) {
-                const provider = getMcbisProvider();
-                const poller = getOrderStatusPoller();
+            // Wallet debit (atomic with row lock)
+            const wallet = await Wallet.findOne({
+                where: { userId: req.user.id },
+                lock: t.LOCK.UPDATE,
+                transaction: t
+            });
 
-                for (let i = 0; i < orderItems.length; i++) {
-                    try {
-                        const deliveryResult = await provider.deliverBundle({
-                            orderId: order.id,
-                            itemIndex: i,
-                            network,
-                            phoneNumber: orderItems[i].phoneNumber,
-                            dataAmount: orderItems[i].data,
-                            price: orderItems[i].costPrice || orderItems[i].price,
-                            existingReference: orderItems[i].providerReference
-                        });
-                        if (deliveryResult.reference) {
-                            poller.startPolling({
-                                orderId: order.id,
-                                itemIndex: i,
-                                reference: deliveryResult.reference,
-                                displayOrderId: order.orderId
-                            });
-                        }
-                    } catch (deliveryError) {
-                        logger.error('API order auto-delivery failed for item', { orderId: order.orderId, itemIndex: i, error: deliveryError.message });
-                    }
-                }
+            if (!wallet) {
+                await t.rollback();
+                return res.status(400).json({ success: false, error: 'Wallet not found.' });
             }
-        } catch (autoDeliveryError) {
-            logger.error('API order auto-delivery error', { orderId: order.orderId, error: autoDeliveryError.message });
-        }
 
-        res.status(201).json({
-            success: true,
-            order: {
-                id: order.id,
-                orderId: order.orderId,
+            if (wallet.balance < total) {
+                await t.rollback();
+                return res.status(400).json({
+                    success: false,
+                    error: 'Insufficient wallet balance.',
+                    required: total,
+                    available: parseFloat(wallet.balance)
+                });
+            }
+
+            const balanceBefore = wallet.balance;
+            await wallet.debit(total, { transaction: t });
+
+            const orderId = await generateOrderId(t);
+
+            const order = await Order.create({
+                orderId,
+                userId: req.user.id,
+                items: orderItems,
                 network,
-                items: orderItems.map(item => ({
-                    packageId: item.packageId,
-                    packageName: item.packageName,
-                    data: item.data,
-                    price: item.price,
-                    phoneNumber: item.phoneNumber,
-                    deliveryStatus: item.deliveryStatus
-                })),
+                subtotal,
                 total,
                 paymentStatus: 'Completed',
-                deliveryStatus: 'Processing',
-                createdAt: order.createdAt
-            },
-            walletBalance: parseFloat(wallet.balance)
-        });
-    } catch (error) {
-        try { await t.rollback(); } catch (_) {}
-        logger.error('Developer API create order error', { error: error.message, userId: req.user?.id });
-        res.status(500).json({ success: false, error: 'Failed to create order.' });
+                paymentMethod: 'wallet',
+                deliveryStatus: 'Processing'
+            }, { transaction: t });
+
+            await Transaction.create({
+                userId: req.user.id,
+                type: 'debit',
+                amount: total,
+                balanceBefore,
+                balanceAfter: wallet.balance,
+                description: `API Order #${order.orderId} - ${orderItems.length} item(s)`,
+                reference: `ORDER-${order.orderId}`,
+                paymentMethod: 'order',
+                status: 'completed',
+                orderId: order.id
+            }, { transaction: t });
+
+            await t.commit();
+
+            // Auto-delivery via MCBIS (same as core order flow)
+            try {
+                const shouldAutoDeliver = await Setting.shouldDeliverViaMcbis(network);
+                if (shouldAutoDeliver) {
+                    const provider = getMcbisProvider();
+                    const poller = getOrderStatusPoller();
+
+                    for (let i = 0; i < orderItems.length; i++) {
+                        try {
+                            const deliveryResult = await provider.deliverBundle({
+                                orderId: order.id,
+                                itemIndex: i,
+                                network,
+                                phoneNumber: orderItems[i].phoneNumber,
+                                dataAmount: orderItems[i].data,
+                                price: orderItems[i].costPrice || orderItems[i].price,
+                                existingReference: orderItems[i].providerReference
+                            });
+                            if (deliveryResult.reference) {
+                                poller.startPolling({
+                                    orderId: order.id,
+                                    itemIndex: i,
+                                    reference: deliveryResult.reference,
+                                    displayOrderId: order.orderId
+                                });
+                            }
+                        } catch (deliveryError) {
+                            logger.error('API order auto-delivery failed for item', { orderId: order.orderId, itemIndex: i, error: deliveryError.message });
+                        }
+                    }
+                }
+            } catch (autoDeliveryError) {
+                logger.error('API order auto-delivery error', { orderId: order.orderId, error: autoDeliveryError.message });
+            }
+
+            return res.status(201).json({
+                success: true,
+                order: {
+                    id: order.id,
+                    orderId: order.orderId,
+                    network,
+                    items: orderItems.map(item => ({
+                        packageId: item.packageId,
+                        packageName: item.packageName,
+                        data: item.data,
+                        price: item.price,
+                        phoneNumber: item.phoneNumber,
+                        deliveryStatus: item.deliveryStatus
+                    })),
+                    total,
+                    paymentStatus: 'Completed',
+                    deliveryStatus: 'Processing',
+                    createdAt: order.createdAt
+                },
+                walletBalance: parseFloat(wallet.balance)
+            });
+        } catch (error) {
+            try { await t.rollback(); } catch (_) {}
+            
+            const isRetryable = error.message.includes('modified by another transaction') ||
+                error.message.includes('deadlock') ||
+                error.message.includes('could not serialize') ||
+                error.message.includes('lock timeout') ||
+                error.parent?.code === '40P01' || // PostgreSQL deadlock
+                error.parent?.code === '40001';   // PostgreSQL serialization failure
+            
+            if (isRetryable && attempt < MAX_RETRIES) {
+                const delay = Math.min(100 * Math.pow(2, attempt - 1), 1000);
+                logger.warn(`API order retry attempt ${attempt}/${MAX_RETRIES}`, { userId: req.user?.id, error: error.message, delay });
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            
+            logger.error('Developer API create order error', { error: error.message, userId: req.user?.id, attempt });
+            return res.status(500).json({ success: false, error: 'Failed to create order.' });
+        }
     }
 };
 

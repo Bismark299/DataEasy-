@@ -120,37 +120,49 @@ exports.getPackagesByNetwork = async (req, res) => {
     }
 };
 
+let _orderSeqInitialized = false;
+
 /**
- * Generate unique sequential order ID starting from 0001
- * MUST be called within a transaction with proper locking to prevent race conditions
+ * Generate unique sequential order ID using PostgreSQL sequence
+ * Safe for concurrent access — no row locking needed
  * @param {Transaction} transaction - Sequelize transaction object
  */
 async function generateOrderId(transaction) {
-    // Use row locking within the transaction to prevent race conditions
-    const lastOrder = await Order.findOne({
-        order: [['createdAt', 'DESC']],
-        lock: transaction.LOCK.UPDATE,
-        transaction: transaction
-    });
-    
-    let nextNumber = 1;
-    if (lastOrder && lastOrder.orderId) {
-        // Extract number from existing orderId (handles both old BTU- and new numeric format)
-        const match = lastOrder.orderId.match(/(\d+)/);
-        if (match) {
-            const num = parseInt(match[match.length - 1] || match[0]);
-            // If it's a 4-digit sequential number, increment it
-            if (num < 10000) {
-                nextNumber = num + 1;
-            } else {
-                // For old format, start fresh
-                const count = await Order.count({ transaction });
-                nextNumber = count + 1;
-            }
+    if (!_orderSeqInitialized) {
+        // Create sequence if it doesn't exist
+        await sequelize.query(
+            `CREATE SEQUENCE IF NOT EXISTS order_id_seq START WITH 1 INCREMENT BY 1`,
+            { transaction }
+        );
+        
+        // Sync sequence with existing orders
+        const [maxResult] = await sequelize.query(
+            `SELECT COALESCE(MAX(CAST(NULLIF(regexp_replace("orderId", '[^0-9]', '', 'g'), '') AS INTEGER)), 0) as max_id FROM "Orders"`,
+            { transaction }
+        );
+        const currentMax = maxResult[0]?.max_id || 0;
+        
+        const [seqResult] = await sequelize.query(
+            `SELECT last_value, is_called FROM order_id_seq`,
+            { transaction }
+        );
+        const seqVal = seqResult[0]?.is_called ? parseInt(seqResult[0]?.last_value) : 0;
+        
+        if (currentMax >= seqVal) {
+            await sequelize.query(
+                `SELECT setval('order_id_seq', ${currentMax + 1}, false)`,
+                { transaction }
+            );
         }
+        _orderSeqInitialized = true;
     }
     
-    return String(nextNumber).padStart(4, '0');
+    const [nextVal] = await sequelize.query(
+        `SELECT nextval('order_id_seq') as next_id`,
+        { transaction }
+    );
+    
+    return String(nextVal[0].next_id).padStart(4, '0');
 }
 
 /**
