@@ -137,7 +137,7 @@ async function generateOrderId(transaction) {
         
         // Sync sequence with existing orders
         const [maxResult] = await sequelize.query(
-            `SELECT COALESCE(MAX(CAST(NULLIF(regexp_replace("orderId", '[^0-9]', '', 'g'), '') AS INTEGER)), 0) as max_id FROM "Orders"`,
+            `SELECT COALESCE(MAX(CAST(NULLIF(regexp_replace("orderId", '[^0-9]', '', 'g'), '') AS INTEGER)), 0) as max_id FROM "orders"`,
             { transaction }
         );
         const currentMax = maxResult[0]?.max_id || 0;
