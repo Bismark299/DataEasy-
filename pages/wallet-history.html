@@ -277,7 +277,32 @@
         <!-- Transactions Section -->
         <div class="bg-card-bg rounded-xl border border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-700">
-                <h2 class="text-white text-lg md:text-xl font-semibold text-center">TRANSACTIONS</h2>
+                <h2 class="text-white text-lg md:text-xl font-semibold text-center mb-4">TRANSACTIONS</h2>
+                <!-- Filters -->
+                <div class="flex flex-col sm:flex-row gap-3 items-end">
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-gray-400 text-xs mb-1">From</label>
+                        <input type="date" id="filter-start-date" class="w-full bg-gray-800 text-white text-sm py-2 px-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-gray-400 text-xs mb-1">To</label>
+                        <input type="date" id="filter-end-date" class="w-full bg-gray-800 text-white text-sm py-2 px-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label class="block text-gray-400 text-xs mb-1">Type</label>
+                        <select id="filter-type" class="w-full bg-gray-800 text-white text-sm py-2 px-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none">
+                            <option value="">All</option>
+                            <option value="credit">Credit</option>
+                            <option value="debit">Debit</option>
+                        </select>
+                    </div>
+                    <button id="apply-filters-btn" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition whitespace-nowrap">
+                        <i class="fas fa-filter mr-1"></i>Filter
+                    </button>
+                    <button id="clear-filters-btn" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded-lg transition whitespace-nowrap">
+                        Clear
+                    </button>
+                </div>
             </div>
             
             <!-- Mobile Transaction Cards -->
@@ -312,9 +337,13 @@
             </div>
 
             <!-- Pagination -->
-            <div class="p-4">
-                <button class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition text-sm">
-                    Next
+            <div class="p-4 flex items-center justify-between" id="wallet-pagination">
+                <button id="prev-page-btn" class="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition text-sm disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                    <i class="fas fa-chevron-left mr-1"></i> Previous
+                </button>
+                <span id="page-info" class="text-gray-400 text-sm">Page 1</span>
+                <button id="next-page-btn" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition text-sm disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                    Next <i class="fas fa-chevron-right ml-1"></i>
                 </button>
             </div>
         </div>

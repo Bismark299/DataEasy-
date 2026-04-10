@@ -79,10 +79,20 @@ exports.calculateFee = async (req, res) => {
  */
 exports.getHistory = async (req, res) => {
     try {
-        const { page = 1, limit = 20, type } = req.query;
+        const { page = 1, limit = 20, type, startDate, endDate } = req.query;
 
         const where = { userId: req.user.id };
         if (type) where.type = type;
+        if (startDate || endDate) {
+            const { Op } = require('sequelize');
+            where.createdAt = {};
+            if (startDate) where.createdAt[Op.gte] = new Date(startDate);
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt[Op.lte] = end;
+            }
+        }
 
         const { count, rows: transactions } = await Transaction.findAndCountAll({
             where,

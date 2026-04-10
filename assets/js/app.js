@@ -1931,6 +1931,48 @@ const DataEasyApp = (function() {
             });
         });
 
+        // Transaction filters
+        const applyFiltersBtn = document.getElementById('apply-filters-btn');
+        const clearFiltersBtn = document.getElementById('clear-filters-btn');
+        if (applyFiltersBtn) {
+            applyFiltersBtn.addEventListener('click', () => {
+                walletCurrentPage = 1;
+                renderWalletTransactions();
+            });
+        }
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', () => {
+                const startEl = document.getElementById('filter-start-date');
+                const endEl = document.getElementById('filter-end-date');
+                const typeEl = document.getElementById('filter-type');
+                if (startEl) startEl.value = '';
+                if (endEl) endEl.value = '';
+                if (typeEl) typeEl.value = '';
+                walletCurrentPage = 1;
+                renderWalletTransactions();
+            });
+        }
+
+        // Pagination buttons
+        const prevBtn = document.getElementById('prev-page-btn');
+        const nextBtn = document.getElementById('next-page-btn');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                if (walletCurrentPage > 1) {
+                    walletCurrentPage--;
+                    renderWalletTransactions();
+                }
+            });
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (walletCurrentPage < walletTotalPages) {
+                    walletCurrentPage++;
+                    renderWalletTransactions();
+                }
+            });
+        }
+
         await renderWalletTransactions();
     }
 
@@ -2088,30 +2130,53 @@ const DataEasyApp = (function() {
         }
     }
 
+    let walletCurrentPage = 1;
+    let walletTotalPages = 1;
+
     async function renderWalletTransactions() {
         const desktopContainer = document.getElementById('wallet-transactions') || document.getElementById('transactions-table-body');
         const mobileContainer = document.getElementById('mobile-transactions-container');
         
         if (!desktopContainer && !mobileContainer) return;
 
+        // Gather filter values
+        const startDateEl = document.getElementById('filter-start-date');
+        const endDateEl = document.getElementById('filter-end-date');
+        const typeEl = document.getElementById('filter-type');
+        const filterParams = { limit: 20, page: walletCurrentPage };
+        if (startDateEl && startDateEl.value) filterParams.startDate = startDateEl.value;
+        if (endDateEl && endDateEl.value) filterParams.endDate = endDateEl.value;
+        if (typeEl && typeEl.value) filterParams.type = typeEl.value;
+
         let transactions = [];
 
         // Try API first
         if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
             try {
-                const response = await DataEasyAPI.Wallet.getHistory({ limit: 20 });
+                const response = await DataEasyAPI.Wallet.getHistory(filterParams);
                 if (response.success) {
                     transactions = response.transactions.map(tx => ({
                         ...tx,
                         id: tx._id,
                         date: tx.createdAt
                     }));
+                    if (response.pagination) {
+                        walletTotalPages = response.pagination.pages || 1;
+                    }
                 }
             } catch (e) {
                 console.error(e);
                 // Fall back to localStorage
             }
         }
+
+        // Update pagination UI
+        const pPrevBtn = document.getElementById('prev-page-btn');
+        const pNextBtn = document.getElementById('next-page-btn');
+        const pageInfo = document.getElementById('page-info');
+        if (pPrevBtn) pPrevBtn.disabled = walletCurrentPage <= 1;
+        if (pNextBtn) pNextBtn.disabled = walletCurrentPage >= walletTotalPages;
+        if (pageInfo) pageInfo.textContent = `Page ${walletCurrentPage} of ${walletTotalPages}`;
 
         // Fallback to localStorage
         if (transactions.length === 0) {
