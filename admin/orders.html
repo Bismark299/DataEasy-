@@ -1221,13 +1221,16 @@
                         if (!itemPhone.includes(phoneFilter)) return;
                     }
 
+                    const rawData = item.packageName || item.data || 'N/A';
+                    const cleanData = rawData.replace(/\s*(GB|MB)/gi, '').trim();
+
                     rows.push([
                         csvSafe(new Date(order.createdAt).toLocaleString()),
                         csvSafe(order.orderId || order.id),
                         csvSafe(order.user?.fullName || order.user?.name || 'N/A'),
                         csvSafe(recipient),
                         csvSafe(getNetwork(item, order)),
-                        csvSafe(item.packageName || item.data || 'N/A'),
+                        csvSafe(cleanData),
                         parseFloat(item.price || order.total || 0).toFixed(2),
                         csvSafe(order.paymentStatus || 'completed'),
                         csvSafe(item.deliveryStatus || order.deliveryStatus || order.status || 'pending')

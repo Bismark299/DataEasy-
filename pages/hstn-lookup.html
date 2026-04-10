@@ -465,7 +465,7 @@
                 <form id="bulk-form">
                     <div class="form-group" style="margin-bottom:12px;">
                         <label>Phone Numbers <span class="count-badge" id="phone-count">0 numbers</span></label>
-                        <textarea id="bulk-phones" rows="6" placeholder="number  GB (per line):&#10;0241234567&#9;4&#10;0551234567&#9;2&#10;0201234567&#9;8&#10;0546112120&#9;25"></textarea>
+                        <textarea id="bulk-phones" rows="10" placeholder="number  GB (per line):&#10;0241234567&#9;4&#10;0551234567&#9;2&#10;0201234567&#9;8&#10;0546112120&#9;25&#10;&#10;Supports 1000+ numbers"></textarea>
                         <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Tab or space between number and GB. GB is optional per line.</span>
                     </div>
                     <div class="form-row" style="margin-bottom:12px;">
@@ -723,7 +723,7 @@
             }
         });
 
-        // Bulk search
+        // Bulk search – sends chunks of 50 numbers to avoid timeouts
         document.getElementById('bulk-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const phonesRaw = document.getElementById('bulk-phones').value.trim();
@@ -755,37 +755,59 @@
             document.getElementById('export-noinfo-btn').classList.add('hidden');
             document.getElementById('copy-noinfo-btn').classList.add('hidden');
             progressBar.style.display = 'block';
-            progressFill.style.width = '10%';
+            progressFill.style.width = '0%';
             progressLabel.textContent = 'Searching ' + entries.length + ' number(s)...';
             container.innerHTML = '<div class="loading"><div class="loader"></div></div>';
 
             try {
-                progressFill.style.width = '40%';
-                const res = await fetch(API_BASE + '/bulk-search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phones: entries })
-                });
-                progressFill.style.width = '80%';
-                const json = await res.json();
-                progressFill.style.width = '100%';
-
-                if (!json.success) {
-                    container.innerHTML = '<div class="error-msg"><i class="fas fa-exclamation-circle"></i> ' + json.error + '</div>';
-                    return;
+                // Split entries into chunks of 50 to avoid server timeouts
+                const CHUNK_SIZE = 50;
+                const chunks = [];
+                for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+                    chunks.push(entries.slice(i, i + CHUNK_SIZE));
                 }
 
-                lastBulkData = json.results;
+                const allResults = [];
+                let completed = 0;
+
+                for (const chunk of chunks) {
+                    const res = await fetch(API_BASE + '/bulk-search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phones: chunk })
+                    });
+                    const json = await res.json();
+
+                    if (!json.success) {
+                        // Mark all in this chunk as errors
+                        chunk.forEach(entry => {
+                            allResults.push({ phone: entry.phone, success: false, error: json.error || 'Request failed', records: [], total: 0 });
+                        });
+                    } else {
+                        allResults.push(...json.results);
+                    }
+
+                    completed += chunk.length;
+                    const pct = Math.round((completed / entries.length) * 100);
+                    progressFill.style.width = pct + '%';
+                    progressLabel.textContent = 'Searched ' + completed + ' / ' + entries.length + ' numbers (' + pct + '%)';
+                }
+
+                progressFill.style.width = '100%';
+                progressLabel.textContent = 'Done – ' + entries.length + ' number(s) searched';
+
+                lastBulkData = allResults;
+                const jsonResults = allResults;
 
                 // Apply date filter to each result's records
-                json.results.forEach(r => {
+                jsonResults.forEach(r => {
                     if (r.success && r.records) {
                         r.records = filterByDate(r.records, dateFrom, dateTo);
                     }
                 });
 
                 let totalRecords = 0, withRecords = 0, noRecords = 0, errors = 0;
-                json.results.forEach(r => {
+                jsonResults.forEach(r => {
                     if (!r.success) { errors++; return; }
                     if (r.records.length > 0) { withRecords++; totalRecords += r.records.length; }
                     else noRecords++;
@@ -800,7 +822,7 @@
                 html += '</div>';
 
                 // Per-number cards (numbered, always open, screenshot-friendly)
-                json.results.forEach((r, idx) => {
+                jsonResults.forEach((r, idx) => {
                     const localPhone = r.phone;
                     const count = r.success ? r.records.length : 0;
                     const isErr = !r.success;

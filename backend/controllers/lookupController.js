@@ -98,7 +98,7 @@ exports.bulkSearch = async (req, res) => {
         });
 
         const results = [];
-        const batchSize = 5;
+        const batchSize = 10;
 
         for (let i = 0; i < uniqueEntries.length; i += batchSize) {
             const batch = uniqueEntries.slice(i, i + batchSize);
