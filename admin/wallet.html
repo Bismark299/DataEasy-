@@ -730,6 +730,11 @@
         }
 
         function filterTransactions() {
+            currentPage = 1;
+            applyFilters();
+        }
+
+        function applyFilters() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const type = document.getElementById('typeFilter').value;
             const status = document.getElementById('statusFilter').value;
@@ -758,7 +763,6 @@
                 return true;
             });
 
-            currentPage = 1;
             renderTransactions(filtered);
         }
 
@@ -850,7 +854,7 @@
             document.getElementById('paginationButtons').innerHTML = paginationHTML;
         }
 
-        function goToPage(page) { currentPage = page; filterTransactions(); }
+        function goToPage(page) { currentPage = page; applyFilters(); }
 
         function clearFilters() {
             document.getElementById('searchInput').value = '';
