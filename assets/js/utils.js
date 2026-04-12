@@ -452,86 +452,13 @@ const DataEasyUtils = (function() {
     };
 
     // ==========================================
-    // PAYSTACK CONFIGURATION
+    // PAYSTACK (DEPRECATED - use DataEasyAPI.Paystack.openPopup instead)
+    // All payments must go through the backend to ensure wallet is credited in the database.
     // ==========================================
     const Paystack = {
-        // Paystack public key (loaded from backend config)
-        get publicKey() { return window.PAYSTACK_PUBLIC_KEY || ''; },
-        
-        /**
-         * Initialize Paystack payment
-         * @param {Object} options - Payment options
-         * @param {number} options.amount - Amount in GHS (will be converted to pesewas)
-         * @param {string} options.email - Customer email
-         * @param {Function} options.onSuccess - Success callback
-         * @param {Function} options.onCancel - Cancel callback
-         */
-        async pay(options) {
-            const { amount, email, onSuccess, onCancel, metadata = {} } = options;
-
-            // Wait for config to load
-            if (window.PAYSTACK_CONFIG_PROMISE) {
-                await window.PAYSTACK_CONFIG_PROMISE;
-            }
-
-            if (!window.PaystackPop) {
-                Toast.error('Payment system not loaded. Please refresh the page.');
-                return;
-            }
-            
-            // Check if key is configured
-            if (!this.publicKey || !this.publicKey.startsWith('pk_')) {
-                Toast.error('Payment system not configured. Please contact support.');
-                return;
-            }
-            
-            const handler = PaystackPop.setup({
-                key: this.publicKey,
-                email: email,
-                amount: Math.round(amount * 100), // Convert to pesewas
-                currency: 'GHS',
-                ref: 'BTU_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                metadata: {
-                    custom_fields: [
-                        {
-                            display_name: "Platform",
-                            variable_name: "platform",
-                            value: "DataEasy+"
-                        },
-                        ...Object.entries(metadata).map(([key, value]) => ({
-                            display_name: key,
-                            variable_name: key.toLowerCase().replace(/\s+/g, '_'),
-                            value: value
-                        }))
-                    ]
-                },
-                callback: function(response) {
-                    // Payment successful
-                    if (onSuccess) {
-                        onSuccess({
-                            reference: response.reference,
-                            transaction: response.transaction,
-                            status: response.status,
-                            amount: amount
-                        });
-                    }
-                },
-                onClose: function() {
-                    // Payment window closed
-                    if (onCancel) {
-                        onCancel();
-                    }
-                }
-            });
-
-            handler.openIframe();
-        },
-
-        /**
-         * Set the public key (useful for switching between test/live)
-         */
-        setPublicKey(key) {
-            this.publicKey = key;
+        pay() {
+            Toast.error('Payment system error. Please refresh the page and try again.');
+            console.error('Paystack.pay() is deprecated. Use DataEasyAPI.Paystack.openPopup() instead.');
         }
     };
 

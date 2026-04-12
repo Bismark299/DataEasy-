@@ -829,16 +829,14 @@ const DataEasyApp = (function() {
         let todayCredit = 0;
         let todayDebit = 0;
         
-        // Try API first
-        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
+        if (typeof DataEasyAPI === 'undefined' || !DataEasyAPI.Auth.isAuthenticated()) {
+            // Not authenticated - show zero, don't use stale localStorage
+            balance = 0;
+        } else {
             try {
                 const response = await DataEasyAPI.Wallet.getBalance();
                 if (response.success) {
                     balance = response.balance;
-                    // Also update localStorage for offline use
-                    const wallet = Storage.get('wallet', { balance: 0, transactions: [] });
-                    wallet.balance = balance;
-                    Storage.set('wallet', wallet);
                 }
                 
                 // Fetch today's transactions from wallet history
@@ -858,31 +856,12 @@ const DataEasyApp = (function() {
                         });
                     }
                 } catch (e) {
-                    console.error(e);
-                    // Silently handle today transactions fetch failure
+                    console.error('Failed to fetch today transactions:', e);
                 }
             } catch (e) {
-                console.error(e);
-                // Fallback to localStorage
-                const wallet = Storage.get('wallet', { balance: 0 });
-                balance = wallet.balance;
+                console.error('Failed to fetch wallet balance:', e);
+                Toast.error('Could not load wallet balance. Please refresh.');
             }
-        } else {
-            const wallet = Storage.get('wallet', { balance: 0, transactions: [] });
-            balance = wallet.balance;
-            
-            // Calculate today's from localStorage
-            const today = new Date().toDateString();
-            (wallet.transactions || []).forEach(tx => {
-                const txDate = new Date(tx.createdAt).toDateString();
-                if (txDate === today) {
-                    if (tx.type === 'credit') {
-                        todayCredit += parseFloat(tx.amount) || 0;
-                    } else if (tx.type === 'debit') {
-                        todayDebit += parseFloat(tx.amount) || 0;
-                    }
-                }
-            });
         }
         
         document.querySelectorAll('[data-wallet-balance]').forEach(el => {
@@ -956,16 +935,12 @@ const DataEasyApp = (function() {
                     allOrders = fetched;
                     return;
                 } catch (e) {
-                    console.error(e);
-                    // Fall back to localStorage
+                    console.error('Failed to fetch orders:', e);
+                    Toast.error('Could not load orders. Please refresh.');
+                    allOrders = [];
                 }
-            }
-            
-            // Fallback to localStorage
-            allOrders = Storage.get('orders', []);
-            const user = Storage.get('user');
-            if (user) {
-                allOrders = allOrders.filter(o => o.userId === user.id);
+            } else {
+                allOrders = [];
             }
         }
 
@@ -1496,10 +1471,21 @@ const DataEasyApp = (function() {
     // ==========================================
     // EXPORT ORDER (Legacy - for backwards compatibility)
     // ==========================================
-    function exportOrder(orderId) {
-        const orders = Storage.get('orders', []);
-        const order = orders.find(o => o.id === orderId);
-        
+    async function exportOrder(orderId) {
+        let order = null;
+
+        // Fetch from API
+        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
+            try {
+                const response = await DataEasyAPI.Orders.getById(orderId);
+                if (response.success) {
+                    order = response.order;
+                }
+            } catch (e) {
+                console.error('Failed to fetch order for export:', e);
+            }
+        }
+
         if (!order) {
             Toast.error('Order not found');
             return;
@@ -1563,15 +1549,9 @@ const DataEasyApp = (function() {
                     order.id = order.orderId;  // Normalize id field
                 }
             } catch (e) {
-                console.error(e);
-                // Fall back to localStorage
+                console.error('Failed to fetch order details:', e);
+                Toast.error('Could not load order details. Please refresh.');
             }
-        }
-
-        // Fallback to localStorage
-        if (!order) {
-            const orders = Storage.get('orders', []);
-            order = orders.find(o => o.id === orderId || o.orderId === orderId);
         }
 
         if (!order) {
@@ -2015,74 +1995,37 @@ const DataEasyApp = (function() {
 
         // Paystack flow - popup
 
-        // Try using API if available
-        if (typeof DataEasyAPI !== 'undefined' && DataEasyAPI.Auth.isAuthenticated()) {
-            try {
-                await DataEasyAPI.Paystack.openPopup(
-                    user.email,
-                    amount,
-                    async (verification) => {
-                        DOM.setLoading(button, false);
-                        if (verification && verification.success) {
-                            Toast.success(`GH₵${amount.toFixed(2)} added to wallet successfully!`);
-                            amountInput.value = '';
-                            await updateWalletDisplay();
-                            await renderWalletTransactions();
-                        } else {
-                            Toast.error(verification?.error || 'Payment verification failed');
-                        }
-                    },
-                    () => {
-                        DOM.setLoading(button, false);
-                        Toast.warning('Payment cancelled');
-                    }
-                );
-                return;
-            } catch (error) {
-                console.error(error);
-                Toast.error(error.message || 'Payment failed');
-                DOM.setLoading(button, false);
-            }
+        if (typeof DataEasyAPI === 'undefined' || !DataEasyAPI.Auth.isAuthenticated()) {
+            DOM.setLoading(button, false);
+            Toast.error('Please login to top up your wallet');
+            return;
         }
 
-        // Fallback to localStorage Paystack
-        Paystack.pay({
-            amount: amount,
-            email: user.email,
-            metadata: {
-                'User ID': user.id,
-                'User Name': user.fullName,
-                'Transaction Type': 'Wallet Top-up'
-            },
-            onSuccess: (response) => {
-                DOM.setLoading(button, false);
-                
-                // Credit wallet
-                const wallet = Storage.get('wallet', { balance: 0, transactions: [] });
-                wallet.balance += amount;
-                wallet.transactions = wallet.transactions || [];
-                wallet.transactions.unshift({
-                    id: Date.now().toString(36),
-                    type: 'credit',
-                    amount: amount,
-                    description: 'Wallet top-up via Paystack',
-                    reference: response.reference,
-                    date: new Date().toISOString()
-                });
-                Storage.set('wallet', wallet);
-
-                updateWalletDisplay();
-                Toast.success(`GH₵${amount.toFixed(2)} added to wallet successfully!`);
-                amountInput.value = '';
-
-                // Re-render transactions
-                renderWalletTransactions();
-            },
-            onCancel: () => {
-                DOM.setLoading(button, false);
-                Toast.warning('Payment cancelled');
-            }
-        });
+        try {
+            await DataEasyAPI.Paystack.openPopup(
+                user.email,
+                amount,
+                async (verification) => {
+                    DOM.setLoading(button, false);
+                    if (verification && verification.success) {
+                        Toast.success(`GH₵${amount.toFixed(2)} added to wallet successfully!`);
+                        amountInput.value = '';
+                        await updateWalletDisplay();
+                        await renderWalletTransactions();
+                    } else {
+                        Toast.error(verification?.error || 'Payment verification failed');
+                    }
+                },
+                () => {
+                    DOM.setLoading(button, false);
+                    Toast.warning('Payment cancelled');
+                }
+            );
+        } catch (error) {
+            console.error(error);
+            Toast.error(error.message || 'Payment failed');
+            DOM.setLoading(button, false);
+        }
     }
 
     /**
@@ -2165,8 +2108,8 @@ const DataEasyApp = (function() {
                     }
                 }
             } catch (e) {
-                console.error(e);
-                // Fall back to localStorage
+                console.error('Failed to fetch wallet transactions:', e);
+                Toast.error('Could not load transactions. Please refresh.');
             }
         }
 
@@ -2177,12 +2120,6 @@ const DataEasyApp = (function() {
         if (pPrevBtn) pPrevBtn.disabled = walletCurrentPage <= 1;
         if (pNextBtn) pNextBtn.disabled = walletCurrentPage >= walletTotalPages;
         if (pageInfo) pageInfo.textContent = `Page ${walletCurrentPage} of ${walletTotalPages}`;
-
-        // Fallback to localStorage
-        if (transactions.length === 0) {
-            const wallet = Storage.get('wallet', { transactions: [] });
-            transactions = wallet.transactions || [];
-        }
 
         if (transactions.length === 0) {
             if (desktopContainer) {
