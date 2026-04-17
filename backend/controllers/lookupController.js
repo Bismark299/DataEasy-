@@ -47,20 +47,26 @@ exports.search = async (req, res) => {
 
         const msisdn = formatMsisdn(phone.trim());
         const params = { msisdn, page: 1, per_page: 50 };
+        const headers = { 'X-API-Key': LOOKUP_API_KEY };
 
-        const response = await axios.get(`${LOOKUP_BASE_URL}/allocations`, {
-            headers: { 'X-API-Key': LOOKUP_API_KEY },
-            params,
-            timeout: 15000
-        });
+        // Fetch allocations and failures in parallel
+        const [allocRes, failRes] = await Promise.allSettled([
+            axios.get(`${LOOKUP_BASE_URL}/allocations`, { headers, params, timeout: 15000 }),
+            axios.get(`${LOOKUP_BASE_URL}/failures`, { headers, params, timeout: 15000 })
+        ]);
 
-        const data = response.data;
-        // Convert msisdn back to local format in results
-        if (data.data && Array.isArray(data.data)) {
-            data.data = data.data.map(r => ({ ...r, msisdn_local: toLocal(r.msisdn) }));
-        }
+        const allocations = (allocRes.status === 'fulfilled' ? allocRes.value.data.data : []) || [];
+        const failures = (failRes.status === 'fulfilled' ? failRes.value.data.data : []) || [];
 
-        res.json({ success: true, data: data.data || [], pagination: data.pagination || {} });
+        // Tag each record with status
+        const taggedAlloc = allocations.map(r => ({ ...r, status: 'success', msisdn_local: toLocal(r.msisdn) }));
+        const taggedFail = failures.map(r => ({ ...r, status: 'failed', msisdn_local: toLocal(r.msisdn) }));
+
+        const merged = [...taggedAlloc, ...taggedFail];
+        const totalAlloc = allocRes.status === 'fulfilled' ? (allocRes.value.data.pagination?.total || allocations.length) : 0;
+        const totalFail = failRes.status === 'fulfilled' ? (failRes.value.data.pagination?.total || failures.length) : 0;
+
+        res.json({ success: true, data: merged, pagination: { total: totalAlloc + totalFail } });
     } catch (error) {
         logger.error('Lookup search error', { error: error.message });
         const msg = error.response?.data?.error || error.response?.data?.message || error.message;
@@ -105,21 +111,30 @@ exports.bulkSearch = async (req, res) => {
                 const phone = entry.phone;
                 const msisdn = formatMsisdn(phone);
                 const params = { msisdn, page: 1, per_page: 50 };
+                const headers = { 'X-API-Key': LOOKUP_API_KEY };
 
                 try {
-                    const response = await axios.get(`${LOOKUP_BASE_URL}/allocations`, {
-                        headers: { 'X-API-Key': LOOKUP_API_KEY },
-                        params,
-                        timeout: 15000
-                    });
+                    const [allocRes, failRes] = await Promise.allSettled([
+                        axios.get(`${LOOKUP_BASE_URL}/allocations`, { headers, params, timeout: 15000 }),
+                        axios.get(`${LOOKUP_BASE_URL}/failures`, { headers, params, timeout: 15000 })
+                    ]);
 
-                    const records = response.data.data || [];
+                    const allocations = (allocRes.status === 'fulfilled' ? allocRes.value.data.data : []) || [];
+                    const failures = (failRes.status === 'fulfilled' ? failRes.value.data.data : []) || [];
+
+                    const taggedAlloc = allocations.map(r => ({ ...r, status: 'success', msisdn_local: toLocal(r.msisdn) }));
+                    const taggedFail = failures.map(r => ({ ...r, status: 'failed', msisdn_local: toLocal(r.msisdn) }));
+
+                    const merged = [...taggedAlloc, ...taggedFail];
+                    const totalAlloc = allocRes.status === 'fulfilled' ? (allocRes.value.data.pagination?.total || allocations.length) : 0;
+                    const totalFail = failRes.status === 'fulfilled' ? (failRes.value.data.pagination?.total || failures.length) : 0;
+
                     return {
                         phone,
                         msisdn,
                         success: true,
-                        records: records.map(r => ({ ...r, msisdn_local: toLocal(r.msisdn) })),
-                        total: response.data.pagination?.total || records.length
+                        records: merged,
+                        total: totalAlloc + totalFail
                     };
                 } catch (err) {
                     return {

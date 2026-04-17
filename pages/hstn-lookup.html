@@ -614,7 +614,7 @@
 
             let html = '<div class="table-wrap ' + (animate ? 'animate-in' : '') + '">';
             html += '<table class="desktop-table"><thead><tr>';
-            html += '<th>Date</th><th>MSISDN</th><th>Data MB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Beneficiary</th>';
+            html += '<th>Date</th><th>MSISDN</th><th>Data MB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Beneficiary</th><th>Status</th><th>Failed Reason</th>';
             html += '</tr></thead><tbody>';
 
             records.forEach(function(r, ri) {
@@ -626,6 +626,8 @@
                 html += '<td>' + (r.voice_minutes || '-') + '</td>';
                 html += '<td>' + (r.sms_units || '-') + '</td>';
                 html += '<td>' + (r.beneficiary_name || dim('-')) + '</td>';
+                html += '<td>' + badge(r.status) + '</td>';
+                html += '<td>' + (r.failed_reason || '-') + '</td>';
                 html += '</tr>';
             });
             html += '</tbody></table>';
@@ -641,11 +643,19 @@
                 html += mrow('Voice Min', r.voice_minutes || '-');
                 html += mrow('SMS', r.sms_units || '-');
                 html += mrow('Beneficiary', r.beneficiary_name || '\u2014');
+                html += mrow('Status', badge(r.status));
+                html += mrow('Failed Reason', r.failed_reason || '\u2014');
                 html += '</div>';
             });
             html += '</div></div>';
 
             return html;
+        }
+
+        function badge(status) {
+            if (status === 'success') return '<span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:9999px;font-size:0.75rem">Success</span>';
+            if (status === 'failed') return '<span style="background:#ef4444;color:#fff;padding:2px 8px;border-radius:9999px;font-size:0.75rem">Failed</span>';
+            return '<span style="background:#6b7280;color:#fff;padding:2px 8px;border-radius:9999px;font-size:0.75rem">' + (status || 'Unknown') + '</span>';
         }
 
         function dim(t) { return '<span style="color:var(--text-dim)">' + t + '</span>'; }
@@ -806,7 +816,7 @@
                     } else {
                         html += '<div class="num-records">';
                         html += '<table class="num-table"><thead><tr>';
-                        html += '<th>Date</th><th>Number</th><th>Data MB</th><th>Airtime</th><th>Voice</th><th>SMS</th><th>Beneficiary</th>';
+                        html += '<th>Date</th><th>Number</th><th>Data MB</th><th>Airtime</th><th>Voice</th><th>SMS</th><th>Beneficiary</th><th>Status</th><th>Failed Reason</th>';
                         html += '</tr></thead><tbody>';
                         r.records.forEach(function(rec) {
                             html += '<tr>';
@@ -817,6 +827,8 @@
                             html += '<td>' + (rec.voice_minutes || '-') + '</td>';
                             html += '<td>' + (rec.sms_units || '-') + '</td>';
                             html += '<td>' + (rec.beneficiary_name || '-') + '</td>';
+                            html += '<td>' + badge(rec.status) + '</td>';
+                            html += '<td>' + (rec.failed_reason || '-') + '</td>';
                             html += '</tr>';
                         });
                         html += '</tbody></table>';
@@ -877,7 +889,7 @@
         function exportCSV() {
             if (!lastBulkData) return;
 
-            const rows = [['MSISDN', 'Data MB', 'Airtime', 'Voice Minutes', 'SMS Units', 'Beneficiary Name', 'Created At']];
+            const rows = [['MSISDN', 'Data MB', 'Airtime', 'Voice Minutes', 'SMS Units', 'Beneficiary Name', 'Created At', 'Status', 'Failed Reason']];
             lastBulkData.forEach(r => {
                 if (r.records) {
                     r.records.forEach(rec => {
@@ -888,7 +900,9 @@
                             rec.voice_minutes || '',
                             rec.sms_units || '',
                             rec.beneficiary_name || '',
-                            fmtDateCSV(rec.created_at)
+                            fmtDateCSV(rec.created_at),
+                            rec.status || '',
+                            rec.failed_reason || ''
                         ]);
                     });
                 }
@@ -913,7 +927,7 @@
             const dateFrom = document.getElementById('bulk-date-from').value;
             const dateTo = document.getElementById('bulk-date-to').value;
 
-            const rows = [['Date', 'Number', 'Data MB', 'Airtime', 'Voice', 'SMS', 'Beneficiary']];
+            const rows = [['Date', 'Number', 'Data MB', 'Airtime', 'Voice', 'SMS', 'Beneficiary', 'Status', 'Failed Reason']];
             let count = 0;
 
             lastBulkData.forEach(r => {
@@ -928,7 +942,9 @@
                         rec.airtime || '',
                         rec.voice_minutes || '',
                         rec.sms_units || '',
-                        rec.beneficiary_name || ''
+                        rec.beneficiary_name || '',
+                        rec.status || '',
+                        rec.failed_reason || ''
                     ]);
                     count++;
                 });
