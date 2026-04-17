@@ -39,7 +39,7 @@ function toLocal(msisdn) {
  */
 exports.search = async (req, res) => {
     try {
-        const { phone, dataGb } = req.body;
+        const { phone } = req.body;
 
         if (!phone || typeof phone !== 'string') {
             return res.status(400).json({ success: false, error: 'Phone number is required' });
@@ -47,9 +47,8 @@ exports.search = async (req, res) => {
 
         const msisdn = formatMsisdn(phone.trim());
         const params = { msisdn, page: 1, per_page: 50 };
-        if (dataGb) params.gb = parseFloat(dataGb);
 
-        const response = await axios.get(`${LOOKUP_BASE_URL}/allocations/lookup`, {
+        const response = await axios.get(`${LOOKUP_BASE_URL}/allocations`, {
             headers: { 'X-API-Key': LOOKUP_API_KEY },
             params,
             timeout: 15000
@@ -75,18 +74,18 @@ exports.search = async (req, res) => {
  */
 exports.bulkSearch = async (req, res) => {
     try {
-        const { phones, dataGb } = req.body;
+        const { phones } = req.body;
 
         if (!phones || !Array.isArray(phones) || phones.length === 0) {
             return res.status(400).json({ success: false, error: 'Phone numbers array is required' });
         }
 
-        // Normalize: phones can be strings or {phone, gb} objects
+        // Normalize: phones can be strings or {phone} objects
         const entries = phones.map(p => {
             if (typeof p === 'object' && p.phone) {
-                return { phone: p.phone.toString().trim(), gb: p.gb ? parseFloat(p.gb) : null };
+                return { phone: p.phone.toString().trim() };
             }
-            return { phone: p.toString().trim(), gb: null };
+            return { phone: p.toString().trim() };
         }).filter(e => e.phone);
 
         // Deduplicate by phone
@@ -106,11 +105,9 @@ exports.bulkSearch = async (req, res) => {
                 const phone = entry.phone;
                 const msisdn = formatMsisdn(phone);
                 const params = { msisdn, page: 1, per_page: 50 };
-                const gb = entry.gb || (dataGb ? parseFloat(dataGb) : null);
-                if (gb) params.gb = gb;
 
                 try {
-                    const response = await axios.get(`${LOOKUP_BASE_URL}/allocations/lookup`, {
+                    const response = await axios.get(`${LOOKUP_BASE_URL}/allocations`, {
                         headers: { 'X-API-Key': LOOKUP_API_KEY },
                         params,
                         timeout: 15000

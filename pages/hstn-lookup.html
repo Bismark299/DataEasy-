@@ -447,10 +447,6 @@
                         <label>Phone Number</label>
                         <input type="text" id="single-phone" placeholder="0XXXXXXXXX" required>
                     </div>
-                    <div class="form-group">
-                        <label>Data (GB)</label>
-                        <input type="number" id="single-gb" placeholder="Optional" step="any">
-                    </div>
                     <button type="submit" id="single-btn" class="btn btn-primary">
                         <i class="fas fa-search"></i> Search
                     </button>
@@ -465,8 +461,8 @@
                 <form id="bulk-form">
                     <div class="form-group" style="margin-bottom:12px;">
                         <label>Phone Numbers <span class="count-badge" id="phone-count">0 numbers</span></label>
-                        <textarea id="bulk-phones" rows="10" placeholder="number  GB (per line):&#10;0241234567&#9;4&#10;0551234567&#9;2&#10;0201234567&#9;8&#10;0546112120&#9;25&#10;&#10;Supports 1000+ numbers"></textarea>
-                        <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">Tab or space between number and GB. GB is optional per line.</span>
+                        <textarea id="bulk-phones" rows="10" placeholder="One number per line:&#10;0241234567&#10;0551234567&#10;0201234567&#10;0546112120&#10;&#10;Supports 1000+ numbers"></textarea>
+                        <span style="font-size:11px; color:var(--text-dim); margin-top:2px;">One phone number per line.</span>
                     </div>
                     <div class="form-row" style="margin-bottom:12px;">
                         <div class="form-group">
@@ -594,25 +590,14 @@
             document.getElementById('tab-' + tab).classList.add('active');
         }
 
-        function badge(status) {
-            const map = {
-                success: { cls: 'badge-success', label: 'Success' },
-                failed:  { cls: 'badge-failed',  label: 'Failed' },
-                pending: { cls: 'badge-pending', label: 'Pending' }
-            };
-            const b = map[status] || { cls: 'badge-pending', label: status };
-            return '<span class="badge ' + b.cls + '"><i class="fas fa-circle"></i> ' + b.label + '</span>';
-        }
-
-        // Parse bulk lines: "number\tGB" or "number GB" or just "number"
+        // Parse bulk lines: one phone number per line
         function parseBulkLines(raw) {
             return raw.split(/[\n,]+/).map(line => {
                 line = line.trim();
                 if (!line) return null;
                 const parts = line.split(/[\t\s]+/);
                 const phone = parts[0];
-                const gb = parts[1] ? parseFloat(parts[1]) : null;
-                return { phone, gb: (gb && !isNaN(gb)) ? gb : null };
+                return { phone };
             }).filter(Boolean);
         }
 
@@ -629,27 +614,18 @@
 
             let html = '<div class="table-wrap ' + (animate ? 'animate-in' : '') + '">';
             html += '<table class="desktop-table"><thead><tr>';
-            html += '<th>Created</th><th>MSISDN</th><th>Data GB</th><th>Voice Min</th><th>Source File</th><th>Fail Reason</th><th>Imported</th><th>Export ID</th><th>Files</th><th>Status</th>';
+            html += '<th>Date</th><th>MSISDN</th><th>Data MB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Beneficiary</th>';
             html += '</tr></thead><tbody>';
 
             records.forEach(function(r, ri) {
-                var sf = r.success_original_filename || r.failed_original_filename || '';
-                sf = sf.trim();
                 html += '<tr>';
                 html += '<td>' + fmtDate(r.created_at) + '</td>';
                 html += '<td class="cell-phone">' + toLocal(r.msisdn) + '</td>';
-                html += '<td class="cell-gb">' + (r.data_gb ? r.data_gb.toFixed(2) : '-') + '</td>';
+                html += '<td class="cell-gb">' + (r.data_mb || '-') + '</td>';
+                html += '<td>' + (r.airtime || '-') + '</td>';
                 html += '<td>' + (r.voice_minutes || '-') + '</td>';
-                html += '<td class="source-file">' + (sf || dim('-')) + '</td>';
-                html += '<td>' + (r.failed_reason || dim('-')) + '</td>';
-                html += '<td>' + fmtDate(r.imported_at) + '</td>';
-                html += '<td>' + (r.portal_export_id || '-') + '</td>';
-                html += '<td>';
-                if (r.success_download_url) html += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(r.success_download_url) + '\')" title="Download success CSV"><i class="fas fa-check-circle" style="color:var(--green)"></i></a> ';
-                if (r.failed_download_url) html += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(r.failed_download_url) + '\')" title="Download failed CSV"><i class="fas fa-times-circle" style="color:var(--red)"></i></a>';
-                if (!r.success_download_url && !r.failed_download_url) html += dim('-');
-                html += '</td>';
-                html += '<td>' + badge(r.source) + '</td>';
+                html += '<td>' + (r.sms_units || '-') + '</td>';
+                html += '<td>' + (r.beneficiary_name || dim('-')) + '</td>';
                 html += '</tr>';
             });
             html += '</tbody></table>';
@@ -657,22 +633,14 @@
             // Mobile cards
             html += '<div class="mobile-cards">';
             records.forEach(function(r) {
-                var sf = r.success_original_filename || r.failed_original_filename || '';
-                sf = sf.trim();
                 html += '<div class="mobile-card">';
-                html += mrow('Created', fmtDate(r.created_at));
+                html += mrow('Date', fmtDate(r.created_at));
                 html += mrow('MSISDN', '<span class="cell-phone">' + toLocal(r.msisdn) + '</span>');
-                html += mrow('Data GB', '<span class="cell-gb">' + (r.data_gb ? r.data_gb.toFixed(2) : '-') + '</span>');
+                html += mrow('Data MB', '<span class="cell-gb">' + (r.data_mb || '-') + '</span>');
+                html += mrow('Airtime', r.airtime || '-');
                 html += mrow('Voice Min', r.voice_minutes || '-');
-                html += mrow('Source File', '<span class="source-file">' + (sf || '\u2014') + '</span>');
-                html += mrow('Fail Reason', r.failed_reason || '\u2014');
-                html += mrow('Imported', fmtDate(r.imported_at));
-                html += mrow('Export ID', r.portal_export_id || '-');
-                var dlHtml = '';
-                if (r.success_download_url) dlHtml += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(r.success_download_url) + '\')">Success CSV</a> ';
-                if (r.failed_download_url) dlHtml += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(r.failed_download_url) + '\')">Failed CSV</a>';
-                html += mrow('Downloads', dlHtml || '\u2014');
-                html += mrow('Status', badge(r.source));
+                html += mrow('SMS', r.sms_units || '-');
+                html += mrow('Beneficiary', r.beneficiary_name || '\u2014');
                 html += '</div>';
             });
             html += '</div></div>';
@@ -688,7 +656,6 @@
         document.getElementById('single-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const phone = document.getElementById('single-phone').value.trim();
-            const gb = document.getElementById('single-gb').value;
             const btn = document.getElementById('single-btn');
             const container = document.getElementById('single-results');
 
@@ -702,7 +669,7 @@
                 const res = await fetch(API_BASE + '/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, dataGb: gb || undefined })
+                    body: JSON.stringify({ phone })
                 });
                 const json = await res.json();
 
@@ -738,10 +705,6 @@
 
             const entries = parseBulkLines(phonesRaw);
             if (entries.length === 0) return;
-
-            // Build a map of phone->gb from input for display
-            const gbMap = {};
-            entries.forEach(e => { if (e.gb) gbMap[e.phone] = e.gb; });
 
             // Date filters
             const dateFrom = document.getElementById('bulk-date-from').value;
@@ -843,26 +806,17 @@
                     } else {
                         html += '<div class="num-records">';
                         html += '<table class="num-table"><thead><tr>';
-                        html += '<th>Date</th><th>Number</th><th>Data GB</th><th>MB</th><th>Airtime</th><th>Voice</th><th>SMS</th><th>Source File</th><th>Status</th><th>Files</th>';
+                        html += '<th>Date</th><th>Number</th><th>Data MB</th><th>Airtime</th><th>Voice</th><th>SMS</th><th>Beneficiary</th>';
                         html += '</tr></thead><tbody>';
                         r.records.forEach(function(rec) {
-                            var sf = rec.success_original_filename || rec.failed_original_filename || '';
-                            sf = sf.trim();
                             html += '<tr>';
-                            html += '<td>' + fmtDate(rec.imported_at) + '</td>';
+                            html += '<td>' + fmtDate(rec.created_at) + '</td>';
                             html += '<td>' + toLocal(rec.msisdn) + '</td>';
-                            html += '<td class="gb">' + (rec.data_gb ? rec.data_gb.toFixed(2) : '-') + '</td>';
-                            html += '<td>' + (rec.data_mb || '-') + '</td>';
+                            html += '<td class="gb">' + (rec.data_mb || '-') + '</td>';
                             html += '<td>' + (rec.airtime || '-') + '</td>';
                             html += '<td>' + (rec.voice_minutes || '-') + '</td>';
                             html += '<td>' + (rec.sms_units || '-') + '</td>';
-                            html += '<td class="source-file">' + (sf || '-') + '</td>';
-                            html += '<td>' + badge(rec.source) + '</td>';
-                            html += '<td>';
-                            if (rec.success_download_url) html += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(rec.success_download_url) + '\')" title="Success CSV"><i class="fas fa-check-circle" style="color:var(--green)"></i></a> ';
-                            if (rec.failed_download_url) html += '<a class="dl-link" onclick="downloadExport(\'' + encodeAttr(rec.failed_download_url) + '\')" title="Failed CSV"><i class="fas fa-times-circle" style="color:var(--red)"></i></a>';
-                            if (!rec.success_download_url && !rec.failed_download_url) html += '-';
-                            html += '</td>';
+                            html += '<td>' + (rec.beneficiary_name || '-') + '</td>';
                             html += '</tr>';
                         });
                         html += '</tbody></table>';
@@ -907,8 +861,8 @@
         function filterByDate(records, fromDate, toDate) {
             if (!fromDate && !toDate) return records;
             return records.filter(r => {
-                if (!r.imported_at) return false;
-                const d = new Date(r.imported_at).toISOString().slice(0, 10);
+                if (!r.created_at) return false;
+                const d = new Date(r.created_at).toISOString().slice(0, 10);
                 if (fromDate && d < fromDate) return false;
                 if (toDate && d > toDate) return false;
                 return true;
@@ -923,29 +877,18 @@
         function exportCSV() {
             if (!lastBulkData) return;
 
-            const rows = [['MSISDN', 'Status', 'Data GB', 'Data MB', 'Airtime', 'Voice Minutes', 'SMS Units', 'Beneficiary Name', 'Source File', 'Failed Reason', 'Imported At', 'Created At', 'Portal Export ID', 'Batch ID', 'Row Hash', 'Success Download URL', 'Failed Download URL']];
+            const rows = [['MSISDN', 'Data MB', 'Airtime', 'Voice Minutes', 'SMS Units', 'Beneficiary Name', 'Created At']];
             lastBulkData.forEach(r => {
                 if (r.records) {
                     r.records.forEach(rec => {
-                        var sf = rec.success_original_filename || rec.failed_original_filename || '';
                         rows.push([
                             toLocal(rec.msisdn),
-                            rec.source || '',
-                            rec.data_gb ? rec.data_gb.toFixed(2) : '',
                             rec.data_mb || '',
                             rec.airtime || '',
                             rec.voice_minutes || '',
                             rec.sms_units || '',
                             rec.beneficiary_name || '',
-                            sf.trim(),
-                            rec.failed_reason || '',
-                            fmtDateCSV(rec.imported_at),
-                            fmtDateCSV(rec.created_at),
-                            rec.portal_export_id || '',
-                            rec.batch_id || '',
-                            rec.row_hash || '',
-                            rec.success_download_url || '',
-                            rec.failed_download_url || ''
+                            fmtDateCSV(rec.created_at)
                         ]);
                     });
                 }
@@ -970,7 +913,7 @@
             const dateFrom = document.getElementById('bulk-date-from').value;
             const dateTo = document.getElementById('bulk-date-to').value;
 
-            const rows = [['Date', 'Number', 'Data GB', 'MB', 'Airtime', 'Voice', 'SMS', 'Source File', 'Status']];
+            const rows = [['Date', 'Number', 'Data MB', 'Airtime', 'Voice', 'SMS', 'Beneficiary']];
             let count = 0;
 
             lastBulkData.forEach(r => {
@@ -978,17 +921,14 @@
                 const filtered = filterByDate(r.records || [], dateFrom, dateTo);
                 if (filtered.length === 0) return;
                 filtered.forEach(rec => {
-                    var sf = rec.success_original_filename || rec.failed_original_filename || '';
                     rows.push([
-                        fmtDateCSV(rec.imported_at),
+                        fmtDateCSV(rec.created_at),
                         toLocal(rec.msisdn),
-                        rec.data_gb ? rec.data_gb.toFixed(2) : '',
                         rec.data_mb || '',
                         rec.airtime || '',
                         rec.voice_minutes || '',
                         rec.sms_units || '',
-                        sf.trim(),
-                        rec.source || ''
+                        rec.beneficiary_name || ''
                     ]);
                     count++;
                 });
@@ -1016,16 +956,12 @@
             if (!lastBulkData) return;
             const dateFrom = document.getElementById('bulk-date-from').value;
             const dateTo = document.getElementById('bulk-date-to').value;
-            const inputEntries = parseBulkLines(document.getElementById('bulk-phones').value);
-            const gbLookup = {};
-            inputEntries.forEach(e => { gbLookup[e.phone] = e.gb; });
             const lines = [];
             lastBulkData.forEach(r => {
                 if (!r.success) return;
                 const filtered = filterByDate(r.records || [], dateFrom, dateTo);
                 if (filtered.length === 0) return;
-                const gb = gbLookup[r.phone];
-                lines.push(r.phone + '\t' + (gb || ''));
+                lines.push(r.phone);
             });
             if (lines.length === 0) { showToast('No numbers with records'); return; }
             navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with info'));
@@ -1048,12 +984,9 @@
                 return;
             }
 
-            const rows = [['Date', 'Number', 'Data GB', 'MB', 'Airtime', 'Voice', 'SMS', 'Source File', 'Status']];
-            const inputEntries = parseBulkLines(document.getElementById('bulk-phones').value);
-            const gbLookup = {};
-            inputEntries.forEach(e => { gbLookup[e.phone] = e.gb; });
+            const rows = [['Number']];
             noInfoEntries.forEach(r => {
-                rows.push(['', r.phone, gbLookup[r.phone] || '', '', '', '', '', '', '']);
+                rows.push([r.phone]);
             });
 
             const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
@@ -1073,43 +1006,14 @@
             if (!lastBulkData) return;
             const dateFrom = document.getElementById('bulk-date-from').value;
             const dateTo = document.getElementById('bulk-date-to').value;
-            const inputEntries = parseBulkLines(document.getElementById('bulk-phones').value);
-            const gbLookup = {};
-            inputEntries.forEach(e => { gbLookup[e.phone] = e.gb; });
             const lines = [];
             lastBulkData.forEach(r => {
                 const hasRecords = r.success && filterByDate(r.records || [], dateFrom, dateTo).length > 0;
                 if (hasRecords) return;
-                const gb = gbLookup[r.phone];
-                lines.push(r.phone + '\t' + (gb || ''));
+                lines.push(r.phone);
             });
             if (lines.length === 0) { showToast('All numbers have records'); return; }
             navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with no info'));
-        }
-
-        async function downloadExport(path) {
-            try {
-                showToast('Downloading...');
-                const res = await fetch(API_BASE + '/export-download', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: path })
-                });
-                if (!res.ok) throw new Error('Download failed');
-                const blob = await res.blob();
-                var filename = path.split('/').pop() || 'export.csv';
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-                showToast('Downloaded: ' + filename);
-            } catch(e) {
-                showToast('Download failed: ' + e.message);
-            }
         }
     </script>
 </body>
