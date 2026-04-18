@@ -614,18 +614,17 @@
 
             let html = '<div class="table-wrap ' + (animate ? 'animate-in' : '') + '">';
             html += '<table class="desktop-table"><thead><tr>';
-            html += '<th>Date</th><th>MSISDN</th><th>Data MB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Beneficiary</th><th>Status</th><th>Failed Reason</th>';
+            html += '<th>Date</th><th>MSISDN</th><th>Data GB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
             html += '</tr></thead><tbody>';
 
             records.forEach(function(r, ri) {
                 html += '<tr>';
                 html += '<td>' + fmtDate(r.created_at) + '</td>';
                 html += '<td class="cell-phone">' + toLocal(r.msisdn) + '</td>';
-                html += '<td class="cell-gb">' + (r.data_mb || '-') + '</td>';
+                html += '<td class="cell-gb">' + voiceToGB(r.voice_minutes) + '</td>';
                 html += '<td>' + (r.airtime || '-') + '</td>';
                 html += '<td>' + (r.voice_minutes || '-') + '</td>';
                 html += '<td>' + (r.sms_units || '-') + '</td>';
-                html += '<td>' + (r.beneficiary_name || dim('-')) + '</td>';
                 html += '<td>' + badge(r.status) + '</td>';
                 html += '<td>' + (r.failed_reason || '-') + '</td>';
                 html += '</tr>';
@@ -638,11 +637,10 @@
                 html += '<div class="mobile-card">';
                 html += mrow('Date', fmtDate(r.created_at));
                 html += mrow('MSISDN', '<span class="cell-phone">' + toLocal(r.msisdn) + '</span>');
-                html += mrow('Data MB', '<span class="cell-gb">' + (r.data_mb || '-') + '</span>');
+                html += mrow('Data GB', '<span class="cell-gb">' + voiceToGB(r.voice_minutes) + '</span>');
                 html += mrow('Airtime', r.airtime || '-');
                 html += mrow('Voice Min', r.voice_minutes || '-');
                 html += mrow('SMS', r.sms_units || '-');
-                html += mrow('Beneficiary', r.beneficiary_name || '\u2014');
                 html += mrow('Status', badge(r.status));
                 html += mrow('Failed Reason', r.failed_reason || '\u2014');
                 html += '</div>';
@@ -650,6 +648,11 @@
             html += '</div></div>';
 
             return html;
+        }
+
+        function voiceToGB(v) {
+            if (!v || v === 0) return '-';
+            return (v / 1024).toFixed(2).replace(/\.?0+$/, '');
         }
 
         function badge(status) {
@@ -816,17 +819,16 @@
                     } else {
                         html += '<div class="num-records">';
                         html += '<table class="num-table"><thead><tr>';
-                        html += '<th>Date</th><th>Number</th><th>Data MB</th><th>Airtime</th><th>Voice</th><th>SMS</th><th>Beneficiary</th><th>Status</th><th>Failed Reason</th>';
+                        html += '<th>Date</th><th>MSISDN</th><th>Data GB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
                         html += '</tr></thead><tbody>';
                         r.records.forEach(function(rec) {
                             html += '<tr>';
                             html += '<td>' + fmtDate(rec.created_at) + '</td>';
                             html += '<td>' + toLocal(rec.msisdn) + '</td>';
-                            html += '<td class="gb">' + (rec.data_mb || '-') + '</td>';
+                            html += '<td class="gb">' + voiceToGB(rec.voice_minutes) + '</td>';
                             html += '<td>' + (rec.airtime || '-') + '</td>';
                             html += '<td>' + (rec.voice_minutes || '-') + '</td>';
                             html += '<td>' + (rec.sms_units || '-') + '</td>';
-                            html += '<td>' + (rec.beneficiary_name || '-') + '</td>';
                             html += '<td>' + badge(rec.status) + '</td>';
                             html += '<td>' + (rec.failed_reason || '-') + '</td>';
                             html += '</tr>';
@@ -889,17 +891,16 @@
         function exportCSV() {
             if (!lastBulkData) return;
 
-            const rows = [['MSISDN', 'Data MB', 'Airtime', 'Voice Minutes', 'SMS Units', 'Beneficiary Name', 'Created At', 'Status', 'Failed Reason']];
+            const rows = [['MSISDN', 'Data GB', 'Airtime', 'Voice Minutes', 'SMS Units', 'Created At', 'Status', 'Failed Reason']];
             lastBulkData.forEach(r => {
                 if (r.records) {
                     r.records.forEach(rec => {
                         rows.push([
                             toLocal(rec.msisdn),
-                            rec.data_mb || '',
+                            voiceToGB(rec.voice_minutes),
                             rec.airtime || '',
                             rec.voice_minutes || '',
                             rec.sms_units || '',
-                            rec.beneficiary_name || '',
                             fmtDateCSV(rec.created_at),
                             rec.status || '',
                             rec.failed_reason || ''
@@ -927,7 +928,7 @@
             const dateFrom = document.getElementById('bulk-date-from').value;
             const dateTo = document.getElementById('bulk-date-to').value;
 
-            const rows = [['Date', 'Number', 'Data MB', 'Airtime', 'Voice', 'SMS', 'Beneficiary', 'Status', 'Failed Reason']];
+            const rows = [['Date', 'MSISDN', 'Data GB', 'Airtime', 'Voice Min', 'SMS', 'Status', 'Failed Reason']];
             let count = 0;
 
             lastBulkData.forEach(r => {
@@ -938,11 +939,10 @@
                     rows.push([
                         fmtDateCSV(rec.created_at),
                         toLocal(rec.msisdn),
-                        rec.data_mb || '',
+                        voiceToGB(rec.voice_minutes),
                         rec.airtime || '',
                         rec.voice_minutes || '',
                         rec.sms_units || '',
-                        rec.beneficiary_name || '',
                         rec.status || '',
                         rec.failed_reason || ''
                     ]);
