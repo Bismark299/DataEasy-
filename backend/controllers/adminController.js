@@ -1898,7 +1898,8 @@ exports.updateAppSettings = async (req, res) => {
             lockoutMinutes,
             sessionTimeoutHours,
             sendClaimVisible,
-            storeVisible
+            storeVisible,
+            momoDetailsVisible
         } = req.body;
 
         const updates = [];
@@ -1929,6 +1930,46 @@ exports.updateAppSettings = async (req, res) => {
             logger.security(`Maintenance mode ${maintenanceMode ? 'ENABLED' : 'DISABLED'}`, {
                 admin: req.admin?.username
             });
+        }
+
+        // Client UI settings - save BEFORE validation-heavy fields to prevent
+        // early returns from blocking these saves
+        if (sendClaimVisible !== undefined) {
+            await Setting.setValue('send_claim_visible', sendClaimVisible, 'boolean', 'Show Send & Claim section on client pages');
+            updates.push('sendClaimVisible');
+            logger.info(`Send & Claim visibility ${sendClaimVisible ? 'ENABLED' : 'DISABLED'}`, {
+                admin: req.admin?.username
+            });
+        }
+
+        if (storeVisible !== undefined) {
+            await Setting.setValue('store_visible', storeVisible, 'boolean', 'Show Store link on client pages');
+            updates.push('storeVisible');
+            logger.info(`Store visibility ${storeVisible ? 'ENABLED' : 'DISABLED'}`, {
+                admin: req.admin?.username
+            });
+        }
+
+        if (momoDetailsVisible !== undefined) {
+            await Setting.setValue('momo_details_visible', momoDetailsVisible, 'boolean', 'Show MoMo payment details on client sidebar');
+            updates.push('momoDetailsVisible');
+            logger.info(`MoMo details visibility ${momoDetailsVisible ? 'ENABLED' : 'DISABLED'}`, {
+                admin: req.admin?.username
+            });
+        }
+
+        // MoMo payment settings
+        if (req.body.momoEnabled !== undefined) {
+            await Setting.setValue('momo_enabled', req.body.momoEnabled, 'boolean', 'Enable MoMo deposit option');
+            updates.push('momoEnabled');
+        }
+        if (req.body.momoNumber !== undefined) {
+            await Setting.setValue('momo_number', req.body.momoNumber, 'string', 'MoMo phone number');
+            updates.push('momoNumber');
+        }
+        if (req.body.momoName !== undefined) {
+            await Setting.setValue('momo_name', req.body.momoName, 'string', 'MoMo account name');
+            updates.push('momoName');
         }
 
         // Deposit limits
@@ -1966,37 +2007,6 @@ exports.updateAppSettings = async (req, res) => {
             }
             await Setting.setValue('session_timeout_hours', hours, 'number', 'Session timeout in hours');
             updates.push('sessionTimeoutHours');
-        }
-
-        // Client UI settings
-        if (sendClaimVisible !== undefined) {
-            await Setting.setValue('send_claim_visible', sendClaimVisible, 'boolean', 'Show Send & Claim section on client pages');
-            updates.push('sendClaimVisible');
-            logger.info(`Send & Claim visibility ${sendClaimVisible ? 'ENABLED' : 'DISABLED'}`, {
-                admin: req.admin?.username
-            });
-        }
-
-        if (storeVisible !== undefined) {
-            await Setting.setValue('store_visible', storeVisible, 'boolean', 'Show Store link on client pages');
-            updates.push('storeVisible');
-            logger.info(`Store visibility ${storeVisible ? 'ENABLED' : 'DISABLED'}`, {
-                admin: req.admin?.username
-            });
-        }
-
-        // MoMo payment settings
-        if (req.body.momoEnabled !== undefined) {
-            await Setting.setValue('momo_enabled', req.body.momoEnabled, 'boolean', 'Enable MoMo deposit option');
-            updates.push('momoEnabled');
-        }
-        if (req.body.momoNumber !== undefined) {
-            await Setting.setValue('momo_number', req.body.momoNumber, 'string', 'MoMo phone number');
-            updates.push('momoNumber');
-        }
-        if (req.body.momoName !== undefined) {
-            await Setting.setValue('momo_name', req.body.momoName, 'string', 'MoMo account name');
-            updates.push('momoName');
         }
 
         // Log the action

@@ -173,6 +173,7 @@ module.exports = (sequelize) => {
             maintenanceMode: await this.getValue('maintenance_mode', false),
             sendClaimVisible: await this.getValue('send_claim_visible', true),
             storeVisible: await this.getValue('store_visible', true),
+            momoDetailsVisible: await this.getValue('momo_details_visible', true),
             // MoMo settings
             momoEnabled: await this.getValue('momo_enabled', true),
             momoNumber: await this.getValue('momo_number', '0555546229'),
@@ -185,6 +186,7 @@ module.exports = (sequelize) => {
         return {
             sendClaimVisible: await this.getValue('send_claim_visible', true),
             storeVisible: await this.getValue('store_visible', true),
+            momoDetailsVisible: await this.getValue('momo_details_visible', true),
             // MoMo settings for client
             momoEnabled: await this.getValue('momo_enabled', true),
             momoNumber: await this.getValue('momo_number', '0555546229'),

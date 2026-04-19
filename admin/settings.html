@@ -1186,6 +1186,7 @@
                     });
                 } catch (appError) {
                     console.error(appError);
+                    showToast('error', 'Error', appError.message || 'Failed to save app settings to server');
                 }
                 
                 // Save fee settings to server

@@ -597,7 +597,8 @@
                 if (!line) return null;
                 const parts = line.split(/[\t\s]+/);
                 const phone = parts[0];
-                return { phone };
+                const data_size = parts.slice(1).join(' ') || '';
+                return { phone, data_size };
             }).filter(Boolean);
         }
 
@@ -653,6 +654,13 @@
         function voiceToGB(v) {
             if (!v || v === 0) return '-';
             return (v / 1024).toFixed(2).replace(/\.?0+$/, '');
+        }
+
+        function dataSizeToGB(s) {
+            if (!s) return '';
+            var n = parseFloat(s);
+            if (isNaN(n) || n === 0) return s;
+            return (n / 1024).toFixed(2).replace(/\.?0+$/, '');
         }
 
         function badge(status) {
@@ -719,6 +727,10 @@
             const entries = parseBulkLines(phonesRaw);
             if (entries.length === 0) return;
 
+            // Build data_size map from input
+            const dataSizeMap = {};
+            entries.forEach(e => { if (e.data_size) dataSizeMap[e.phone] = e.data_size; });
+
             // Date filters
             const dateFrom = document.getElementById('bulk-date-from').value;
             const dateTo = document.getElementById('bulk-date-to').value;
@@ -772,6 +784,9 @@
                 progressFill.style.width = '100%';
                 progressLabel.textContent = 'Done – ' + entries.length + ' number(s) searched';
 
+                // Attach data_size from input to each result
+                allResults.forEach(r => { r.data_size = dataSizeToGB(dataSizeMap[r.phone]) || ''; });
+
                 lastBulkData = allResults;
                 const jsonResults = allResults;
 
@@ -809,6 +824,7 @@
                     html += '<div class="num-title">';
                     html += '<span class="num-index">' + (idx + 1) + '.</span>';
                     html += '<span class="num-phone">' + localPhone + '</span>';
+                    if (r.data_size) html += '<span style="color:var(--accent);font-size:0.85rem;font-weight:500;margin-left:6px">' + r.data_size + '</span>';
                     html += '<span class="num-count ' + countCls + '">' + countLabel + '</span>';
                     html += '</div>';
 
@@ -891,12 +907,13 @@
         function exportCSV() {
             if (!lastBulkData) return;
 
-            const rows = [['MSISDN', 'Data GB', 'Airtime', 'Voice Minutes', 'SMS Units', 'Created At', 'Status', 'Failed Reason']];
+            const rows = [['MSISDN', 'Data Size', 'Data GB', 'Airtime', 'Voice Minutes', 'SMS Units', 'Created At', 'Status', 'Failed Reason']];
             lastBulkData.forEach(r => {
                 if (r.records) {
                     r.records.forEach(rec => {
                         rows.push([
                             toLocal(rec.msisdn),
+                            r.data_size || '',
                             voiceToGB(rec.voice_minutes),
                             rec.airtime || '',
                             rec.voice_minutes || '',
@@ -928,7 +945,7 @@
             const dateFrom = document.getElementById('bulk-date-from').value;
             const dateTo = document.getElementById('bulk-date-to').value;
 
-            const rows = [['Date', 'MSISDN', 'Data GB', 'Airtime', 'Voice Min', 'SMS', 'Status', 'Failed Reason']];
+            const rows = [['Date', 'MSISDN', 'Data Size', 'Data GB', 'Airtime', 'Voice Min', 'SMS', 'Status', 'Failed Reason']];
             let count = 0;
 
             lastBulkData.forEach(r => {
@@ -939,6 +956,7 @@
                     rows.push([
                         fmtDateCSV(rec.created_at),
                         toLocal(rec.msisdn),
+                        r.data_size || '',
                         voiceToGB(rec.voice_minutes),
                         rec.airtime || '',
                         rec.voice_minutes || '',
@@ -977,7 +995,7 @@
                 if (!r.success) return;
                 const filtered = filterByDate(r.records || [], dateFrom, dateTo);
                 if (filtered.length === 0) return;
-                lines.push(r.phone);
+                lines.push(r.data_size ? r.phone + '\t' + r.data_size : r.phone);
             });
             if (lines.length === 0) { showToast('No numbers with records'); return; }
             navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with info'));
@@ -1000,9 +1018,9 @@
                 return;
             }
 
-            const rows = [['Number']];
+            const rows = [['Number', 'Data Size']];
             noInfoEntries.forEach(r => {
-                rows.push([r.phone]);
+                rows.push([r.phone, r.data_size || '']);
             });
 
             const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
@@ -1026,7 +1044,7 @@
             lastBulkData.forEach(r => {
                 const hasRecords = r.success && filterByDate(r.records || [], dateFrom, dateTo).length > 0;
                 if (hasRecords) return;
-                lines.push(r.phone);
+                lines.push(r.data_size ? r.phone + '\t' + r.data_size : r.phone);
             });
             if (lines.length === 0) { showToast('All numbers have records'); return; }
             navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with no info'));
