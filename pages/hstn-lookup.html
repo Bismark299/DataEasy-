@@ -656,13 +656,6 @@
             return (v / 1024).toFixed(2).replace(/\.?0+$/, '');
         }
 
-        function dataSizeToGB(s) {
-            if (!s) return '';
-            var n = parseFloat(s);
-            if (isNaN(n) || n === 0) return s;
-            return (n / 1024).toFixed(2).replace(/\.?0+$/, '');
-        }
-
         function badge(status) {
             if (status === 'success') return '<span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:9999px;font-size:0.75rem">Success</span>';
             if (status === 'failed') return '<span style="background:#ef4444;color:#fff;padding:2px 8px;border-radius:9999px;font-size:0.75rem">Failed</span>';
@@ -785,7 +778,7 @@
                 progressLabel.textContent = 'Done – ' + entries.length + ' number(s) searched';
 
                 // Attach data_size from input to each result
-                allResults.forEach(r => { r.data_size = dataSizeToGB(dataSizeMap[r.phone]) || ''; });
+                allResults.forEach(r => { r.data_size = dataSizeMap[r.phone] || ''; });
 
                 lastBulkData = allResults;
                 const jsonResults = allResults;
