@@ -597,7 +597,8 @@
                 if (!line) return null;
                 const parts = line.split(/[\t\s]+/);
                 const phone = parts[0];
-                return { phone };
+                const data_size = parts.slice(1).join(' ') || '';
+                return { phone, data_size };
             }).filter(Boolean);
         }
 
@@ -719,6 +720,10 @@
             const entries = parseBulkLines(phonesRaw);
             if (entries.length === 0) return;
 
+            // Build data_size map from input for no-info exports
+            const dataSizeMap = {};
+            entries.forEach(e => { if (e.data_size) dataSizeMap[e.phone] = e.data_size; });
+
             // Date filters
             const dateFrom = document.getElementById('bulk-date-from').value;
             const dateTo = document.getElementById('bulk-date-to').value;
@@ -771,6 +776,9 @@
 
                 progressFill.style.width = '100%';
                 progressLabel.textContent = 'Done – ' + entries.length + ' number(s) searched';
+
+                // Attach input data_size to results for no-info exports
+                allResults.forEach(r => { r.input_data_size = dataSizeMap[r.phone] || ''; });
 
                 lastBulkData = allResults;
                 const jsonResults = allResults;
@@ -988,7 +996,7 @@
 
             const rows = [['Phone', 'Data GB']];
             noInfoEntries.forEach(r => {
-                rows.push([r.phone, 0]);
+                rows.push([r.phone, r.input_data_size || 0]);
             });
 
             const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
@@ -1012,7 +1020,7 @@
             lastBulkData.forEach(r => {
                 const hasRecords = r.success && filterByDate(r.records || [], dateFrom, dateTo).length > 0;
                 if (hasRecords) return;
-                lines.push(r.phone + '\t' + 0);
+                lines.push(r.phone + '\t' + (r.input_data_size || 0));
             });
             if (lines.length === 0) { showToast('All numbers have records'); return; }
             navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with no info'));
