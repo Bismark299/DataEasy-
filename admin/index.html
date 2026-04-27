@@ -1139,7 +1139,15 @@
                 if (orderNoFilter && !orderId.includes(orderNoFilter)) return false;
                 if (agentCodeFilter && !agentCode.includes(agentCodeFilter)) return false;
                 if (networkFilter && network !== networkFilter) return false;
-                if (statusFilter && normalizedStatus !== statusFilter) return false;
+                if (statusFilter) {
+                    const orderMatchesStatus = normalizedStatus === statusFilter;
+                    const itemMatchesStatus = (order.items || []).some(item => {
+                        const s = (item.deliveryStatus || '').toLowerCase();
+                        const ns = s === 'delivered' ? 'completed' : s;
+                        return ns === statusFilter;
+                    });
+                    if (!orderMatchesStatus && !itemMatchesStatus) return false;
+                }
                 if (paymentFilter && paymentStatus !== paymentFilter) return false;
 
                 return true;

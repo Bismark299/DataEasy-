@@ -846,9 +846,17 @@
                     if (dateTo && orderDate > dateTo) return false;
                 }
                 if (network && (order.network || '').toLowerCase() !== network.toLowerCase()) return false;
-                const orderStatus = (order.deliveryStatus || order.status || 'pending').toLowerCase();
-                const normalizedStatus = orderStatus === 'delivered' ? 'completed' : orderStatus;
-                if (status && normalizedStatus !== status) return false;
+                if (status) {
+                    const orderStatus = (order.deliveryStatus || order.status || 'pending').toLowerCase();
+                    const normalizedStatus = orderStatus === 'delivered' ? 'completed' : orderStatus;
+                    const orderMatchesStatus = normalizedStatus === status;
+                    const itemMatchesStatus = (order.items || []).some(item => {
+                        const s = (item.deliveryStatus || '').toLowerCase();
+                        const ns = s === 'delivered' ? 'completed' : s;
+                        return ns === status;
+                    });
+                    if (!orderMatchesStatus && !itemMatchesStatus) return false;
+                }
                 const paymentStatus = (order.paymentStatus || 'completed').toLowerCase();
                 if (payment && paymentStatus !== payment) return false;
                 if (agent && String(order.userId) !== agent) return false;
@@ -1179,9 +1187,17 @@
                     if (dateTo && orderDate > dateTo) return false;
                 }
                 if (network && (order.network || '').toLowerCase() !== network.toLowerCase()) return false;
-                const orderStatus = (order.deliveryStatus || order.status || 'pending').toLowerCase();
-                const normalizedStatus = orderStatus === 'delivered' ? 'completed' : orderStatus;
-                if (status && normalizedStatus !== status) return false;
+                if (status) {
+                    const orderStatus = (order.deliveryStatus || order.status || 'pending').toLowerCase();
+                    const normalizedStatus = orderStatus === 'delivered' ? 'completed' : orderStatus;
+                    const orderMatchesStatus = normalizedStatus === status;
+                    const itemMatchesStatus = (order.items || []).some(item => {
+                        const s = (item.deliveryStatus || '').toLowerCase();
+                        const ns = s === 'delivered' ? 'completed' : s;
+                        return ns === status;
+                    });
+                    if (!orderMatchesStatus && !itemMatchesStatus) return false;
+                }
                 const paymentStatus = (order.paymentStatus || 'completed').toLowerCase();
                 if (payment && paymentStatus !== payment) return false;
                 if (agent && String(order.userId) !== agent) return false;
