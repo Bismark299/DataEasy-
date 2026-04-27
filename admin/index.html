@@ -1192,11 +1192,12 @@
             });
 
             // If status filter is active, only show items matching that status
-            if (statusFilter) {
+            const activeStatusFilter = document.getElementById('statusFilter').value;
+            if (activeStatusFilter) {
                 expandedItems = expandedItems.filter(row => {
                     const s = (row.itemData?.deliveryStatus || row.deliveryStatus || row.status || 'pending').toLowerCase();
                     const ns = s === 'delivered' ? 'completed' : s;
-                    return ns === statusFilter;
+                    return ns === activeStatusFilter;
                 });
             }
 
