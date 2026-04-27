@@ -904,6 +904,16 @@
                 }
             });
 
+            // If status filter is active, only show items matching that status
+            const activeStatus = document.getElementById('statusFilter').value;
+            if (activeStatus) {
+                expandedItems = expandedItems.filter(row => {
+                    const s = (row.itemData?.deliveryStatus || row.deliveryStatus || row.status || 'pending').toLowerCase();
+                    const ns = s === 'delivered' ? 'completed' : s;
+                    return ns === activeStatus;
+                });
+            }
+
             // If phone filter is active, only show items whose phoneNumber matches
             if (phoneFilter) {
                 expandedItems = expandedItems.filter(row => {

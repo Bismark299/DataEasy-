@@ -1039,7 +1039,15 @@
             document.getElementById('agentCodeFilter').addEventListener('input', debounce(filterOrders, 300));
             document.getElementById('phoneFilter').addEventListener('input', debounce(filterOrders, 300));
             document.getElementById('networkFilter').addEventListener('change', filterOrders);
-            document.getElementById('statusFilter').addEventListener('change', filterOrders);
+            document.getElementById('statusFilter').addEventListener('change', function() {
+                // Clear date filter when filtering by status so all matching orders are visible
+                if (this.value) {
+                    document.getElementById('dateFilter').value = '';
+                } else {
+                    document.getElementById('dateFilter').value = getGhanaDateString();
+                }
+                filterOrders();
+            });
             document.getElementById('paymentFilter').addEventListener('change', filterOrders);
 
             // Network buttons - copy pending orders for that network
@@ -1182,6 +1190,15 @@
                     });
                 }
             });
+
+            // If status filter is active, only show items matching that status
+            if (statusFilter) {
+                expandedItems = expandedItems.filter(row => {
+                    const s = (row.itemData?.deliveryStatus || row.deliveryStatus || row.status || 'pending').toLowerCase();
+                    const ns = s === 'delivered' ? 'completed' : s;
+                    return ns === statusFilter;
+                });
+            }
 
             // If phone filter is active, only show items whose phoneNumber matches
             if (phoneFilter) {
