@@ -577,16 +577,22 @@ exports.bulkUpdateItemStatus = async (req, res) => {
  */
 exports.getAllUsers = async (req, res) => {
     try {
-        const { page = 1, limit = 50, search, status } = req.query;
+        const { page = 1, limit = 50, search, status, role, name, phone, email, agentCode } = req.query;
 
         const where = {};
         if (search) {
             where[Op.or] = [
                 { fullName: { [Op.iLike]: `%${search}%` } },
                 { email: { [Op.iLike]: `%${search}%` } },
-                { phone: { [Op.iLike]: `%${search}%` } }
+                { phone: { [Op.iLike]: `%${search}%` } },
+                { agentCode: { [Op.iLike]: `%${search}%` } }
             ];
         }
+        if (name) where.fullName = { [Op.iLike]: `%${name}%` };
+        if (phone) where.phone = { [Op.iLike]: `%${phone}%` };
+        if (email) where.email = { [Op.iLike]: `%${email}%` };
+        if (agentCode) where.agentCode = { [Op.iLike]: `%${agentCode}%` };
+        if (role) where.role = role;
         if (status === 'active') where.isActive = true;
         if (status === 'inactive') where.isActive = false;
 
@@ -944,12 +950,22 @@ exports.adjustWallet = async (req, res) => {
  */
 exports.getAllTransactions = async (req, res) => {
     try {
-        const { page = 1, limit = 50, type, status, userId } = req.query;
+        const { page = 1, limit = 50, type, status, userId, paymentMethod, dateFrom, dateTo } = req.query;
 
         const where = {};
         if (type) where.type = type;
         if (status) where.status = status;
         if (userId) where.userId = userId;
+        if (paymentMethod) where.paymentMethod = paymentMethod;
+        if (dateFrom || dateTo) {
+            where.createdAt = {};
+            if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
+            if (dateTo) {
+                const to = new Date(dateTo);
+                to.setHours(23, 59, 59, 999);
+                where.createdAt[Op.lte] = to;
+            }
+        }
 
         const { count, rows: transactions } = await Transaction.findAndCountAll({
             where,

@@ -420,6 +420,17 @@
         let perPage = 100;
         let dealerCurrentPage = 1;
         let currentTab = 'dealerWallet';
+        let lastTxServerFilters = null;
+
+        function getTxServerFilters() {
+            return {
+                type: document.getElementById('typeFilter').value,
+                status: document.getElementById('statusFilter').value,
+                paymentMethod: document.getElementById('sourceFilter').value,
+                dateFrom: document.getElementById('dateFromFilter').value,
+                dateTo: document.getElementById('dateToFilter').value
+            };
+        }
 
         // XSS Protection - escape HTML in user data
         function esc(str) {
@@ -698,24 +709,23 @@
         }
 
         async function loadTransactions() {
+            const serverFilters = getTxServerFilters();
+            lastTxServerFilters = { ...serverFilters };
             try {
-                let all = [];
-                let page = 1;
-                const batchSize = 1000;
-                while (true) {
-                    const response = await DataEasyAPI.admin.getTransactions({ page, limit: batchSize });
-                    const txns = response.transactions || [];
-                    all = all.concat(txns);
-                    if (!response.pagination || page >= response.pagination.pages) break;
-                    page++;
-                }
-                allTransactions = all;
+                const params = { limit: 100 };
+                if (serverFilters.type) params.type = serverFilters.type;
+                if (serverFilters.status) params.status = serverFilters.status;
+                if (serverFilters.paymentMethod) params.paymentMethod = serverFilters.paymentMethod;
+                if (serverFilters.dateFrom) params.dateFrom = serverFilters.dateFrom;
+                if (serverFilters.dateTo) params.dateTo = serverFilters.dateTo;
+                const response = await DataEasyAPI.admin.getTransactions(params);
+                allTransactions = response.transactions || [];
                 updateStats();
-                filterTransactions();
+                applyTxClientFilters();
             } catch (error) {
                 console.error(error);
                 allTransactions = [];
-                filterTransactions();
+                applyTxClientFilters();
                 if (!error.message.includes('Failed to fetch')) {
                     showToast('error', 'Error', 'Failed to load transactions');
                 }
@@ -725,23 +735,8 @@
             }
         }
 
-        function updateStats() {
-            // Stats cards removed - keeping function for compatibility
-        }
-
-        function filterTransactions() {
-            currentPage = 1;
-            applyFilters();
-        }
-
-        function applyFilters() {
+        function applyTxClientFilters() {
             const search = document.getElementById('searchInput').value.toLowerCase();
-            const type = document.getElementById('typeFilter').value;
-            const status = document.getElementById('statusFilter').value;
-            const source = document.getElementById('sourceFilter').value;
-            const dateFrom = document.getElementById('dateFromFilter').value;
-            const dateTo = document.getElementById('dateToFilter').value;
-
             let filtered = allTransactions.filter(tx => {
                 if (search) {
                     const searchMatch = String(tx.id).includes(search) ||
@@ -749,21 +744,30 @@
                         (tx.user?.agentCode || '').toLowerCase().includes(search);
                     if (!searchMatch) return false;
                 }
-                if (type && tx.type !== type) return false;
-                if (status && tx.status !== status) return false;
-                if (source && tx.paymentMethod !== source) return false;
-                if (dateFrom) {
-                    const txDate = new Date(tx.createdAt).toISOString().slice(0, 10);
-                    if (txDate < dateFrom) return false;
-                }
-                if (dateTo) {
-                    const txDate = new Date(tx.createdAt).toISOString().slice(0, 10);
-                    if (txDate > dateTo) return false;
-                }
                 return true;
             });
-
             renderTransactions(filtered);
+        }
+
+        function updateStats() {
+            // Stats cards removed - keeping function for compatibility
+        }
+
+        function filterTransactions() {
+            const serverFilters = getTxServerFilters();
+            const changed = JSON.stringify(serverFilters) !== JSON.stringify(lastTxServerFilters);
+            if (changed || lastTxServerFilters === null) {
+                currentPage = 1;
+                loadTransactions();
+                return;
+            }
+            currentPage = 1;
+            applyTxClientFilters();
+        }
+
+        function applyFilters() {
+            applyTxClientFilters();
+        }
         }
 
         function renderTransactions(transactions) {
@@ -866,6 +870,7 @@
             document.getElementById('perPageFilter').value = '100';
             perPage = 100;
             currentPage = 1;
+            lastTxServerFilters = null; // force re-fetch
             filterTransactions();
         }
 
@@ -976,7 +981,7 @@
 
         async function loadDealerWallets() {
             try {
-                const response = await DataEasyAPI.admin.getUsers({ limit: 1000 });
+                const response = await DataEasyAPI.admin.getUsers({ limit: 200 });
                 allDealers = response.users || response || [];
                 filterDealers();
             } catch (error) {

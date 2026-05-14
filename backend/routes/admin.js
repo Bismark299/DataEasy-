@@ -30,7 +30,7 @@ router.put('/orders/bulk-item-status', adminController.bulkUpdateItemStatus);
 router.put('/orders/match-complete', adminController.matchAndCompleteOrders);
 
 // Users management
-router.get('/users', adminController.getAllUsers);
+router.get('/users', cacheResponse(60), adminController.getAllUsers);
 router.get('/users/:userId', adminController.getUser);
 router.put('/users/:userId', sensitiveAdminLimiter, adminController.updateUser);
 
@@ -39,7 +39,7 @@ router.post('/users/:userId/wallet', sensitiveAdminLimiter, requireIdempotency, 
 router.put('/users/:userId/status', sensitiveAdminLimiter, adminController.updateUserStatus);
 
 // Transactions (read only)
-router.get('/transactions', adminController.getAllTransactions);
+router.get('/transactions', cacheResponse(30), adminController.getAllTransactions);
 
 // Packages management
 router.get('/packages', adminController.getPackages);

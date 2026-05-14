@@ -442,6 +442,18 @@
         let allUsers = [];
         let currentPage = 1;
         let perPage = 50;
+        let lastUserServerFilters = null;
+
+        function getUserServerFilters() {
+            return {
+                agentCode: document.getElementById('searchIdInput').value.trim(),
+                name: document.getElementById('searchNameInput').value.trim(),
+                phone: document.getElementById('searchPhoneInput').value.trim(),
+                email: document.getElementById('searchEmailInput').value.trim(),
+                role: document.getElementById('roleFilter').value,
+                status: document.getElementById('statusFilter').value
+            };
+        }
 
         // XSS Protection - escape HTML in user data
         function esc(str) {
@@ -665,15 +677,24 @@
         }
 
         async function loadUsers() {
+            const serverFilters = getUserServerFilters();
+            lastUserServerFilters = { ...serverFilters };
             try {
-                const response = await DataEasyAPI.admin.getUsers({ limit: 1000 });
+                const params = { limit: 100 };
+                if (serverFilters.agentCode) params.agentCode = serverFilters.agentCode;
+                if (serverFilters.name) params.name = serverFilters.name;
+                if (serverFilters.phone) params.phone = serverFilters.phone;
+                if (serverFilters.email) params.email = serverFilters.email;
+                if (serverFilters.role) params.role = serverFilters.role;
+                if (serverFilters.status) params.status = serverFilters.status;
+                const response = await DataEasyAPI.admin.getUsers(params);
                 allUsers = response.users || response || [];
                 updateStats();
-                filterUsers();
+                renderUsers(allUsers);
             } catch (error) {
                 console.error(error);
                 allUsers = [];
-                filterUsers();
+                renderUsers([]);
                 if (error.message.includes('Failed to fetch')) {
                     showToast('warning', 'Offline', 'Server unavailable. Showing cached data.');
                 } else {
@@ -696,38 +717,15 @@
         }
 
         function filterUsers() {
-            const searchId = document.getElementById('searchIdInput').value.toLowerCase();
-            const searchName = document.getElementById('searchNameInput').value.toLowerCase();
-            const searchPhone = document.getElementById('searchPhoneInput').value.toLowerCase();
-            const searchEmail = document.getElementById('searchEmailInput').value.toLowerCase();
-            const role = document.getElementById('roleFilter').value;
-            const status = document.getElementById('statusFilter').value;
-
-            let filtered = allUsers.filter(user => {
-                if (searchId) {
-                    const idMatch = String(user.id || '').includes(searchId) ||
-                        (user.agentCode || '').toLowerCase().includes(searchId);
-                    if (!idMatch) return false;
-                }
-                if (searchName) {
-                    const nameMatch = (user.fullName || user.name || '').toLowerCase().includes(searchName);
-                    if (!nameMatch) return false;
-                }
-                if (searchPhone) {
-                    const phoneMatch = (user.phone || '').includes(searchPhone);
-                    if (!phoneMatch) return false;
-                }
-                if (searchEmail) {
-                    const emailMatch = (user.email || '').toLowerCase().includes(searchEmail);
-                    if (!emailMatch) return false;
-                }
-                if (role && (user.role || 'agent') !== role) return false;
-                const userStatus = user.isActive === false ? 'inactive' : (user.status || 'active');
-                if (status && userStatus !== status) return false;
-                return true;
-            });
-
-            renderUsers(filtered);
+            const serverFilters = getUserServerFilters();
+            const changed = JSON.stringify(serverFilters) !== JSON.stringify(lastUserServerFilters);
+            if (changed || lastUserServerFilters === null) {
+                currentPage = 1;
+                loadUsers();
+                return;
+            }
+            currentPage = 1;
+            renderUsers(allUsers);
         }
 
         function renderUsers(users) {
@@ -838,6 +836,7 @@
             document.getElementById('roleFilter').value = '';
             document.getElementById('statusFilter').value = '';
             currentPage = 1;
+            lastUserServerFilters = null; // force re-fetch
             filterUsers();
         }
 

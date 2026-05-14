@@ -570,6 +570,20 @@
         let currentPage = 1;
         let ordersPerPage = 20;
         let selectedOrders = new Set();
+        let lastDashServerFilters = null;
+
+        const DASH_STATUS_TO_DB = { pending: 'Pending', processing: 'Processing', completed: 'Delivered', failed: 'Failed', cancelled: 'Failed' };
+
+        function getDashServerFilters() {
+            const status = document.getElementById('statusFilter')?.value || '';
+            const dateFilter = document.getElementById('dateFilter')?.value || '';
+            return {
+                dateFrom: dateFilter,
+                dateTo: dateFilter,
+                network: document.getElementById('networkFilter')?.value || '',
+                status: status ? (DASH_STATUS_TO_DB[status] || status) : ''
+            };
+        }
 
         // XSS Protection - escape HTML in user data
         function esc(str) {
@@ -585,8 +599,8 @@
             initButtonListeners();
             setGreeting();
             loadProfileInfo();
-            loadDashboardData();
             initFilters();
+            loadDashboardData();
             initBulkActions();
             initBulkActionButtons();
             initProfileDropdown();
@@ -882,14 +896,22 @@
         }
 
         async function loadOrders() {
+            const serverFilters = getDashServerFilters();
+            lastDashServerFilters = { ...serverFilters };
             try {
-                const response = await DataEasyAPI.admin.getOrders({ limit: 1000 });
+                const params = { limit: 100 };
+                if (serverFilters.dateFrom) params.dateFrom = serverFilters.dateFrom;
+                if (serverFilters.dateTo) params.dateTo = serverFilters.dateTo;
+                if (serverFilters.network) params.network = serverFilters.network;
+                if (serverFilters.status) params.status = serverFilters.status;
+
+                const response = await DataEasyAPI.admin.getOrders(params);
                 allOrders = response.orders || response || [];
-                
+
                 // Sort by date (newest first)
                 allOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-                
-                // Filter first (defaults to today based on Ghana time), then calculate stats on filtered orders
+
+                // Client-side filter for remaining fields (agentCode, orderNo, phone, payment)
                 filterOrders();
 
             } catch (error) {
@@ -1126,36 +1148,27 @@
         }
 
         function filterOrders() {
-            const dateFilter = document.getElementById('dateFilter').value;
+            // Check if server-side filters changed — if so, re-fetch
+            const serverFilters = getDashServerFilters();
+            const serverChanged = JSON.stringify(serverFilters) !== JSON.stringify(lastDashServerFilters);
+            if (serverChanged || lastDashServerFilters === null) {
+                loadOrders();
+                return;
+            }
+
+            // Client-side only: agentCode, orderNo, phone, payment
             const orderNoFilter = document.getElementById('orderNoFilter').value.toLowerCase();
             const agentCodeFilter = document.getElementById('agentCodeFilter').value.toLowerCase();
             const phoneFilter = document.getElementById('phoneFilter').value.replace(/\D/g, '');
-            const networkFilter = document.getElementById('networkFilter').value;
-            const statusFilter = document.getElementById('statusFilter').value;
             const paymentFilter = document.getElementById('paymentFilter').value;
 
             filteredOrders = allOrders.filter(order => {
-                const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
                 const orderId = (order.orderId || order.id || '').toString().toLowerCase();
                 const agentCode = (order.user?.agentCode || '').toLowerCase();
-                const network = order.network || '';
-                const status = (order.deliveryStatus || order.status || 'Pending').toLowerCase();
-                const normalizedStatus = status === 'delivered' ? 'completed' : status;
                 const paymentStatus = (order.paymentStatus || 'Completed').toLowerCase();
 
-                if (dateFilter && orderDate !== dateFilter) return false;
                 if (orderNoFilter && !orderId.includes(orderNoFilter)) return false;
                 if (agentCodeFilter && !agentCode.includes(agentCodeFilter)) return false;
-                if (networkFilter && network !== networkFilter) return false;
-                if (statusFilter) {
-                    const orderMatchesStatus = normalizedStatus === statusFilter;
-                    const itemMatchesStatus = (order.items || []).some(item => {
-                        const s = (item.deliveryStatus || '').toLowerCase();
-                        const ns = s === 'delivered' ? 'completed' : s;
-                        return ns === statusFilter;
-                    });
-                    if (!orderMatchesStatus && !itemMatchesStatus) return false;
-                }
                 if (paymentFilter && paymentStatus !== paymentFilter) return false;
 
                 return true;
