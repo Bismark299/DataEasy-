@@ -12,6 +12,7 @@ const apiKeyController = require('../controllers/apiKeyController');
 const { adminAuth } = require('../middleware/auth');
 const { sensitiveAdminLimiter } = require('../middleware/rateLimiter');
 const { requireIdempotency } = require('../middleware/idempotency');
+const { cacheResponse } = require('../middleware/cache');
 
 // All routes require admin authentication
 router.use(adminAuth);
@@ -21,7 +22,7 @@ router.get('/stats', adminController.getStats);
 router.get('/dashboard', adminController.getDashboard);
 
 // Orders management
-router.get('/orders', adminController.getAllOrders);
+router.get('/orders', cacheResponse(30), adminController.getAllOrders);
 router.get('/orders/:orderId', adminController.getOrder);
 router.put('/orders/:orderId/status', adminController.updateOrderStatus);
 router.put('/orders/:orderId/item/:itemIndex/status', adminController.updateItemStatus);

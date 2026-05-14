@@ -230,12 +230,14 @@ exports.getDashboard = async (req, res) => {
  */
 exports.getAllOrders = async (req, res) => {
     try {
-        const { page = 1, limit = 50, status, network, search, dateFrom, dateTo } = req.query;
+        const { page = 1, limit = 50, status, network, search, dateFrom, dateTo, paymentStatus, userId } = req.query;
 
         const where = {};
         if (status && status !== 'all') where.deliveryStatus = status;
         if (network && network !== 'all') where.network = network;
         if (search) where.orderId = { [Op.iLike]: `%${search}%` };
+        if (paymentStatus && paymentStatus !== 'all') where.paymentStatus = paymentStatus;
+        if (userId) where.userId = userId;
 
         // Server-side date filtering
         if (dateFrom || dateTo) {
@@ -356,6 +358,7 @@ exports.updateOrderStatus = async (req, res) => {
         order.processedBy = req.admin?.username || 'admin';
         order.processedAt = new Date();
         await order.save();
+        invalidateCache('/admin/orders');
 
         // Log admin action
         await AdminAuditLog.logAction(req, {
@@ -417,6 +420,7 @@ exports.updateItemStatus = async (req, res) => {
 
         order.items = items;
         await order.updateDeliveryStatus();
+        invalidateCache('/admin/orders');
 
         res.json({
             success: true,

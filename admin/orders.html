@@ -399,6 +399,22 @@
         let selectedOrders = new Set();
         let currentPage = 1;
         let perPage = 50;
+        let lastServerFilters = null; // track what filters were last used to fetch from server
+
+        // Map frontend status values to backend DB enum values
+        const STATUS_TO_DB = { pending: 'Pending', processing: 'Processing', completed: 'Delivered', failed: 'Failed', cancelled: 'Failed' };
+
+        function getServerFilters() {
+            const status = document.getElementById('statusFilter').value;
+            return {
+                search: document.getElementById('orderNoFilter').value.trim(),
+                dateFrom: document.getElementById('dateFromFilter').value,
+                dateTo: document.getElementById('dateToFilter').value,
+                network: document.getElementById('networkFilter').value,
+                status: status ? (STATUS_TO_DB[status] || status) : '',
+                userId: document.getElementById('agentFilter').value
+            };
+        }
 
         // XSS Protection - escape HTML in user data
         function esc(str) {
@@ -415,8 +431,8 @@
             loadProfileInfo();
             loadHeaderStats();
             initProfileDropdown();
+            initFilters();   // must run before loadOrders so default dates are set
             loadOrders();
-            initFilters();
             initButtonListeners();
             // Load MCBIS balance
             if (typeof loadMcbisBalance === 'function') {
@@ -579,13 +595,10 @@
                     });
                 }
 
-                // Load today's orders only and calculate stats
+                // Load today's orders only and calculate stats (server filters by date)
                 const today = getGhanaDateString();
-                const response = await DataEasyAPI.admin.getOrders({ limit: 1000 });
-                const orders = (response.orders || response || []).filter(order => {
-                    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-                    return orderDate === today;
-                });
+                const response = await DataEasyAPI.admin.getOrders({ limit: 100, dateFrom: today, dateTo: today });
+                const orders = response.orders || [];
                 
                 let totalSold = 0;
                 let totalProfit = 0;
@@ -751,26 +764,24 @@
         }
 
         async function loadOrders() {
+            const serverFilters = getServerFilters();
+            lastServerFilters = { ...serverFilters };
             try {
-                let allFetched = [];
-                let page = 1;
-                let hasMore = true;
-                while (hasMore) {
-                    const response = await DataEasyAPI.admin.getOrders({ limit: 1000, page });
-                    const orders = response.orders || [];
-                    allFetched = allFetched.concat(orders);
-                    if (response.pagination && page < response.pagination.pages) {
-                        page++;
-                    } else {
-                        hasMore = false;
-                    }
-                }
-                allOrders = allFetched;
-                filterOrders();
+                const params = { limit: 100 };
+                if (serverFilters.search) params.search = serverFilters.search;
+                if (serverFilters.dateFrom) params.dateFrom = serverFilters.dateFrom;
+                if (serverFilters.dateTo) params.dateTo = serverFilters.dateTo;
+                if (serverFilters.network) params.network = serverFilters.network;
+                if (serverFilters.status) params.status = serverFilters.status;
+                if (serverFilters.userId) params.userId = serverFilters.userId;
+
+                const response = await DataEasyAPI.admin.getOrders(params);
+                allOrders = response.orders || [];
+                applyClientFiltersAndRender();
             } catch (error) {
                 console.error(error);
                 allOrders = [];
-                filterOrders();
+                applyClientFiltersAndRender();
                 if (error.message.includes('Failed to fetch')) {
                     showToast('warning', 'Offline', 'Server unavailable. Showing cached data.');
                 } else {
@@ -780,6 +791,20 @@
                 const loadingOverlay = document.getElementById('loadingOverlay');
                 if (loadingOverlay) loadingOverlay.classList.add('hidden');
             }
+        }
+
+        function applyClientFiltersAndRender() {
+            const phone = document.getElementById('phoneFilter').value.replace(/\D/g, '');
+            const payment = document.getElementById('paymentFilter').value;
+
+            let filtered = allOrders.filter(order => {
+                const paymentStatus = (order.paymentStatus || 'completed').toLowerCase();
+                if (payment && paymentStatus !== payment) return false;
+                return true;
+            });
+
+            updateStats(filtered);
+            renderOrders(filtered, phone || undefined);
         }
 
         function updateStats(orders) {
@@ -825,53 +850,17 @@
         }
 
         function filterOrders() {
-            const orderNo = document.getElementById('orderNoFilter').value.toLowerCase();
-            const phone = document.getElementById('phoneFilter').value.replace(/\D/g, '');
-            const dateFrom = document.getElementById('dateFromFilter').value;
-            const dateTo = document.getElementById('dateToFilter').value;
-            const network = document.getElementById('networkFilter').value;
-            const status = document.getElementById('statusFilter').value;
-            const payment = document.getElementById('paymentFilter').value;
-            const agent = document.getElementById('agentFilter').value;
-
-            // First: filter at order level (everything except phone)
-            let filtered = allOrders.filter(order => {
-                if (orderNo) {
-                    const orderIdMatch = String(order.orderId || order.id).toLowerCase().includes(orderNo);
-                    if (!orderIdMatch) return false;
-                }
-                if (dateFrom || dateTo) {
-                    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-                    if (dateFrom && orderDate < dateFrom) return false;
-                    if (dateTo && orderDate > dateTo) return false;
-                }
-                if (network && (order.network || '').toLowerCase() !== network.toLowerCase()) return false;
-                if (status) {
-                    const orderStatus = (order.deliveryStatus || order.status || 'pending').toLowerCase();
-                    const normalizedStatus = orderStatus === 'delivered' ? 'completed' : orderStatus;
-                    const orderMatchesStatus = normalizedStatus === status;
-                    const itemMatchesStatus = (order.items || []).some(item => {
-                        const s = (item.deliveryStatus || '').toLowerCase();
-                        const ns = s === 'delivered' ? 'completed' : s;
-                        return ns === status;
-                    });
-                    if (!orderMatchesStatus && !itemMatchesStatus) return false;
-                }
-                const paymentStatus = (order.paymentStatus || 'completed').toLowerCase();
-                if (payment && paymentStatus !== payment) return false;
-                if (agent && String(order.userId) !== agent) return false;
-                return true;
-            });
-
-            // Update stats based on order-level filter
-            updateStats(filtered);
-
-            // Second: if phone filter is active, filter at item level (only show matching items)
-            if (phone) {
-                renderOrders(filtered, phone);
-            } else {
-                renderOrders(filtered);
+            // Server-side filters: if they changed, re-fetch from server
+            const serverFilters = getServerFilters();
+            const serverFiltersChanged = JSON.stringify(serverFilters) !== JSON.stringify(lastServerFilters);
+            if (serverFiltersChanged || lastServerFilters === null) {
+                currentPage = 1;
+                loadOrders();
+                return;
             }
+            // Only client-side filters (phone, payment) changed — re-render in memory
+            currentPage = 1;
+            applyClientFiltersAndRender();
         }
 
         function filterByNetwork(network) {
@@ -1179,38 +1168,14 @@
                 return;
             }
 
-            // Apply current filters to export only what's visible
+            // allOrders is already server-side filtered (orderNo, dates, network, status, agent)
+            // Apply remaining client-side filters only
             const phoneFilter = document.getElementById('phoneFilter').value.replace(/\D/g, '');
-            const orderNo = document.getElementById('orderNoFilter').value.toLowerCase();
-            const dateFrom = document.getElementById('dateFromFilter').value;
-            const dateTo = document.getElementById('dateToFilter').value;
-            const network = document.getElementById('networkFilter').value;
-            const status = document.getElementById('statusFilter').value;
             const payment = document.getElementById('paymentFilter').value;
-            const agent = document.getElementById('agentFilter').value;
 
             let filtered = allOrders.filter(order => {
-                if (orderNo && !String(order.orderId || order.id).toLowerCase().includes(orderNo)) return false;
-                if (dateFrom || dateTo) {
-                    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-                    if (dateFrom && orderDate < dateFrom) return false;
-                    if (dateTo && orderDate > dateTo) return false;
-                }
-                if (network && (order.network || '').toLowerCase() !== network.toLowerCase()) return false;
-                if (status) {
-                    const orderStatus = (order.deliveryStatus || order.status || 'pending').toLowerCase();
-                    const normalizedStatus = orderStatus === 'delivered' ? 'completed' : orderStatus;
-                    const orderMatchesStatus = normalizedStatus === status;
-                    const itemMatchesStatus = (order.items || []).some(item => {
-                        const s = (item.deliveryStatus || '').toLowerCase();
-                        const ns = s === 'delivered' ? 'completed' : s;
-                        return ns === status;
-                    });
-                    if (!orderMatchesStatus && !itemMatchesStatus) return false;
-                }
                 const paymentStatus = (order.paymentStatus || 'completed').toLowerCase();
                 if (payment && paymentStatus !== payment) return false;
-                if (agent && String(order.userId) !== agent) return false;
                 return true;
             });
 

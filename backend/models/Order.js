@@ -91,7 +91,11 @@ const Order = sequelize.define('Order', {
         { fields: ['userId'] },
         { fields: ['paymentStatus'] },
         { fields: ['deliveryStatus'] },
-        { fields: ['createdAt'] }
+        { fields: ['createdAt'] },
+        { fields: ['network'] },
+        { fields: ['userId', 'createdAt'] },
+        { fields: ['deliveryStatus', 'createdAt'] },
+        { fields: ['network', 'createdAt'] }
     ]
 });
 
