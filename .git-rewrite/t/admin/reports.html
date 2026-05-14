@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - DataEasy+ Admin</title>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../assets/js/config.js"></script>
+    <style>
+        .sidebar-link.active { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+        .loading-overlay { backdrop-filter: blur(4px); }
+        .sidebar-collapsed { width: 80px !important; }
+        .sidebar-collapsed .sidebar-text { display: none; }
+        .sidebar-collapsed .sidebar-link { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .sidebar-link i { width: auto; font-size: 1.25rem; }
+        .sidebar-collapsed .menu-label { display: none; }
+        .sidebar-collapsed .logo-text { display: none; }
+        .sidebar-collapsed .logout-btn { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .logout-btn span { display: none; }
+        .sidebar-collapsed .reports-submenu { display: none; }
+        .main-collapsed { margin-left: 80px !important; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center" id="loadingOverlay">
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-600">Loading reports...</p>
+    </div>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" id="sidebarOverlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="fixed top-0 left-0 w-64 h-screen bg-sidebar z-50 flex flex-col transform -translate-x-full md:translate-x-0 transition-all duration-300" id="sidebar">
+        <button class="absolute top-4 right-4 text-white/70 hover:text-white md:hidden" id="sidebarCloseBtn">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+        
+        <div class="flex items-center gap-3 p-5 border-b border-white/10">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">BT</div>
+            <span class="text-white font-bold text-lg logo-text sidebar-text">DataEasy+</span>
+        </div>
+        
+        <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
+        <nav class="flex-1 px-3 overflow-y-auto">
+            <a href="index" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Dashboard">
+                <i class="fas fa-th-large w-5"></i>
+                <span class="sidebar-text">Dashboard</span>
+            </a>
+            <a href="users" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Users">
+                <i class="fas fa-users w-5"></i>
+                <span class="sidebar-text">Users</span>
+            </a>
+            <a href="orders" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Orders">
+                <i class="fas fa-shopping-cart w-5"></i>
+                <span class="sidebar-text">Orders</span>
+            </a>
+            <a href="wallet" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Wallet">
+                <i class="fas fa-wallet w-5"></i>
+                <span class="sidebar-text">Wallet</span>
+            </a>
+            <a href="momo-deposits" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="MoMo Deposits">
+                <i class="fas fa-mobile-alt w-5"></i>
+                <span class="sidebar-text">MoMo Deposits</span>
+            </a>
+            <a href="packages" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Packages">
+                <i class="fas fa-cube w-5"></i>
+                <span class="sidebar-text">Packages</span>
+            </a>
+            <a href="stores" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Stores">
+                <i class="fas fa-store w-5"></i>
+                <span class="sidebar-text">Stores</span>
+            </a>
+            <div class="mb-1">
+                <button id="reportsMenuBtn" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white hover:bg-white/10 rounded-lg transition" title="Reports">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-chart-bar w-5"></i>
+                        <span class="sidebar-text">Reports</span>
+                    </div>
+                    <i class="fas fa-chevron-down w-4 text-xs transition-transform rotate-180 sidebar-text" id="reports-arrow"></i>
+                </button>
+                <div id="reports-submenu" class="pl-4">
+                    <a href="reports?type=sales" id="nav-sales" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Sales">
+                        <i class="fas fa-shopping-cart w-4"></i>
+                        <span class="sidebar-text">Sales</span>
+                    </a>
+                    <a href="reports?type=agents" id="nav-agents" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Agents">
+                        <i class="fas fa-user-tie w-4"></i>
+                        <span class="sidebar-text">Agents</span>
+                    </a>
+                </div>
+            </div>
+            <a href="api-keys" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="API Keys">
+                <i class="fas fa-key w-5"></i>
+                <span class="sidebar-text">API Keys</span>
+            </a>
+            <a href="settings" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Settings">
+                <i class="fas fa-cog w-5"></i>
+                <span class="sidebar-text">Settings</span>
+            </a>
+        </nav>
+        
+        <div class="p-4 border-t border-white/10">
+            <button class="logout-btn w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition" id="logoutBtn" title="Logout">
+                <i class="fas fa-sign-out-alt w-5"></i>
+                <span class="sidebar-text">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="md:ml-64 min-h-screen transition-all duration-300" id="mainContent">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-30">
+            <div class="flex items-center justify-between px-4 md:px-6 py-4">
+                <div class="flex items-center gap-4">
+                    <button class="text-gray-600 hover:text-gray-900" id="sidebarToggleBtn" title="Toggle Sidebar">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-gray-800" id="greetingText">Good morning, Admin 👋</h1>
+                        <p class="text-sm text-gray-500" id="statusText">We are open and serving orders!</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex items-center gap-6 text-sm">
+                        <div class="flex items-center gap-2 border-r pr-4 border-gray-200">
+                            <span class="text-gray-500"><i class="fas fa-money-bill-wave mr-1"></i>Total Sold:</span>
+                            <span class="font-bold text-green-600" id="headerTotalSold">₵ 0.00</span>
+                        </div>
+                        <div class="flex items-center gap-2 border-r pr-4 border-gray-200">
+                            <span class="text-gray-500"><i class="fas fa-coins mr-1"></i>Profit Made:</span>
+                            <span class="font-bold text-green-600" id="headerProfit">₵ 0.00</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-500"><i class="fas fa-plug mr-1 text-cyan-500"></i>MCBIS Bal:</span>
+                            <span class="font-bold text-cyan-600" id="headerMcbisBalance">₵ --</span>
+                            <button id="mcbisRefreshBtn" class="ml-1 text-cyan-500 hover:text-cyan-700 transition" title="Refresh MCBIS Balance">
+                                <i class="fas fa-sync-alt text-xs" id="headerMcbisRefreshIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn">
+                            <span id="profileInitial">A</span>
+                        </button>
+                        <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
+                            <div class="p-4 border-b border-gray-100">
+                                <p class="font-semibold text-gray-800" id="profileName">Administrator</p>
+                                <p class="text-sm text-gray-500" id="profileEmail">admin@dataeasyplus.com</p>
+                                <p class="text-xs text-blue-500 mt-1" id="profileRole">Super Admin</p>
+                            </div>
+                            <div class="p-2">
+                                <a href="settings" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
+                                    <i class="fas fa-cog w-5"></i> Settings
+                                </a>
+                                <button id="dropdownLogoutBtn" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                    <i class="fas fa-sign-out-alt w-5"></i> Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="p-4 md:p-6">
+            <!-- Date Filters -->
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                <div class="flex flex-wrap items-end gap-4">
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                        <input type="date" id="start-date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                        <input type="date" id="end-date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <button id="generate-report-btn" class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:opacity-90 transition">
+                        <i class="fas fa-sync-alt mr-2"></i>Generate
+                    </button>
+                    <button id="export-csv-btn" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                        <i class="fas fa-file-csv mr-2"></i>Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sales Report Section -->
+            <div id="sales-report-section">
+                <!-- Sales Table -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead class="bg-slate-900">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-white">Order Date</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-white">No. of Orders</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-white">Data (GB)</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-white bg-gray-800">Cost</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-white bg-blue-600">Price</th>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-white bg-blue-600">Profit (GHS)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-table-body">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <p>Loading sales data...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agents Report Section (Hidden by default) -->
+            <div id="agents-report-section" class="hidden">
+                <!-- Report Date Picker -->
+                <div class="mb-6 flex items-center space-x-4">
+                    <label class="text-gray-700 font-medium">Report Date:</label>
+                    <input type="date" id="agent-report-date" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+
+                <!-- User Reports Title -->
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">User Reports</h2>
+
+                <!-- Agents Table -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead class="bg-slate-900">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-sm font-semibold text-white">Agent #</th>
+                                    <th class="px-6 py-4 text-center text-sm font-semibold text-white">Wallet Loads</th>
+                                    <th class="px-6 py-4 text-center text-sm font-semibold text-white">Total Orders (GHS)</th>
+                                    <th class="px-6 py-4 text-center text-sm font-semibold text-white">Data Capacity</th>
+                                    <th class="px-6 py-4 text-center text-sm font-semibold text-white bg-slate-800">Profit (GHS)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="agents-table-body">
+                                <tr>
+                                    <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <p>Loading agents data...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- API and Common Scripts -->
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/admin-common.js"></script>
+    
+    <script>
+        // XSS Protection - escape HTML in user data
+        function esc(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
+        // API Base URL
+        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000/api';
+
+        // Profile dropdown toggle
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+            }
+        }
+
+        // Close profile dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('profileDropdown');
+            const profileBtn = document.getElementById('profileBtn');
+            if (dropdown && profileBtn && !profileBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('dataeasy_admin_token');
+            localStorage.removeItem('dataeasy_admin');
+            window.location.href = '../pages/login';
+        }
+
+        // Set greeting based on time of day
+        function setGreeting() {
+            const hour = new Date().getHours();
+            let greeting = 'Good morning';
+            if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+            else if (hour >= 17) greeting = 'Good evening';
+            
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
+            const name = admin.name || 'Admin';
+            
+            const element = document.getElementById('greetingText');
+            if (element) {
+                element.textContent = `${greeting}, ${name} 👋`;
+            }
+        }
+
+        // Load profile info
+        function loadProfileInfo() {
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
+            const name = admin.name || 'Administrator';
+            const email = admin.username || admin.email || 'admin@dataeasyplus.com';
+            const role = admin.role || 'Super Admin';
+            
+            if (document.getElementById('profileName')) document.getElementById('profileName').textContent = name;
+            if (document.getElementById('profileEmail')) document.getElementById('profileEmail').textContent = email;
+            if (document.getElementById('profileRole')) document.getElementById('profileRole').textContent = role;
+            if (document.getElementById('profileInitial')) document.getElementById('profileInitial').textContent = name.charAt(0).toUpperCase();
+        }
+
+        // Load header stats (Total Sold, Profit)
+        async function loadHeaderStats() {
+            try {
+                const statsResponse = await DataEasyAPI.admin.getStats();
+                if (statsResponse.success && statsResponse.stats) {
+                    const stats = statsResponse.stats;
+                    document.getElementById('headerTotalSold').textContent = `₵ ${(stats.amountToday || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    document.getElementById('headerProfit').textContent = `₵ ${(stats.profitToday || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                }
+            } catch (error) {
+                console.error('Error loading header stats:', error);
+            }
+        }
+
+        // Get report type from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const reportType = urlParams.get('type') || 'sales';
+
+        // DOM Elements
+        const salesSection = document.getElementById('sales-report-section');
+        const agentsSection = document.getElementById('agents-report-section');
+        const pageTitle = document.getElementById('page-title');
+        const navSales = document.getElementById('nav-sales');
+        const navAgents = document.getElementById('nav-agents');
+
+        // Set active state based on report type
+        if (reportType === 'agents') {
+            salesSection.classList.add('hidden');
+            agentsSection.classList.remove('hidden');
+            if (pageTitle) pageTitle.textContent = 'Agents Report';
+            if (navAgents) navAgents.classList.add('active');
+        } else {
+            salesSection.classList.remove('hidden');
+            agentsSection.classList.add('hidden');
+            if (pageTitle) pageTitle.textContent = 'Sales Report';
+            if (navSales) navSales.classList.add('active');
+        }
+
+        // Set default dates
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        document.getElementById('start-date').valueAsDate = firstDayOfMonth;
+        document.getElementById('end-date').valueAsDate = today;
+
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+        const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        sidebarToggleBtn?.addEventListener('click', () => {
+            if (window.innerWidth < 768) {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            } else {
+                sidebar.classList.toggle('sidebar-collapsed');
+                mainContent.classList.toggle('main-collapsed');
+            }
+        });
+
+        sidebarCloseBtn?.addEventListener('click', () => {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        });
+
+        sidebarOverlay?.addEventListener('click', () => {
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        });
+
+        // Logout
+        document.getElementById('logoutBtn')?.addEventListener('click', () => {
+            localStorage.removeItem('dataeasy_admin_token');
+            localStorage.removeItem('dataeasy_admin');
+            window.location.href = '../pages/login';
+        });
+
+        // Check admin auth
+        const token = localStorage.getItem('dataeasy_admin_token');
+        if (!token) {
+            window.location.href = '../pages/login';
+        }
+
+        // Display admin name
+        const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
+        const adminNameEl = document.getElementById('adminName');
+        if (adminNameEl && admin.fullName) {
+            adminNameEl.textContent = admin.fullName;
+        }
+
+        // Package cost map for looking up cost prices
+        let packageCostMap = {};
+
+        // Helper function to show empty/error state in table
+        function showEmptyState(tbodyId, colspan, message) {
+            const tbody = document.getElementById(tbodyId);
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="${colspan}" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
+                            <p>${message}</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Load reports data
+        async function loadReportsData() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            
+            // Show loading
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            try {
+                // First, load packages to get cost prices
+                const packagesRes = await fetch(`${API_BASE_URL}/admin/packages`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (packagesRes.ok) {
+                    const packagesData = await packagesRes.json();
+                    // API returns grouped packages: { packages: { MTN: [...], AirtelTigo: [...], Telecel: [...] } }
+                    const groupedPackages = packagesData.packages || {};
+                    
+                    // Build cost price lookup map by package ID using admin-set prices
+                    Object.keys(groupedPackages).forEach(network => {
+                        const networkPackages = groupedPackages[network] || [];
+                        networkPackages.forEach(pkg => {
+                            // Map by ID - this is the packageId used in orders (e.g., "mtn-1gb")
+                            if (pkg.costPrice !== null && pkg.costPrice !== undefined) {
+                                packageCostMap[pkg.id] = parseFloat(pkg.costPrice);
+                            }
+                        });
+                    });
+                }
+
+                // Load orders and users in PARALLEL for faster loading
+                const [ordersRes, usersRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/admin/orders?limit=500`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(`${API_BASE_URL}/admin/users?limit=200`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                ]);
+                
+                if (ordersRes.ok) {
+                    const ordersData = await ordersRes.json();
+                    const orders = ordersData.orders || [];
+                    
+                    // Filter by date
+                    const filteredOrders = orders.filter(order => {
+                        const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+                        return (!startDate || orderDate >= startDate) && (!endDate || orderDate <= endDate);
+                    });
+                    
+                    updateSalesReport(filteredOrders);
+                } else {
+                    console.error('Failed to load orders:', ordersRes.status);
+                    showEmptyState('sales-table-body', 6, 'Failed to load orders. Please try again.');
+                }
+
+                if (usersRes.ok) {
+                    const usersData = await usersRes.json();
+                    const users = usersData.users || [];
+                    updateAgentsReport(users);
+                } else {
+                    console.error('Failed to load users:', usersRes.status);
+                    showEmptyState('agents-table-body', 5, 'Failed to load agents. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error loading reports:', error);
+                showEmptyState('sales-table-body', 6, 'Error loading data. Please refresh.');
+                showEmptyState('agents-table-body', 5, 'Error loading data. Please refresh.');
+            } finally {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        function updateSalesReport(orders) {
+            // Helper function to format date with ordinal suffix
+            function formatDateWithOrdinal(date) {
+                const d = new Date(date);
+                const day = d.getDate();
+                const month = d.toLocaleString('default', { month: 'short' });
+                const year = d.getFullYear();
+                
+                const suffix = (day) => {
+                    if (day > 3 && day < 21) return 'th';
+                    switch (day % 10) {
+                        case 1: return 'st';
+                        case 2: return 'nd';
+                        case 3: return 'rd';
+                        default: return 'th';
+                    }
+                };
+                
+                return `${day}${suffix(day)} ${month} ${year}`;
+            }
+
+            // Group COMPLETED orders by date - only delivered items count for profit
+            const dailySummary = {};
+            orders.forEach(order => {
+                const dateKey = new Date(order.createdAt).toDateString();
+                
+                if (!dailySummary[dateKey]) {
+                    dailySummary[dateKey] = {
+                        date: order.createdAt,
+                        orderCount: 0,
+                        totalDataGB: 0,
+                        totalCost: 0,
+                        totalPrice: 0
+                    };
+                }
+                
+                // Calculate data in GB, cost and price from COMPLETED order items only
+                if (order.items && order.items.length > 0) {
+                    order.items.forEach(item => {
+                        // Check item-level status first, then order-level status
+                        const itemStatus = (item.deliveryStatus || '').toLowerCase();
+                        const orderStatus = (order.deliveryStatus || '').toLowerCase();
+                        const isDelivered = itemStatus === 'delivered' || orderStatus === 'delivered';
+                        
+                        if (isDelivered) {
+                            dailySummary[dateKey].orderCount++;
+                            
+                            // Extract data amount from item.data or packageName
+                            const dataMatch = (item.data || item.packageName || '').match(/(\d+(?:\.\d+)?)\s*(GB|MB)/i);
+                            if (dataMatch) {
+                                const amount = parseFloat(dataMatch[1]);
+                                const unit = dataMatch[2].toUpperCase();
+                                const dataInGB = unit === 'GB' ? amount : amount / 1024;
+                                dailySummary[dateKey].totalDataGB += dataInGB;
+                            }
+                            
+                            // Price (selling price / revenue) - agent price from order
+                            dailySummary[dateKey].totalPrice += parseFloat(item.price || 0);
+                            
+                            // Cost price - use cost at time of sale for accurate accounting
+                            // Priority: 1. Stored costPrice (captured at order time) - accurate historical record
+                            //           2. Current package cost (fallback for old orders without stored cost)
+                            const packageId = item.packageId;
+                            let itemCost = 0;
+                            
+                            if (item.costPrice && parseFloat(item.costPrice) > 0) {
+                                // Use stored cost from order - this is the actual cost at time of sale
+                                itemCost = parseFloat(item.costPrice);
+                            } else {
+                                // Fallback for legacy orders - use current package cost
+                                itemCost = packageCostMap[packageId] || 0;
+                            }
+                            
+                            dailySummary[dateKey].totalCost += itemCost;
+                        }
+                    });
+                }
+            });
+
+            // Remove days with no completed orders
+            Object.keys(dailySummary).forEach(key => {
+                if (dailySummary[key].orderCount === 0) {
+                    delete dailySummary[key];
+                }
+            });
+
+            // Convert to array and sort by date (newest first)
+            const dailyData = Object.values(dailySummary).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Sales table
+            const tbody = document.getElementById('sales-table-body');
+            if (dailyData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>No completed orders found for the selected period</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = dailyData.map((day, index) => {
+                    const profit = day.totalPrice - day.totalCost;
+                    const rowBg = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                    
+                    return `
+                        <tr class="${rowBg} hover:bg-blue-50">
+                            <td class="px-4 py-3 text-sm text-gray-800">${formatDateWithOrdinal(day.date)}</td>
+                            <td class="px-4 py-3 text-sm text-gray-800 text-center">${day.orderCount}</td>
+                            <td class="px-4 py-3 text-sm text-gray-800 text-center">${Math.round(day.totalDataGB)} GB</td>
+                            <td class="px-4 py-3 text-sm text-gray-800 text-center bg-gray-100">₵ ${day.totalCost.toFixed(2)}</td>
+                            <td class="px-4 py-3 text-sm text-white text-center bg-blue-500">₵ ${day.totalPrice.toFixed(2)}</td>
+                            <td class="px-4 py-3 text-sm text-white text-center font-semibold ${profit >= 0 ? 'bg-blue-600' : 'bg-red-500'}">₵ ${profit.toFixed(2)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Store for CSV export
+            window.salesDailyData = dailyData;
+        }
+
+        function updateAgentsReport(users) {
+            // Set today's date in the date picker
+            const dateInput = document.getElementById('agent-report-date');
+            if (dateInput) {
+                dateInput.valueAsDate = new Date();
+            }
+
+            // Agents table
+            const tbody = document.getElementById('agents-table-body');
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                            <i class="fas fa-users text-4xl mb-2"></i>
+                            <p>No agents found</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                // Sort agents by profit descending
+                users.sort((a, b) => parseFloat(b.profit || 0) - parseFloat(a.profit || 0));
+
+                tbody.innerHTML = users.map((user, index) => {
+                    // Wallet Loads = Total loads from API (paystack + admin credits + MoMo)
+                    const walletLoads = parseFloat(user.totalLoads || 0);
+                    
+                    // Total Orders = Sum of all orders placed by user
+                    const totalOrders = parseFloat(user.totalOrders || 0);
+                    
+                    // Data capacity from API
+                    const dataCapacity = parseFloat(user.totalDataGB || 0);
+                    
+                    // Profit from API (selling price - cost price)
+                    const profit = parseFloat(user.profit || 0);
+                    
+                    const rowBg = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                    
+                    return `
+                        <tr class="${rowBg} hover:bg-blue-50">
+                            <td class="px-6 py-4 text-sm text-blue-600 font-medium">
+                                ${esc(user.fullName.toUpperCase())} (${esc(user.agentCode || 'N/A')})
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-800 text-center">${esc(walletLoads.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}))}</td>
+                            <td class="px-6 py-4 text-sm text-gray-800 text-center font-medium">${esc(totalOrders.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}))}</td>
+                            <td class="px-6 py-4 text-sm text-gray-800 text-center">${esc(dataCapacity)} GB</td>
+                            <td class="px-6 py-4 text-sm text-center font-semibold bg-slate-900 text-white">${esc(profit.toFixed(2))}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Store for CSV export
+            window.agentsData = users;
+        }
+
+        // Export to CSV
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        if (exportCsvBtn) {
+            exportCsvBtn.addEventListener('click', function() {
+                if (reportType === 'sales') {
+                    exportSalesCSV();
+                } else {
+                    exportAgentsCSV();
+                }
+            });
+        }
+
+        function exportSalesCSV() {
+            if (!window.salesDailyData || window.salesDailyData.length === 0) {
+                showAlert({
+                    title: 'No Data',
+                    message: 'No sales data to export. Please generate a report first.',
+                    type: 'warning'
+                });
+                return;
+            }
+            
+            let csv = 'Order Date,No. of Orders,Data (GB),Cost (GHS),Price (GHS),Profit (GHS)\n';
+            
+            window.salesDailyData.forEach(day => {
+                const profit = day.totalPrice - day.totalCost;
+                const date = new Date(day.date).toLocaleDateString();
+                csv += `"${date}","${day.orderCount}","${day.totalDataGB.toFixed(2)}","${day.totalCost.toFixed(2)}","${day.totalPrice.toFixed(2)}","${profit.toFixed(2)}"\n`;
+            });
+
+            downloadCSV(csv, 'sales-report.csv');
+        }
+
+        function exportAgentsCSV() {
+            if (!window.agentsData || window.agentsData.length === 0) {
+                showAlert({
+                    title: 'No Data',
+                    message: 'No agent data to export. Please generate a report first.',
+                    type: 'warning'
+                });
+                return;
+            }
+            
+            let csv = 'Agent,Wallet Loads,Total Orders (GHS),Data Capacity,Profit (GHS)\n';
+            
+            window.agentsData.forEach(user => {
+                const walletLoads = parseFloat(user.totalLoads || 0);
+                const totalOrders = parseFloat(user.totalOrders || 0);
+                const dataCapacity = parseFloat(user.totalDataGB || 0);
+                const profit = parseFloat(user.profit || 0);
+                const agentName = `${user.fullName.toUpperCase()} (${user.agentCode || 'N/A'})`;
+                
+                csv += `"${agentName}","${walletLoads.toFixed(2)}","${totalOrders.toFixed(2)}","${dataCapacity} GB","${profit.toFixed(2)}"\n`;
+            });
+
+            downloadCSV(csv, 'agents-report.csv');
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        // Generate button
+        const generateBtn = document.getElementById('generate-report-btn');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', loadReportsData);
+        }
+
+        // Toggle Reports submenu
+        function toggleReportsMenu() {
+            const submenu = document.getElementById('reports-submenu');
+            const arrow = document.getElementById('reports-arrow');
+            submenu.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize button listeners
+            initButtonListeners();
+            
+            // Set greeting and load profile info
+            setGreeting();
+            loadProfileInfo();
+            
+            // Load header stats
+            loadHeaderStats();
+            
+            // Load MCBIS balance
+            if (typeof loadMcbisBalance === 'function') {
+                loadMcbisBalance();
+            }
+            
+            // Load reports data
+            loadReportsData();
+        });
+
+        function initButtonListeners() {
+            // Reports menu toggle
+            const reportsMenuBtn = document.getElementById('reportsMenuBtn');
+            if (reportsMenuBtn) reportsMenuBtn.addEventListener('click', toggleReportsMenu);
+
+            // MCBIS refresh button
+            const mcbisRefreshBtn = document.getElementById('mcbisRefreshBtn');
+            if (mcbisRefreshBtn) mcbisRefreshBtn.addEventListener('click', () => checkMcbisBalance(true));
+
+            // Profile dropdown toggle
+            const profileBtn = document.getElementById('profileBtn');
+            if (profileBtn) profileBtn.addEventListener('click', toggleProfileDropdown);
+
+            // Dropdown logout button
+            const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
+            if (dropdownLogoutBtn) dropdownLogoutBtn.addEventListener('click', logout);
+        }
+    </script>
+</body>
+</html>

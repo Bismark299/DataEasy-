@@ -1,0 +1,1114 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>MTN Order Checker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { overflow-x: hidden; scroll-behavior: smooth; }
+
+        /* ── MTN Brand Palette ── */
+        :root {
+            /* MTN Yellow */
+            --mtn:          #FFCB05;
+            --mtn-dark:     #e6b800;
+            --mtn-light:    #FFD740;
+            --mtn-glow:     rgba(255, 203, 5, 0.18);
+            --mtn-glow-sm:  rgba(255, 203, 5, 0.10);
+
+            /* Dark surfaces */
+            --bg:           #0b0b0d;
+            --surface:      #141416;
+            --surface-2:    #1c1c1f;
+            --surface-3:    #242428;
+            --border:       #2a2a2f;
+            --border-hover: #3e3e46;
+            --border-mtn:   rgba(255, 203, 5, 0.25);
+
+            /* Text */
+            --text:         #f0f0f2;
+            --text-muted:   #9090a0;
+            --text-dim:     #55555f;
+
+            /* Status */
+            --green:        #22c55e;
+            --green-bg:     rgba(34,197,94,0.12);
+            --red:          #ef4444;
+            --red-bg:       rgba(239,68,68,0.12);
+            --orange:       #f97316;
+            --orange-bg:    rgba(249,115,22,0.12);
+            --blue:         #3b82f6;
+            --blue-bg:      rgba(59,130,246,0.12);
+
+            --radius:       14px;
+            --radius-sm:    9px;
+            --radius-xs:    6px;
+            --shadow:       0 8px 32px rgba(0,0,0,0.45);
+            --shadow-mtn:   0 4px 20px rgba(255,203,5,0.22);
+            --transition:   0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        [data-theme="light"] {
+            --bg:           #f4f4f6;
+            --surface:      #ffffff;
+            --surface-2:    #f0f0f3;
+            --surface-3:    #e6e6ea;
+            --border:       #d8d8df;
+            --border-hover: #b8b8c4;
+            --border-mtn:   rgba(230,184,0,0.35);
+            --text:         #111113;
+            --text-muted:   #505060;
+            --text-dim:     #9090a0;
+            --mtn:          #e6b800;
+            --mtn-dark:     #c8a000;
+            --mtn-glow:     rgba(230,184,0,0.14);
+            --mtn-glow-sm:  rgba(230,184,0,0.08);
+            --shadow:       0 8px 32px rgba(0,0,0,0.10);
+            --shadow-mtn:   0 4px 20px rgba(230,184,0,0.18);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ══ TOP STRIPE ══ */
+        .top-stripe {
+            height: 3px;
+            background: linear-gradient(90deg, #FFCB05 0%, #FFD740 40%, #e6b800 100%);
+        }
+
+        /* ══ NAVBAR ══ */
+        .navbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 62px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* MTN "M" badge */
+        .mtn-badge {
+            width: 40px;
+            height: 40px;
+            background: var(--mtn);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-mtn);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .mtn-badge::after {
+            content: '';
+            position: absolute;
+            top: -6px; right: -6px;
+            width: 20px; height: 20px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 50%;
+        }
+        .mtn-badge .m-letter {
+            font-size: 20px;
+            font-weight: 800;
+            color: #000;
+            line-height: 1;
+            letter-spacing: -1px;
+            z-index: 1;
+        }
+
+        .brand-text .name {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
+        }
+        .brand-text .tagline {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 1px;
+            font-weight: 400;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pill-badge {
+            padding: 4px 11px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--mtn-glow);
+            color: var(--mtn);
+            border: 1px solid var(--border-mtn);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .pill-badge .dot {
+            width: 6px; height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+
+        .icon-btn {
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+        .icon-btn:hover {
+            background: var(--surface-2);
+            border-color: var(--border-hover);
+            color: var(--text);
+        }
+
+        /* ══ HERO BANNER ══ */
+        .hero {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 28px 24px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 100%;
+            background: radial-gradient(ellipse at 20% 50%, rgba(255,203,5,0.06) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 20%, rgba(255,203,5,0.04) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .hero-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .hero-title {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.15;
+        }
+        .hero-title span { color: var(--mtn); }
+        .hero-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 5px;
+            max-width: 420px;
+            line-height: 1.6;
+        }
+        .hero-stats {
+            display: flex;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+        .hero-stat {
+            text-align: center;
+        }
+        .hero-stat .num {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--mtn);
+        }
+        .hero-stat .lbl {
+            font-size: 10px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+        .hero-divider { width: 1px; height: 36px; background: var(--border); align-self: center; }
+
+        /* ══ MAIN CONTENT ══ */
+        .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+        /* ══ TABS ══ */
+        .tabs-bar {
+            display: flex;
+            gap: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 5px;
+            margin-bottom: 24px;
+            width: fit-content;
+        }
+        .tab {
+            padding: 9px 22px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab i { font-size: 12px; }
+        .tab:hover { color: var(--text); background: var(--surface-2); }
+        .tab.active {
+            background: var(--mtn);
+            color: #000;
+            font-weight: 700;
+            box-shadow: var(--shadow-mtn);
+        }
+
+        /* ══ CARD ══ */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: border-color var(--transition);
+        }
+        .card:hover { border-color: var(--border-hover); }
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title::before {
+            content: '';
+            display: block;
+            width: 3px; height: 14px;
+            background: var(--mtn);
+            border-radius: 2px;
+        }
+
+        /* ══ FORM ══ */
+        .form-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .form-group input,
+        .form-group textarea {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 11px 14px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            transition: var(--transition);
+            outline: none;
+            width: 100%;
+        }
+        .form-group input[type="date"] { cursor: pointer; }
+        .form-group input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+        [data-theme="light"] .form-group input[type="date"]::-webkit-calendar-picker-indicator { filter: none; }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--mtn);
+            box-shadow: 0 0 0 3px var(--mtn-glow);
+        }
+        .form-group input::placeholder,
+        .form-group textarea::placeholder { color: var(--text-dim); }
+        .form-group textarea {
+            font-family: 'SF Mono', ui-monospace, monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        .input-hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+        /* ══ BUTTONS ══ */
+        .btn {
+            padding: 11px 22px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            letter-spacing: 0.1px;
+        }
+        .btn-primary {
+            background: var(--mtn);
+            color: #000;
+            box-shadow: var(--shadow-mtn);
+        }
+        .btn-primary:hover {
+            background: var(--mtn-light);
+            box-shadow: 0 6px 24px rgba(255,203,5,0.4);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-ghost {
+            background: transparent;
+            color: var(--mtn);
+            border: 1px solid var(--border-mtn);
+        }
+        .btn-ghost:hover { background: var(--mtn-glow-sm); border-color: var(--mtn); }
+        .btn-ghost-red {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid rgba(239,68,68,0.25);
+        }
+        .btn-ghost-red:hover { background: var(--red-bg); border-color: var(--red); }
+        .btn-ghost-green {
+            background: transparent;
+            color: var(--green);
+            border: 1px solid rgba(34,197,94,0.25);
+        }
+        .btn-ghost-green:hover { background: var(--green-bg); border-color: var(--green); }
+        .btn-sm { padding: 8px 14px; font-size: 12px; }
+
+        /* ══ DATE FILTER STRIP ══ */
+        .filter-strip {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px dashed var(--border);
+        }
+        .filter-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-weight: 500;
+            align-self: center;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .filter-label i { color: var(--mtn); }
+
+        /* ══ STATS STRIP ══ */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        .stat:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+        .stat::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 3px; height: 100%;
+            border-radius: 0 2px 2px 0;
+        }
+        .stat.mtn::before   { background: var(--mtn); }
+        .stat.green::before { background: var(--green); }
+        .stat.red::before   { background: var(--red); }
+        .stat.blue::before  { background: var(--blue); }
+        .stat-icon {
+            font-size: 18px;
+            margin-bottom: 10px;
+            opacity: 0.7;
+        }
+        .stat.mtn   .stat-icon { color: var(--mtn); }
+        .stat.green .stat-icon { color: var(--green); }
+        .stat.red   .stat-icon { color: var(--red); }
+        .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+        .stat-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+        .stat.mtn   .stat-value { color: var(--mtn); }
+        .stat.green .stat-value { color: var(--green); }
+        .stat.red   .stat-value { color: var(--red); }
+
+        /* ══ TABLE ══ */
+        .table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .table-header-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .table-header-title i { color: var(--mtn); }
+        .row-count {
+            font-size: 11px;
+            color: var(--text-dim);
+            background: var(--surface-3);
+            border-radius: 10px;
+            padding: 2px 8px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead th {
+            padding: 11px 16px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            background: var(--surface-2);
+        }
+        thead th:first-child { color: var(--mtn); }
+        tbody tr { border-bottom: 1px solid rgba(42,42,47,0.6); transition: background var(--transition); }
+        [data-theme="light"] tbody tr { border-bottom: 1px solid rgba(200,200,210,0.5); }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: var(--surface-2); }
+        tbody td { padding: 11px 16px; vertical-align: middle; }
+        .cell-gb    { font-weight: 700; color: var(--mtn); font-size: 14px; }
+        .cell-phone { font-family: 'SF Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.3px; }
+        .cell-date  { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+        .cell-reason { color: var(--text-dim); font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* ══ BADGES ══ */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+        .badge i { font-size: 6px; }
+        .badge-delivered     { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+        .badge-not-delivered { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(239,68,68,0.2); }
+        .badge-error         { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(249,115,22,0.2); }
+        .badge-mtn           { background: var(--mtn-glow-sm); color: var(--mtn); border: 1px solid var(--border-mtn); }
+
+        /* ══ BULK RESULT LIST ══ */
+        .result-list .result-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 18px;
+            border-bottom: 1px solid rgba(42,42,47,0.6);
+            font-size: 13px;
+            transition: background var(--transition);
+        }
+        [data-theme="light"] .result-list .result-row { border-bottom: 1px solid rgba(200,200,210,0.5); }
+        .result-list .result-row:last-child { border-bottom: none; }
+        .result-list .result-row:hover { background: var(--surface-2); }
+        .result-row .idx  { color: var(--text-dim); font-size: 11px; min-width: 30px; text-align: right; flex-shrink: 0; }
+        .result-row .line-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .result-row .counts { font-size: 12px; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
+
+        /* ══ COUNT BADGE ══ */
+        .count-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; background: var(--surface-3); color: var(--text-muted); }
+
+        /* ══ PER-NUMBER CARDS (bulk) ══ */
+        .num-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+        .num-card.has-error { border-color: rgba(239,68,68,0.3); }
+        .num-title { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+        .num-index { font-size: 13px; font-weight: 700; color: var(--mtn); min-width: 24px; }
+        .num-phone { font-family: 'SF Mono', ui-monospace, monospace; font-size: 15px; font-weight: 600; color: var(--text); }
+        .num-count { margin-left: auto; font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 600; }
+        .num-count.ok   { background: var(--green-bg); color: var(--green); }
+        .num-count.none { background: var(--surface-3); color: var(--text-dim); }
+        .num-count.err  { background: var(--red-bg); color: var(--red); }
+        .num-records { padding: 0; }
+        .num-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .num-table thead th { text-align: left; padding: 10px 18px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); font-weight: 600; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+        .num-table tbody td { padding: 10px 18px; color: var(--text); font-weight: 500; border-bottom: 1px solid rgba(42,42,47,0.4); }
+        .num-table tbody tr:last-child td { border-bottom: none; }
+        .num-table .cell-gb { color: var(--mtn); font-weight: 600; }
+        .num-empty { padding: 16px 18px; color: var(--text-dim); font-size: 13px; }
+        .num-error { padding: 14px 18px; color: var(--red); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+
+        /* ══ PROGRESS ══ */
+        .progress-bar { margin-top: 14px; display: none; }
+        .progress-bar .track { width: 100%; height: 5px; background: var(--surface-3); border-radius: 5px; overflow: hidden; }
+        .progress-bar .fill  { height: 100%; background: linear-gradient(90deg, var(--mtn), var(--mtn-light)); border-radius: 5px; transition: width 0.3s ease; box-shadow: 0 0 10px rgba(255,203,5,0.4); }
+        .progress-bar .label { font-size: 11px; color: var(--text-dim); margin-top: 7px; }
+
+        /* ══ LOADING ══ */
+        .loading { display: flex; justify-content: center; align-items: center; padding: 56px 0; flex-direction: column; gap: 14px; }
+        .loader  { width: 36px; height: 36px; border: 3px solid var(--surface-3); border-top-color: var(--mtn); border-radius: 50%; animation: spin 0.65s linear infinite; }
+        .loading-text { font-size: 12px; color: var(--text-dim); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ══ EMPTY / ERROR ══ */
+        .empty-state { text-align: center; padding: 56px 20px; color: var(--text-dim); }
+        .empty-state .empty-icon { font-size: 40px; margin-bottom: 14px; color: var(--mtn); opacity: 0.3; display: block; }
+        .empty-state p { font-size: 13px; }
+        .error-msg {
+            background: var(--red-bg);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: var(--radius-sm);
+            padding: 14px 18px;
+            color: var(--red);
+            font-size: 13px;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 16px;
+        }
+        .info-msg {
+            background: rgba(255,203,5,0.06);
+            border: 1px solid rgba(255,203,5,0.18);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 10px;
+            line-height: 1.5;
+        }
+        .info-msg i { color: var(--mtn); flex-shrink: 0; }
+
+        /* ══ TOAST ══ */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--surface-2);
+            border: 1px solid var(--border-mtn);
+            border-radius: var(--radius-sm);
+            padding: 13px 20px;
+            font-size: 13px; color: var(--text);
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            transform: translateY(110px); opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast i { color: var(--mtn); }
+
+        /* ══ FOOTER ══ */
+        .page-footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 11px;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+            margin-top: 16px;
+        }
+        .page-footer span { color: var(--mtn); font-weight: 600; }
+
+        /* ══ ANIMATIONS ══ */
+        @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .animate-in { animation: fadeUp 0.3s ease forwards; }
+        .hidden { display: none !important; }
+
+        /* ══ MOBILE ══ */
+        .mobile-cards { display: none; }
+
+        @media (max-width: 900px) {
+            .hero-stats { display: none; }
+        }
+        @media (max-width: 768px) {
+            .navbar  { padding: 0 16px; }
+            .hero    { padding: 20px 16px; }
+            .hero-title { font-size: 20px; }
+            .container { padding: 20px 16px; }
+            .form-row { flex-direction: column; }
+            .form-group { width: 100%; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .tabs-bar { width: 100%; }
+            .tab { flex: 1; justify-content: center; padding: 9px 12px; font-size: 12px; }
+            table { display: none; }
+            .mobile-cards { display: block; }
+            .mobile-card { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+            .mobile-card:last-child { border-bottom: none; }
+            .mobile-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+            .mobile-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 12px; }
+            .mobile-row .lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+            .pill-badge { display: none; }
+        }
+        @media (max-width: 480px) {
+            .hero-title { font-size: 18px; }
+            .stat-value  { font-size: 22px; }
+            .tab i       { display: none; }
+        }
+    </style>
+</head>
+<body>
+<!-- Top colour stripe -->
+<div class="top-stripe"></div>
+
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="brand">
+        <div class="mtn-badge"><span class="m-letter">M</span></div>
+        <div class="brand-text">
+            <div class="name">MTN Order Checker</div>
+            <div class="tagline">Data order history &amp; delivery status</div>
+        </div>
+    </div>
+    <div class="nav-right">
+        <div class="pill-badge"><span class="dot"></span> HSTN Live</div>
+        <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+            <i class="fas fa-moon"></i>
+        </button>
+    </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+    <div class="hero-inner">
+        <div>
+            <div class="hero-title">Check <span>MTN Data</span> Orders</div>
+            <div class="hero-sub">Enter any MTN number to pull the complete order history — all GB packages, delivery status, dates and more.</div>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="num">Live</div>
+                <div class="lbl">Data Source</div>
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat">
+                <div class="num">Full</div>
+                <div class="lbl">History</div>
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat">
+                <div class="num">200+</div>
+                <div class="lbl">Bulk Numbers</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main -->
+<div class="container">
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+        <button id="tab-single" class="tab active" onclick="switchTab('single')"><i class="fas fa-search"></i> Single Lookup</button>
+        <button id="tab-bulk"   class="tab"        onclick="switchTab('bulk')"><i class="fas fa-layer-group"></i> Bulk Lookup</button>
+    </div>
+
+    <!-- ── Single Lookup ── -->
+    <div id="panel-single">
+        <div class="card">
+            <div class="card-title"><i class="fas fa-search"></i> Phone Number</div>
+            <div class="info-msg"><i class="fas fa-lightbulb"></i> Enter any MTN number — we'll retrieve all data orders including delivered and failed ones.</div>
+            <form id="single-form" class="form-row">
+                <div class="form-group" style="flex:2;min-width:180px;">
+                    <label>Phone Number</label>
+                    <input type="tel" id="single-phone" placeholder="0547744594" required>
+                </div>
+                <button type="submit" id="single-btn" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Check Orders
+                </button>
+            </form>
+            <div class="filter-strip">
+                <span class="filter-label"><i class="fas fa-calendar-alt"></i> Date Range (optional)</span>
+                <div class="form-group" style="min-width:155px;">
+                    <label>From</label>
+                    <input type="date" id="single-date-from">
+                </div>
+                <div class="form-group" style="min-width:155px;">
+                    <label>To</label>
+                    <input type="date" id="single-date-to">
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="clearDateFilter('single')">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
+        <div id="single-results"></div>
+    </div>
+
+    <!-- ── Bulk Lookup ── -->
+    <div id="panel-bulk" class="hidden">
+        <div class="card">
+            <div class="card-title"><i class="fas fa-layer-group"></i> Phone Numbers</div>
+            <div class="info-msg"><i class="fas fa-lightbulb"></i> One number per line. Each number returns a delivered / not-delivered summary with total counts.</div>
+            <div class="form-row" style="margin-bottom:14px;align-items:flex-start;">
+                <div class="form-group" style="flex:1;">
+                    <label>Numbers <span class="count-badge" id="line-count">0 numbers</span></label>
+                    <textarea id="bulk-lines" rows="10" placeholder="0547744594&#10;0538806691&#10;0201234567&#10;0551234567"></textarea>
+                    <span class="input-hint">One number per line &nbsp;·&nbsp; Up to 200 numbers</span>
+                </div>
+            </div>
+            <div class="filter-strip" style="margin-bottom:16px;">
+                <span class="filter-label"><i class="fas fa-calendar-alt"></i> Date Range (optional)</span>
+                <div class="form-group" style="min-width:155px;">
+                    <label>From</label>
+                    <input type="date" id="bulk-date-from">
+                </div>
+                <div class="form-group" style="min-width:155px;">
+                    <label>To</label>
+                    <input type="date" id="bulk-date-to">
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="clearDateFilter('bulk')">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+            <div class="form-row">
+                <button type="submit" id="bulk-btn" class="btn btn-primary" onclick="document.getElementById('bulk-form').dispatchEvent(new Event('submit'))"><i class="fas fa-layer-group"></i> Check All</button>
+                <button id="export-delivered-btn" class="btn btn-ghost-green hidden" onclick="exportCSV('delivered')"><i class="fas fa-download"></i> Delivered CSV</button>
+                <button id="copy-delivered-btn"   class="btn btn-ghost-green hidden" onclick="copyLines('delivered')" title="Copy delivered numbers"><i class="fas fa-copy"></i></button>
+                <button id="export-nd-btn"        class="btn btn-ghost-red hidden"   onclick="exportCSV('not_delivered')"><i class="fas fa-download"></i> Not Del. CSV</button>
+                <button id="copy-nd-btn"          class="btn btn-ghost-red hidden"   onclick="copyLines('not_delivered')" title="Copy not-delivered"><i class="fas fa-copy"></i></button>
+                <button class="btn btn-ghost-red" onclick="clearBulk()"><i class="fas fa-times"></i> Clear</button>
+            </div>
+            <div class="progress-bar" id="bulk-progress">
+                <div class="track"><div class="fill" id="progress-fill" style="width:0%"></div></div>
+                <p class="label" id="progress-label">Checking...</p>
+            </div>
+        </div>
+        <form id="bulk-form" style="display:none;"></form>
+        <div id="bulk-results"></div>
+    </div>
+
+    <div class="page-footer">Powered by <span>HSTN</span> &nbsp;·&nbsp; MTN Ghana Data Order Checker</div>
+</div>
+
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i> <span id="toast-msg"></span></div>
+
+<script>
+const API_BASE = window.location.origin + '/api/checker';
+let lastBulkResults = [];
+
+/* ── Theme ── */
+(function initTheme() {
+    var saved = localStorage.getItem('checker-theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+    updateThemeIcon();
+})();
+function toggleTheme() {
+    var cur = document.documentElement.getAttribute('data-theme');
+    var next = cur === 'light' ? 'dark' : 'light';
+    if (next === 'dark') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('checker-theme', next);
+    updateThemeIcon();
+}
+function updateThemeIcon() {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    btn.innerHTML = isLight ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+}
+
+function showToast(msg) {
+    var t = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+function switchTab(tab) {
+    document.getElementById('panel-single').classList.toggle('hidden', tab !== 'single');
+    document.getElementById('panel-bulk').classList.toggle('hidden', tab !== 'bulk');
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function clearDateFilter(scope) {
+    document.getElementById(scope + '-date-from').value = '';
+    document.getElementById(scope + '-date-to').value = '';
+}
+
+/* ── Formatting ── */
+function fmtDate(iso) {
+    if (!iso) return '-';
+    try {
+        var d = new Date(iso);
+        return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    } catch(e) { return iso; }
+}
+function badge(status) {
+    var s = (status || '').toLowerCase();
+    if (s === 'delivered')     return '<span class="badge badge-delivered"><i class="fas fa-circle"></i> Delivered</span>';
+    if (s === 'not delivered') return '<span class="badge badge-not-delivered"><i class="fas fa-circle"></i> Not Delivered</span>';
+    return '<span class="badge badge-error">' + esc(status) + '</span>';
+}
+
+/* ── Line count ── */
+document.getElementById('bulk-lines').addEventListener('input', function() {
+    var n = this.value.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean).length;
+    document.getElementById('line-count').textContent = n + ' number' + (n !== 1 ? 's' : '');
+});
+
+/* ── Single Check ── */
+document.getElementById('single-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var phone    = document.getElementById('single-phone').value.trim();
+    var dateFrom = document.getElementById('single-date-from').value;
+    var dateTo   = document.getElementById('single-date-to').value;
+    var btn      = document.getElementById('single-btn');
+    var container= document.getElementById('single-results');
+    if (!phone) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loader" style="width:15px;height:15px;border-width:2px;"></div> Checking...';
+    container.innerHTML = '<div class="loading"><div class="loader"></div><div class="loading-text">Fetching order history…</div></div>';
+
+    try {
+        var payload = { phone: phone };
+        if (dateFrom) payload.dateFrom = dateFrom;
+        if (dateTo)   payload.dateTo   = dateTo;
+
+        var res  = await fetch(API_BASE + '/check', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        var json = await res.json();
+
+        if (!json.success) {
+            container.innerHTML = '<div class="error-msg"><i class="fas fa-exclamation-circle"></i> ' + esc(json.error) + '</div>';
+            return;
+        }
+
+        var html = '<div class="stats animate-in">';
+        html += '<div class="stat mtn"><div class="stat-icon"><i class="fas fa-list"></i></div><div class="stat-label">Total Orders</div><div class="stat-value">' + json.total + '</div></div>';
+        html += '<div class="stat green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-label">Delivered</div><div class="stat-value">' + json.delivered + '</div></div>';
+        html += '<div class="stat red"><div class="stat-icon"><i class="fas fa-times-circle"></i></div><div class="stat-label">Not Delivered</div><div class="stat-value">' + json.not_delivered + '</div></div>';
+        html += '</div>';
+
+        if (json.orders && json.orders.length > 0) {
+            html += '<div class="table-wrap animate-in">';
+            html += '<div class="table-header"><div class="table-header-title"><i class="fas fa-table"></i> Order History</div><span class="row-count">' + json.orders.length + ' records</span></div>';
+            html += '<table><thead><tr>';
+            html += '<th>Date &amp; Time</th><th>Phone</th><th>Data (GB)</th><th>Airtime</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
+            html += '</tr></thead><tbody>';
+            json.orders.forEach(function(r) {
+                html += '<tr>';
+                html += '<td class="cell-date">' + esc(fmtDate(r.date)) + '</td>';
+                html += '<td class="cell-phone">' + esc(r.phone || '-') + '</td>';
+                html += '<td class="cell-gb">'   + (r.gb != null ? r.gb + ' GB' : '-') + '</td>';
+                html += '<td>' + esc(r.airtime    || '-') + '</td>';
+                html += '<td>' + esc(r.sms_units  || '-') + '</td>';
+                html += '<td>' + badge(r.status) + '</td>';
+                html += '<td class="cell-reason" title="' + esc(r.failed_reason || '') + '">' + esc(r.failed_reason || '-') + '</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            html += '<div class="mobile-cards">';
+            json.orders.forEach(function(r) {
+                html += '<div class="mobile-card">';
+                html += '<div class="mobile-card-header"><span class="cell-date" style="font-size:12px">' + esc(fmtDate(r.date)) + '</span>' + badge(r.status) + '</div>';
+                html += '<div class="mobile-row"><span class="lbl">Phone</span><span class="cell-phone">' + esc(r.phone || '-') + '</span></div>';
+                html += '<div class="mobile-row"><span class="lbl">Data</span><span class="cell-gb">' + (r.gb != null ? r.gb + ' GB' : '-') + '</span></div>';
+                html += '<div class="mobile-row"><span class="lbl">Airtime</span><span>' + esc(r.airtime || '-') + '</span></div>';
+                html += '<div class="mobile-row"><span class="lbl">SMS</span><span>' + esc(r.sms_units || '-') + '</span></div>';
+                if (r.failed_reason) html += '<div class="mobile-row"><span class="lbl">Reason</span><span style="font-size:11px;color:var(--text-dim)">' + esc(r.failed_reason) + '</span></div>';
+                html += '</div>';
+            });
+            html += '</div></div>';
+        } else {
+            html += '<div class="table-wrap animate-in"><div class="empty-state"><i class="fas fa-inbox empty-icon"></i><p>No orders found for <strong>' + esc(json.phone) + '</strong>' + (dateFrom||dateTo ? ' in selected date range' : '') + '</p></div></div>';
+        }
+        container.innerHTML = html;
+    } catch(err) {
+        container.innerHTML = '<div class="error-msg"><i class="fas fa-exclamation-circle"></i> ' + esc(err.message) + '</div>';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-search"></i> Check Orders';
+    }
+});
+
+/* ── Bulk Check ── */
+document.getElementById('bulk-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    var rawLines    = document.getElementById('bulk-lines').value.trim();
+    var dateFrom    = document.getElementById('bulk-date-from').value;
+    var dateTo      = document.getElementById('bulk-date-to').value;
+    var btn         = document.getElementById('bulk-btn');
+    var container   = document.getElementById('bulk-results');
+    var progressBar = document.getElementById('bulk-progress');
+    var fill        = document.getElementById('progress-fill');
+    var plabel      = document.getElementById('progress-label');
+    if (!rawLines) return;
+
+    var phones = rawLines.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    if (!phones.length) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loader" style="width:15px;height:15px;border-width:2px;"></div> Checking...';
+    ['export-delivered-btn','copy-delivered-btn','export-nd-btn','copy-nd-btn'].forEach(function(id){ document.getElementById(id).classList.add('hidden'); });
+    progressBar.style.display = 'block';
+    fill.style.width = '0%';
+    plabel.textContent = 'Checking ' + phones.length + ' number(s)...';
+    container.innerHTML = '<div class="loading"><div class="loader"></div><div class="loading-text">Processing…</div></div>';
+
+    try {
+        var CHUNK = 20;
+        var allResults = [];
+        var done = 0;
+        for (var i = 0; i < phones.length; i += CHUNK) {
+            var chunk = phones.slice(i, i + CHUNK);
+            var payload = { phones: chunk };
+            if (dateFrom) payload.dateFrom = dateFrom;
+            if (dateTo)   payload.dateTo   = dateTo;
+            var r = await fetch(API_BASE + '/bulk', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+            var j = await r.json();
+            if (!j.success) {
+                chunk.forEach(function(p){ allResults.push({ phone: p, success: false, error: j.error || 'Request failed' }); });
+            } else {
+                allResults = allResults.concat(j.results);
+            }
+            done += chunk.length;
+            var pct = Math.round(done / phones.length * 100);
+            fill.style.width = pct + '%';
+            plabel.textContent = 'Checked ' + done + ' / ' + phones.length + ' (' + pct + '%)';
+        }
+        fill.style.width = '100%';
+        plabel.textContent = 'Done — ' + phones.length + ' numbers checked';
+        lastBulkResults = allResults;
+
+        var nWithDel = allResults.filter(function(r){ return r.success && r.delivered > 0; }).length;
+        var nNoDel   = allResults.filter(function(r){ return r.success && r.delivered === 0; }).length;
+        var totalOrderCount = allResults.reduce(function(s, r){ return s + (r.total||0); }, 0);
+
+        var html = '<div class="stats animate-in">';
+        html += '<div class="stat mtn"><div class="stat-icon"><i class="fas fa-list"></i></div><div class="stat-label">Numbers</div><div class="stat-value">' + allResults.length + '</div></div>';
+        html += '<div class="stat green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-label">With Deliveries</div><div class="stat-value">' + nWithDel + '</div></div>';
+        html += '<div class="stat red"><div class="stat-icon"><i class="fas fa-times-circle"></i></div><div class="stat-label">No Deliveries</div><div class="stat-value">' + nNoDel + '</div></div>';
+        html += '<div class="stat mtn" style="--mtn-glow-sm:rgba(255,203,5,0.08);"><div class="stat-icon"><i class="fas fa-layer-group"></i></div><div class="stat-label">Total Orders</div><div class="stat-value">' + totalOrderCount + '</div></div>';
+        html += '</div>';
+
+        /* Per-number cards */
+        allResults.forEach(function(r, idx) {
+            var isErr  = !r.success;
+            var orders = (r.success && r.orders) ? r.orders : [];
+            var count  = orders.length;
+            var countCls   = isErr ? 'err' : (count > 0 ? 'ok' : 'none');
+            var countLabel = isErr ? 'Error' : count + ' order' + (count !== 1 ? 's' : '');
+
+            html += '<div class="num-card' + (isErr ? ' has-error' : '') + '">';
+            html += '<div class="num-title">';
+            html += '<span class="num-index">' + (idx + 1) + '.</span>';
+            html += '<span class="num-phone">' + esc(r.phone) + '</span>';
+            html += '<span class="num-count ' + countCls + '">' + countLabel + '</span>';
+            html += '</div>';
+
+            if (isErr) {
+                html += '<div class="num-error"><i class="fas fa-exclamation-circle"></i> ' + esc(r.error || 'Request failed') + '</div>';
+            } else if (count === 0) {
+                html += '<div class="num-empty">No orders found</div>';
+            } else {
+                html += '<div class="num-records">';
+                html += '<table class="num-table"><thead><tr>';
+                html += '<th>Date &amp; Time</th><th>Data (GB)</th><th>Airtime</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
+                html += '</tr></thead><tbody>';
+                orders.forEach(function(o) {
+                    html += '<tr>';
+                    html += '<td class="cell-date">' + esc(fmtDate(o.date)) + '</td>';
+                    html += '<td class="cell-gb">' + (o.gb != null ? o.gb + ' GB' : '-') + '</td>';
+                    html += '<td>' + esc(o.airtime   || '-') + '</td>';
+                    html += '<td>' + esc(o.sms_units || '-') + '</td>';
+                    html += '<td>' + badge(o.status) + '</td>';
+                    html += '<td class="cell-reason" title="' + esc(o.failed_reason || '') + '">' + esc(o.failed_reason || '-') + '</td>';
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+                html += '</div>';
+            }
+            html += '</div>';
+        });
+
+        container.innerHTML = html;
+
+        var hasD = allResults.some(function(r){ return r.success && r.delivered > 0; });
+        var hasN = allResults.some(function(r){ return r.success && r.not_delivered > 0; });
+        document.getElementById('export-delivered-btn').classList.toggle('hidden', !hasD);
+        document.getElementById('copy-delivered-btn').classList.toggle('hidden', !hasD);
+        document.getElementById('export-nd-btn').classList.toggle('hidden', !hasN);
+        document.getElementById('copy-nd-btn').classList.toggle('hidden', !hasN);
+        showToast('Done: ' + allResults.length + ' numbers · ' + totalOrderCount + ' orders');
+    } catch(err) {
+        container.innerHTML = '<div class="error-msg"><i class="fas fa-exclamation-circle"></i> ' + esc(err.message) + '</div>';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-layer-group"></i> Check All';
+        setTimeout(function(){ progressBar.style.display = 'none'; }, 800);
+    }
+});
+
+function clearBulk() {
+    document.getElementById('bulk-lines').value = '';
+    document.getElementById('bulk-results').innerHTML = '';
+    document.getElementById('line-count').textContent = '0 numbers';
+    lastBulkResults = [];
+    ['export-delivered-btn','copy-delivered-btn','export-nd-btn','copy-nd-btn'].forEach(function(id){ document.getElementById(id).classList.add('hidden'); });
+}
+
+function exportCSV(type) {
+    var rows = lastBulkResults.filter(function(r){ return r.success && (type === 'delivered' ? r.delivered > 0 : r.not_delivered > 0); });
+    if (!rows.length) return;
+    var csv = 'Phone,Total,Delivered,Not Delivered\n';
+    rows.forEach(function(r){ csv += '"' + r.phone + '",' + r.total + ',' + r.delivered + ',' + r.not_delivered + '\n'; });
+    var a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = type + '_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+}
+
+function copyLines(type) {
+    var rows = lastBulkResults.filter(function(r){ return r.success && (type === 'delivered' ? r.delivered > 0 : r.not_delivered > 0); });
+    if (!rows.length) return;
+    navigator.clipboard.writeText(rows.map(function(r){ return r.phone; }).join('\n'))
+        .then(function(){ showToast('Copied ' + rows.length + ' numbers'); });
+}
+</script>
+</body>
+</html>

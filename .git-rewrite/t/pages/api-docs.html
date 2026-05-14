@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation | DataEasy+</title>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { background: #0b1120; margin: 0; }
+        .doc-sidebar { position: fixed; top: 0; left: 0; width: 260px; height: 100vh; overflow-y: auto; background: #111827; border-right: 1px solid #1e293b; z-index: 40; transition: transform 0.3s; }
+        .doc-main { margin-left: 260px; min-height: 100vh; }
+        .nav-link { display: block; padding: 8px 20px; font-size: 13px; color: #94a3b8; text-decoration: none; border-left: 3px solid transparent; transition: all 0.15s; }
+        .nav-link:hover { color: #e2e8f0; background: #1e293b; }
+        .nav-link.active { color: #60a5fa; border-left-color: #3b82f6; background: #1e293b40; }
+        .nav-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #475569; padding: 16px 20px 6px; }
+        .method-badge { display: inline-block; font-weight: 700; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-family: monospace; }
+        .method-get { background: #1e3a5f; color: #60a5fa; }
+        .method-post { background: #14532d; color: #4ade80; }
+        .code-block { position: relative; background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; }
+        .code-block pre { margin: 0; padding: 16px 20px; overflow-x: auto; font-size: 12px; line-height: 1.7; color: #cbd5e1; }
+        .code-block .copy-btn { position: absolute; top: 8px; right: 8px; background: #334155; border: none; color: #94a3b8; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+        .code-block:hover .copy-btn { opacity: 1; }
+        .code-block .copy-btn:hover { background: #475569; color: #fff; }
+        .param-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .param-table th { text-align: left; padding: 10px 14px; background: #111827; color: #94a3b8; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .param-table td { padding: 10px 14px; border-top: 1px solid #1e293b; color: #cbd5e1; }
+        .param-table .param-name { font-family: monospace; color: #60a5fa; font-size: 12px; }
+        .param-table .param-type { color: #64748b; font-size: 12px; }
+        .param-table .param-req { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px; }
+        .endpoint-section { scroll-margin-top: 20px; }
+        .tab-btn { padding: 8px 16px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; background: transparent; color: #64748b; border-bottom: 2px solid transparent; transition: all 0.15s; }
+        .tab-btn.active { color: #60a5fa; border-bottom-color: #3b82f6; }
+        .tab-btn:hover { color: #e2e8f0; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        /* Mobile sidebar */
+        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 35; }
+        @media (max-width: 768px) {
+            .doc-sidebar { transform: translateX(-100%); width: 280px; }
+            .doc-sidebar.open { transform: translateX(0); }
+            .doc-main { margin-left: 0; }
+            .sidebar-overlay.open { display: block; }
+        }
+    </style>
+</head>
+<body class="text-gray-100">
+
+    <!-- Mobile overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="doc-sidebar" id="sidebar">
+        <div class="px-5 py-5 border-b border-[#1e293b]">
+            <a href="api-keys" class="flex items-center gap-2 text-gray-400 hover:text-white text-xs mb-3 transition">
+                <i class="fas fa-arrow-left"></i> Back to API Keys
+            </a>
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-code text-white text-xs"></i>
+                </div>
+                <div>
+                    <h1 class="text-white font-bold text-sm">DataEasy+ API</h1>
+                    <span class="text-gray-500 text-xs">v1 Documentation</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="py-3">
+            <div class="nav-section">Getting Started</div>
+            <a href="#overview" class="nav-link active" data-section="overview"><i class="fas fa-home w-4 mr-2 text-center"></i>Overview</a>
+            <a href="#authentication" class="nav-link" data-section="authentication"><i class="fas fa-lock w-4 mr-2 text-center"></i>Authentication</a>
+            <a href="#permissions" class="nav-link" data-section="permissions"><i class="fas fa-shield-alt w-4 mr-2 text-center"></i>Permissions</a>
+
+            <div class="nav-section">Endpoints</div>
+            <a href="#get-packages" class="nav-link" data-section="get-packages"><span class="method-badge method-get mr-1" style="font-size:9px;padding:1px 5px;">GET</span> /packages</a>
+            <a href="#post-orders" class="nav-link" data-section="post-orders"><span class="method-badge method-post mr-1" style="font-size:9px;padding:1px 5px;">POST</span> /orders</a>
+            <a href="#get-orders" class="nav-link" data-section="get-orders"><span class="method-badge method-get mr-1" style="font-size:9px;padding:1px 5px;">GET</span> /orders</a>
+            <a href="#get-order" class="nav-link" data-section="get-order"><span class="method-badge method-get mr-1" style="font-size:9px;padding:1px 5px;">GET</span> /orders/:id</a>
+            <a href="#get-balance" class="nav-link" data-section="get-balance"><span class="method-badge method-get mr-1" style="font-size:9px;padding:1px 5px;">GET</span> /balance</a>
+            <a href="#get-account" class="nav-link" data-section="get-account"><span class="method-badge method-get mr-1" style="font-size:9px;padding:1px 5px;">GET</span> /account</a>
+
+            <div class="nav-section">Reference</div>
+            <a href="#errors" class="nav-link" data-section="errors"><i class="fas fa-exclamation-triangle w-4 mr-2 text-center"></i>Error Codes</a>
+            <a href="#rate-limits" class="nav-link" data-section="rate-limits"><i class="fas fa-tachometer-alt w-4 mr-2 text-center"></i>Rate Limits</a>
+            <a href="#examples" class="nav-link" data-section="examples"><i class="fas fa-terminal w-4 mr-2 text-center"></i>Code Examples</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="doc-main">
+        <!-- Top bar (mobile) -->
+        <header class="md:hidden bg-[#111827] border-b border-[#1e293b] px-4 py-3 flex items-center gap-3 sticky top-0 z-30">
+            <button onclick="openSidebar()" class="text-gray-400 hover:text-white"><i class="fas fa-bars text-lg"></i></button>
+            <span class="text-white font-bold text-sm">API Documentation</span>
+        </header>
+
+        <div class="max-w-3xl mx-auto px-5 md:px-8 py-8 md:py-12">
+
+            <!-- ===================== OVERVIEW ===================== -->
+            <section id="overview" class="endpoint-section mb-14">
+                <h2 class="text-2xl font-bold text-white mb-2">DataEasy+ API</h2>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6">Integrate data bundle purchases into your website or app. Orders are charged against your DataEasy+ wallet balance and delivered automatically.</p>
+
+                <div class="bg-blue-900/20 border border-blue-700/40 rounded-xl p-5 mb-6">
+                    <p class="text-blue-300 text-xs font-semibold uppercase tracking-wider mb-2">Base URL</p>
+                    <div class="flex items-center gap-3">
+                        <code class="text-blue-200 font-mono text-base flex-1" id="baseUrl">Loading...</code>
+                        <button onclick="copyText(document.getElementById('baseUrl').textContent)" class="text-blue-400 hover:text-blue-300 text-sm"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+
+                <h3 class="text-white font-semibold text-sm mb-3">How it works</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="bg-[#111827] border border-[#1e293b] rounded-lg p-4">
+                        <div class="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center mb-2"><span class="text-blue-400 font-bold text-sm">1</span></div>
+                        <p class="text-white text-sm font-semibold">Create an API Key</p>
+                        <p class="text-gray-500 text-xs mt-1">Generate a key from your <a href="api-keys" class="text-blue-400 hover:underline">API Keys</a> page.</p>
+                    </div>
+                    <div class="bg-[#111827] border border-[#1e293b] rounded-lg p-4">
+                        <div class="w-8 h-8 rounded-lg bg-green-600/20 flex items-center justify-center mb-2"><span class="text-green-400 font-bold text-sm">2</span></div>
+                        <p class="text-white text-sm font-semibold">Fund Your Wallet</p>
+                        <p class="text-gray-500 text-xs mt-1">Top up your wallet. Orders debit this balance.</p>
+                    </div>
+                    <div class="bg-[#111827] border border-[#1e293b] rounded-lg p-4">
+                        <div class="w-8 h-8 rounded-lg bg-purple-600/20 flex items-center justify-center mb-2"><span class="text-purple-400 font-bold text-sm">3</span></div>
+                        <p class="text-white text-sm font-semibold">Make API Calls</p>
+                        <p class="text-gray-500 text-xs mt-1">List packages, place orders from your backend.</p>
+                    </div>
+                    <div class="bg-[#111827] border border-[#1e293b] rounded-lg p-4">
+                        <div class="w-8 h-8 rounded-lg bg-yellow-600/20 flex items-center justify-center mb-2"><span class="text-yellow-400 font-bold text-sm">4</span></div>
+                        <p class="text-white text-sm font-semibold">Auto Delivery</p>
+                        <p class="text-gray-500 text-xs mt-1">Bundles are delivered automatically to the phone number.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===================== AUTHENTICATION ===================== -->
+            <section id="authentication" class="endpoint-section mb-14">
+                <h2 class="text-xl font-bold text-white mb-2"><i class="fas fa-lock mr-2 text-gray-500"></i>Authentication</h2>
+                <p class="text-gray-400 text-sm mb-4">All requests must include your API key in the <code class="bg-[#1e293b] text-blue-300 px-1.5 py-0.5 rounded text-xs">X-API-Key</code> header.</p>
+
+                <div class="code-block mb-5">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre><code>GET /api/v1/packages HTTP/1.1
+Host: your-domain.com
+X-API-Key: de_live_abcdef1234567890...</code></pre>
+                </div>
+
+                <div class="bg-yellow-900/15 border border-yellow-700/30 rounded-xl p-4">
+                    <p class="text-yellow-300 text-sm font-semibold mb-2"><i class="fas fa-shield-alt mr-1"></i> Security Best Practices</p>
+                    <ul class="text-yellow-200/70 text-xs space-y-1.5">
+                        <li><i class="fas fa-check mr-2 text-yellow-500"></i>Never expose your API key in client-side JavaScript</li>
+                        <li><i class="fas fa-check mr-2 text-yellow-500"></i>Make API calls from your server (backend) only</li>
+                        <li><i class="fas fa-check mr-2 text-yellow-500"></i>Use domain whitelisting for extra security</li>
+                        <li><i class="fas fa-check mr-2 text-yellow-500"></i>Rotate keys regularly</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- ===================== PERMISSIONS ===================== -->
+            <section id="permissions" class="endpoint-section mb-14">
+                <h2 class="text-xl font-bold text-white mb-2"><i class="fas fa-shield-alt mr-2 text-gray-500"></i>Permissions</h2>
+                <p class="text-gray-400 text-sm mb-4">Each API key has specific permission scopes that control what it can access.</p>
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl overflow-hidden">
+                    <table class="param-table">
+                        <thead><tr><th>Scope</th><th>Access</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td class="param-name">packages:read</td><td class="param-type">Always included</td><td>List available packages and prices</td></tr>
+                            <tr><td class="param-name">orders:create</td><td class="param-type">Optional</td><td>Place new data bundle orders</td></tr>
+                            <tr><td class="param-name">orders:read</td><td class="param-type">Optional</td><td>View order history and delivery status</td></tr>
+                            <tr><td class="param-name">account:read</td><td class="param-type">Optional</td><td>View wallet balance and account info</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ===================== GET /packages ===================== -->
+            <section id="get-packages" class="endpoint-section mb-14">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="method-badge method-get">GET</span>
+                    <code class="text-white font-semibold text-lg">/api/v1/packages</code>
+                </div>
+                <p class="text-gray-400 text-sm mb-5">List all available data packages grouped by network. Prices reflect your account role.</p>
+
+                <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Query Parameters</h4>
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl overflow-hidden mb-5">
+                    <table class="param-table">
+                        <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td class="param-name">network</td><td class="param-type">string</td><td>Optional. Filter: <code class="text-xs text-blue-300">MTN</code>, <code class="text-xs text-blue-300">AirtelTigo</code>, <code class="text-xs text-blue-300">Telecel</code></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-400">200</span></h4>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre><code>{
+  "success": true,
+  "packages": {
+    "MTN": [
+      {
+        "id": "mtn-1gb",
+        "name": "1GB",
+        "data": "1GB",
+        "price": 4.50,
+        "validity": "Non-Expiry",
+        "network": "MTN"
+      }
+    ],
+    "AirtelTigo": [...],
+    "Telecel": [...]
+  },
+  "pricingRole": "agent"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- ===================== POST /orders ===================== -->
+            <section id="post-orders" class="endpoint-section mb-14">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="method-badge method-post">POST</span>
+                    <code class="text-white font-semibold text-lg">/api/v1/orders</code>
+                </div>
+                <p class="text-gray-400 text-sm mb-5">Place a new data bundle order. Debits your wallet and auto-delivers.</p>
+
+                <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Request Body</h4>
+                <div class="code-block mb-5">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre><code>{
+  "network": "MTN",
+  "items": [
+    {
+      "packageId": "mtn-5gb",
+      "phoneNumber": "0241234567"
+    }
+  ]
+}</code></pre>
+                </div>
+
+                <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Parameters</h4>
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl overflow-hidden mb-5">
+                    <table class="param-table">
+                        <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td class="param-name">network</td><td class="param-type">string</td><td><span class="param-req bg-red-900/50 text-red-300">Required</span></td><td>MTN, AirtelTigo, or Telecel</td></tr>
+                            <tr><td class="param-name">items</td><td class="param-type">array</td><td><span class="param-req bg-red-900/50 text-red-300">Required</span></td><td>Up to 10 items per order</td></tr>
+                            <tr><td class="param-name">items[].packageId</td><td class="param-type">string</td><td><span class="param-req bg-red-900/50 text-red-300">Required</span></td><td>Package ID from <code class="text-xs text-blue-300">/packages</code></td></tr>
+                            <tr><td class="param-name">items[].phoneNumber</td><td class="param-type">string</td><td><span class="param-req bg-red-900/50 text-red-300">Required</span></td><td>Ghana number (e.g. 0241234567)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-400">201</span></h4>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre><code>{
+  "success": true,
+  "order": {
+    "id": "uuid",
+    "orderId": "0042",
+    "network": "MTN",
+    "items": [{
+      "packageId": "mtn-5gb",
+      "packageName": "5GB",
+      "data": "5GB",
+      "price": 18.00,
+      "phoneNumber": "0241234567",
+      "deliveryStatus": "Pending"
+    }],
+    "total": 18.00,
+    "paymentStatus": "Completed",
+    "deliveryStatus": "Processing",
+    "createdAt": "2026-03-23T10:00:00.000Z"
+  },
+  "walletBalance": 482.00
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- ===================== GET /orders ===================== -->
+            <section id="get-orders" class="endpoint-section mb-14">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="method-badge method-get">GET</span>
+                    <code class="text-white font-semibold text-lg">/api/v1/orders</code>
+                </div>
+                <p class="text-gray-400 text-sm mb-5">List your previous orders with pagination.</p>
+
+                <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Query Parameters</h4>
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl overflow-hidden">
+                    <table class="param-table">
+                        <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td class="param-name">page</td><td class="param-type">number</td><td>Page number (default: 1)</td></tr>
+                            <tr><td class="param-name">limit</td><td class="param-type">number</td><td>Results per page (default: 20, max: 100)</td></tr>
+                            <tr><td class="param-name">status</td><td class="param-type">string</td><td>Filter: Pending, Processing, Delivered, Failed</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ===================== GET /orders/:id ===================== -->
+            <section id="get-order" class="endpoint-section mb-14">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="method-badge method-get">GET</span>
+                    <code class="text-white font-semibold text-lg">/api/v1/orders/:orderId</code>
+                </div>
+                <p class="text-gray-400 text-sm mb-4">Get details of a specific order by its UUID or sequential order ID.</p>
+
+                <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Path Parameters</h4>
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl overflow-hidden">
+                    <table class="param-table">
+                        <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td class="param-name">orderId</td><td class="param-type">string</td><td>Order UUID or sequential ID (e.g. "0042")</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ===================== GET /balance ===================== -->
+            <section id="get-balance" class="endpoint-section mb-14">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="method-badge method-get">GET</span>
+                    <code class="text-white font-semibold text-lg">/api/v1/balance</code>
+                </div>
+                <p class="text-gray-400 text-sm mb-5">Check your current wallet balance.</p>
+
+                <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-400">200</span></h4>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre><code>{
+  "success": true,
+  "balance": 500.00,
+  "currency": "GHS"
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- ===================== GET /account ===================== -->
+            <section id="get-account" class="endpoint-section mb-14">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="method-badge method-get">GET</span>
+                    <code class="text-white font-semibold text-lg">/api/v1/account</code>
+                </div>
+                <p class="text-gray-400 text-sm mb-5">Get basic account info and wallet balance.</p>
+
+                <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-400">200</span></h4>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre><code>{
+  "success": true,
+  "account": {
+    "id": "uuid",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "agent",
+    "agentCode": "BT-0001",
+    "walletBalance": 500.00,
+    "currency": "GHS"
+  }
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- ===================== ERROR CODES ===================== -->
+            <section id="errors" class="endpoint-section mb-14">
+                <h2 class="text-xl font-bold text-white mb-2"><i class="fas fa-exclamation-triangle mr-2 text-gray-500"></i>Error Codes</h2>
+                <p class="text-gray-400 text-sm mb-5">All errors return <code class="bg-[#1e293b] text-blue-300 px-1.5 py-0.5 rounded text-xs">{ "success": false, "error": "..." }</code></p>
+
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl overflow-hidden mb-5">
+                    <table class="param-table">
+                        <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+                        <tbody>
+                            <tr><td><span class="text-white font-mono font-bold">400</span></td><td>Bad request — invalid parameters or insufficient wallet balance</td></tr>
+                            <tr><td><span class="text-white font-mono font-bold">401</span></td><td>Unauthorized — missing or invalid API key</td></tr>
+                            <tr><td><span class="text-white font-mono font-bold">403</span></td><td>Forbidden — insufficient permissions or blocked domain</td></tr>
+                            <tr><td><span class="text-white font-mono font-bold">404</span></td><td>Not found — resource doesn't exist</td></tr>
+                            <tr><td><span class="text-white font-mono font-bold">429</span></td><td>Rate limited — too many requests (60/min default)</td></tr>
+                            <tr><td><span class="text-white font-mono font-bold">500</span></td><td>Server error — contact support</td></tr>
+                            <tr><td><span class="text-white font-mono font-bold">503</span></td><td>Service unavailable — try again later</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre><code>// Example error response
+{
+  "success": false,
+  "error": "Insufficient wallet balance.",
+  "required": 18.00,
+  "available": 5.00
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- ===================== RATE LIMITS ===================== -->
+            <section id="rate-limits" class="endpoint-section mb-14">
+                <h2 class="text-xl font-bold text-white mb-2"><i class="fas fa-tachometer-alt mr-2 text-gray-500"></i>Rate Limits</h2>
+                <p class="text-gray-400 text-sm mb-5">Default: <strong class="text-white">60 requests per minute</strong> per API key. Rate limit info is included in response headers.</p>
+
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl overflow-hidden">
+                    <table class="param-table">
+                        <thead><tr><th>Header</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td class="param-name">RateLimit-Limit</td><td>Maximum requests per window</td></tr>
+                            <tr><td class="param-name">RateLimit-Remaining</td><td>Requests remaining in current window</td></tr>
+                            <tr><td class="param-name">RateLimit-Reset</td><td>Seconds until the window resets</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ===================== CODE EXAMPLES ===================== -->
+            <section id="examples" class="endpoint-section mb-14">
+                <h2 class="text-xl font-bold text-white mb-5"><i class="fas fa-terminal mr-2 text-gray-500"></i>Code Examples</h2>
+
+                <!-- Language tabs -->
+                <div class="border-b border-[#1e293b] mb-5 flex gap-1">
+                    <button class="tab-btn active" onclick="switchTab('js', this)">JavaScript</button>
+                    <button class="tab-btn" onclick="switchTab('python', this)">Python</button>
+                    <button class="tab-btn" onclick="switchTab('php', this)">PHP</button>
+                </div>
+
+                <!-- JavaScript -->
+                <div id="tab-js" class="tab-panel active">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                        <pre><code>const API_KEY = 'de_live_your_key_here';
+const BASE_URL = 'https://your-domain.com/api/v1';
+
+// List packages
+async function getPackages() {
+  const res = await fetch(`${BASE_URL}/packages`, {
+    headers: { 'X-API-Key': API_KEY }
+  });
+  return res.json();
+}
+
+// Place an order
+async function placeOrder(network, packageId, phoneNumber) {
+  const res = await fetch(`${BASE_URL}/orders`, {
+    method: 'POST',
+    headers: {
+      'X-API-Key': API_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      network,
+      items: [{ packageId, phoneNumber }]
+    })
+  });
+  return res.json();
+}
+
+// Check balance
+async function checkBalance() {
+  const res = await fetch(`${BASE_URL}/balance`, {
+    headers: { 'X-API-Key': API_KEY }
+  });
+  return res.json();
+}
+
+// Usage
+const packages = await getPackages();
+const order = await placeOrder('MTN', 'mtn-5gb', '0241234567');
+console.log('Order placed:', order.order.orderId);</code></pre>
+                    </div>
+                </div>
+
+                <!-- Python -->
+                <div id="tab-python" class="tab-panel">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                        <pre><code>import requests
+
+API_KEY = "de_live_your_key_here"
+BASE_URL = "https://your-domain.com/api/v1"
+HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
+
+# List packages
+packages = requests.get(f"{BASE_URL}/packages", headers=HEADERS).json()
+
+# Place an order
+order = requests.post(f"{BASE_URL}/orders", headers=HEADERS, json={
+    "network": "MTN",
+    "items": [{"packageId": "mtn-5gb", "phoneNumber": "0241234567"}]
+}).json()
+
+print(f"Order #{order['order']['orderId']} placed!")
+
+# Check balance
+balance = requests.get(f"{BASE_URL}/balance", headers=HEADERS).json()
+print(f"Balance: GHS {balance['balance']}")</code></pre>
+                    </div>
+                </div>
+
+                <!-- PHP -->
+                <div id="tab-php" class="tab-panel">
+                    <div class="code-block">
+                        <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                        <pre><code>&lt;?php
+$apiKey = "de_live_your_key_here";
+$baseUrl = "https://your-domain.com/api/v1";
+
+function apiRequest($method, $endpoint, $body = null) {
+    global $apiKey, $baseUrl;
+    $ch = curl_init("$baseUrl$endpoint");
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "X-API-Key: $apiKey",
+        "Content-Type: application/json"
+    ]);
+    if ($method === "POST") {
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+    }
+    $response = curl_exec($ch);
+    curl_close($ch);
+    return json_decode($response, true);
+}
+
+// List packages
+$packages = apiRequest("GET", "/packages");
+
+// Place an order
+$order = apiRequest("POST", "/orders", [
+    "network" =&gt; "MTN",
+    "items" =&gt; [["packageId" =&gt; "mtn-5gb", "phoneNumber" =&gt; "0241234567"]]
+]);
+
+echo "Order #{$order['order']['orderId']} placed!\n";
+
+// Check balance
+$balance = apiRequest("GET", "/balance");
+echo "Balance: GHS {$balance['balance']}\n";
+?&gt;</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="text-center py-8 border-t border-[#1e293b]">
+                <p class="text-gray-600 text-xs">DataEasy+ API v1 &mdash; <a href="api-keys" class="text-blue-400 hover:underline">Manage API Keys</a></p>
+            </footer>
+
+        </div>
+    </div>
+
+    <script src="../assets/js/config.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        // Set base URL
+        const base = window.location.origin;
+        const el = document.getElementById('baseUrl');
+        if (el) el.textContent = base + '/api/v1';
+
+        // Auth check
+        const session = localStorage.getItem('dataeasy_session');
+        if (!session) { window.location.href = 'login'; return; }
+
+        // Sidebar active link tracking on scroll
+        const sections = document.querySelectorAll('.endpoint-section');
+        const navLinks = document.querySelectorAll('.nav-link[data-section]');
+
+        function updateActiveNav() {
+            let current = '';
+            for (const section of sections) {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100) current = section.id;
+            }
+            navLinks.forEach(link => {
+                link.classList.toggle('active', link.dataset.section === current);
+            });
+        }
+
+        // Throttled scroll listener
+        let scrollTimer;
+        window.addEventListener('scroll', function() {
+            if (scrollTimer) return;
+            scrollTimer = setTimeout(function() { scrollTimer = null; updateActiveNav(); }, 80);
+        });
+        updateActiveNav();
+
+        // Smooth scroll for nav links
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.getElementById(this.dataset.section);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    closeSidebar();
+                }
+            });
+        });
+
+        // Tab switching for code examples
+        window.switchTab = function(tab, btn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const panel = document.getElementById('tab-' + tab);
+            if (panel) panel.classList.add('active');
+            if (btn) btn.classList.add('active');
+        };
+
+        // Copy code block
+        window.copyCode = function(btn) {
+            const block = btn.closest('.code-block');
+            const code = block.querySelector('code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                btn.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
+                setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy mr-1"></i>Copy'; }, 2000);
+            });
+        };
+
+        // Copy arbitrary text
+        window.copyText = function(text) {
+            navigator.clipboard.writeText(text);
+        };
+
+        // Mobile sidebar
+        window.openSidebar = function() {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('sidebarOverlay').classList.add('open');
+        };
+        window.closeSidebar = function() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('open');
+        };
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+tree c412b1636d37db04751a68e49a7c5ab628730032
+parent e4ce1320dd5412d427390ed9789a44be48311b42
+author Oteng Kwame Bismark <otengbismark7@gmail.com> 1774620131 +0000
+committer Oteng Kwame Bismark <otengbismark7@gmail.com> 1774620131 +0000
+
+Fix: number display, auto logout, export button, order pagination, and page navigation
+
+- Fixed number view/display issues
+- Fixed automatic logout problem
+- Fixed export button functionality
+- Fixed earlier orders vanishing when new ones arrive
+- Fixed page not working (1 of 1) pagination issue

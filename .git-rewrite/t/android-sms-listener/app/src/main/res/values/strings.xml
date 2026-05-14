@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MoMo Listener</string>
+    <string name="notification_channel_name">MoMo Listener Service</string>
+    <string name="notification_channel_description">Shows when the listener is active</string>
+    <string name="service_notification_title">MoMo Listener Active</string>
+    <string name="service_notification_text">Monitoring for deposits</string>
+</resources>

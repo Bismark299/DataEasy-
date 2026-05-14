@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Theme Colors - Modern MoMo Style -->
+    <color name="primary">#6366F1</color>
+    <color name="primary_dark">#4F46E5</color>
+    <color name="primary_light">#818CF8</color>
+    <color name="accent">#22C55E</color>
+    <color name="accent_light">#4ADE80</color>
+    
+    <!-- Dark backgrounds -->
+    <color name="background">#0F172A</color>
+    <color name="background_secondary">#1E293B</color>
+    <color name="surface">#1E293B</color>
+    <color name="surface_elevated">#334155</color>
+    
+    <!-- Text colors -->
+    <color name="on_surface">#F1F5F9</color>
+    <color name="on_surface_secondary">#94A3B8</color>
+    <color name="text_muted">#64748B</color>
+    
+    <!-- Status colors -->
+    <color name="success">#22C55E</color>
+    <color name="success_bg">#14532D</color>
+    <color name="warning">#F59E0B</color>
+    <color name="warning_bg">#78350F</color>
+    <color name="error">#EF4444</color>
+    <color name="error_bg">#7F1D1D</color>
+    <color name="pending">#3B82F6</color>
+    <color name="pending_bg">#1E3A5F</color>
+    
+    <!-- Card colors -->
+    <color name="card_total_bg">#312E81</color>
+    <color name="card_success_bg">#14532D</color>
+    <color name="card_pending_bg">#1E3A5F</color>
+    <color name="card_failed_bg">#7F1D1D</color>
+    
+    <!-- Gradient -->
+    <color name="gradient_start">#6366F1</color>
+    <color name="gradient_end">#8B5CF6</color>
+</resources>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Keys - DataEasy+ Admin</title>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../assets/js/config.js"></script>
+    <style>
+        .sidebar-link.active { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+        .sidebar-collapsed { width: 80px !important; }
+        .sidebar-collapsed .sidebar-text { display: none; }
+        .sidebar-collapsed .sidebar-link { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .sidebar-link i { width: auto; font-size: 1.25rem; }
+        .sidebar-collapsed .menu-label { display: none; }
+        .sidebar-collapsed .logo-text { display: none; }
+        .sidebar-collapsed .logout-btn { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .logout-btn span { display: none; }
+        .main-collapsed { margin-left: 80px !important; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" id="sidebarOverlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="fixed top-0 left-0 w-64 h-screen bg-sidebar z-50 flex flex-col transform -translate-x-full md:translate-x-0 transition-all duration-300" id="sidebar">
+        <button class="absolute top-4 right-4 text-white/70 hover:text-white md:hidden" id="sidebarCloseBtn">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+        <div class="flex items-center gap-3 p-5 border-b border-white/10">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">BT</div>
+            <span class="text-white font-bold text-lg logo-text sidebar-text">DataEasy+</span>
+        </div>
+        <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
+        <nav class="flex-1 px-3 overflow-y-auto">
+            <a href="index" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Dashboard">
+                <i class="fas fa-th-large w-5"></i><span class="sidebar-text">Dashboard</span>
+            </a>
+            <a href="users" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Users">
+                <i class="fas fa-users w-5"></i><span class="sidebar-text">Users</span>
+            </a>
+            <a href="orders" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Orders">
+                <i class="fas fa-shopping-cart w-5"></i><span class="sidebar-text">Orders</span>
+            </a>
+            <a href="wallet" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Wallet">
+                <i class="fas fa-wallet w-5"></i><span class="sidebar-text">Wallet</span>
+            </a>
+            <a href="momo-deposits" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="MoMo Deposits">
+                <i class="fas fa-mobile-alt w-5"></i><span class="sidebar-text">MoMo Deposits</span>
+            </a>
+            <a href="packages" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Packages">
+                <i class="fas fa-cube w-5"></i><span class="sidebar-text">Packages</span>
+            </a>
+            <a href="stores" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Stores">
+                <i class="fas fa-store w-5"></i><span class="sidebar-text">Stores</span>
+            </a>
+            <a href="api-keys" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-white rounded-lg mb-1 transition" title="API Keys">
+                <i class="fas fa-key w-5"></i><span class="sidebar-text">API Keys</span>
+            </a>
+            <a href="settings" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Settings">
+                <i class="fas fa-cog w-5"></i><span class="sidebar-text">Settings</span>
+            </a>
+        </nav>
+        <div class="p-4 border-t border-white/10">
+            <button class="logout-btn w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition" id="logoutBtn" title="Logout">
+                <i class="fas fa-sign-out-alt w-5"></i><span class="sidebar-text">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="md:ml-64 min-h-screen transition-all duration-300" id="mainContent">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-30">
+            <div class="flex items-center justify-between px-4 md:px-6 py-4">
+                <div class="flex items-center gap-4">
+                    <button class="text-gray-600 hover:text-gray-900" id="sidebarToggleBtn" title="Toggle Sidebar">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-gray-800" id="greetingText">API Keys Management</h1>
+                        <p class="text-sm text-gray-500">Monitor and manage developer API keys</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="api-docs" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                        <i class="fas fa-book mr-1"></i> API Docs
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="p-4 md:p-6">
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl shadow-sm p-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-key text-blue-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-gray-800" id="statTotal">0</p>
+                            <p class="text-xs text-gray-500">Total Keys</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-gray-800" id="statActive">0</p>
+                            <p class="text-xs text-gray-500">Active Keys</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-ban text-red-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-gray-800" id="statRevoked">0</p>
+                            <p class="text-xs text-gray-500">Revoked</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-exchange-alt text-purple-600"></i>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-gray-800" id="statRequests">0</p>
+                            <p class="text-xs text-gray-500">Total Requests</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Keys Table -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                <div class="flex items-center justify-between p-5 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-800"><i class="fas fa-key mr-2 text-blue-500"></i>All API Keys</h3>
+                    <div class="flex gap-2">
+                        <select id="filterActive" class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                            <option value="">All Status</option>
+                            <option value="true">Active</option>
+                            <option value="false">Revoked</option>
+                        </select>
+                        <button onclick="loadKeys()" class="text-sm bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">
+                            <i class="fas fa-sync-alt mr-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="text-left px-5 py-3 text-gray-600 font-semibold">Key</th>
+                                <th class="text-left px-5 py-3 text-gray-600 font-semibold">Owner</th>
+                                <th class="text-left px-5 py-3 text-gray-600 font-semibold">Permissions</th>
+                                <th class="text-left px-5 py-3 text-gray-600 font-semibold">Requests</th>
+                                <th class="text-left px-5 py-3 text-gray-600 font-semibold">Last Used</th>
+                                <th class="text-left px-5 py-3 text-gray-600 font-semibold">Status</th>
+                                <th class="text-left px-5 py-3 text-gray-600 font-semibold">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keysTableBody">
+                            <tr><td colspan="7" class="text-center py-8 text-gray-400">Loading API keys...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div class="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+                    <p class="text-sm text-gray-500" id="paginationInfo">Showing 0 keys</p>
+                    <div class="flex gap-1" id="paginationBtns"></div>
+                </div>
+            </div>
+
+            <!-- Recently Used Keys -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-800"><i class="fas fa-clock mr-2 text-purple-500"></i>Recently Active Keys</h3>
+                </div>
+                <div id="recentKeysContainer" class="p-5">
+                    <p class="text-gray-400 text-sm text-center py-4">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Revoke Confirmation Modal -->
+    <div id="revokeModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-2"><i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>Revoke API Key</h3>
+            <p class="text-sm text-gray-600 mb-1">Are you sure you want to revoke this key?</p>
+            <p class="text-sm font-mono bg-gray-100 rounded px-3 py-2 mb-4" id="revokeKeyName"></p>
+            <p class="text-xs text-red-500 mb-4">This action cannot be undone. Any website using this key will lose access immediately.</p>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeRevokeModal()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition">Cancel</button>
+                <button onclick="confirmRevoke()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition" id="confirmRevokeBtn">Revoke Key</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-[60] space-y-2"></div>
+
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/admin-common.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        const API = window.API_BASE_URL || '/api';
+        let currentPage = 1;
+        let revokeKeyId = null;
+
+        function getToken() {
+            return localStorage.getItem('dataeasy_admin_token');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function showToast(type, title, message) {
+            const container = document.getElementById('toastContainer');
+            const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600', warning: 'bg-yellow-600' };
+            const el = document.createElement('div');
+            el.className = `${colors[type] || colors.info} text-white px-4 py-3 rounded-lg shadow-lg text-sm max-w-sm`;
+            el.innerHTML = `<strong>${escapeHtml(title)}</strong><br><span class="text-white/80">${escapeHtml(message)}</span>`;
+            container.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
+        }
+
+        function timeAgo(dateStr) {
+            if (!dateStr) return 'Never';
+            const diff = Date.now() - new Date(dateStr).getTime();
+            const mins = Math.floor(diff / 60000);
+            if (mins < 1) return 'Just now';
+            if (mins < 60) return mins + 'm ago';
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return hrs + 'h ago';
+            const days = Math.floor(hrs / 24);
+            return days + 'd ago';
+        }
+
+        async function apiFetch(endpoint, options = {}) {
+            const res = await fetch(`${API}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken(),
+                    ...(options.headers || {})
+                }
+            });
+            return res.json();
+        }
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const data = await apiFetch('/admin/api-keys/stats');
+                if (data.success) {
+                    document.getElementById('statTotal').textContent = data.stats.totalKeys;
+                    document.getElementById('statActive').textContent = data.stats.activeKeys;
+                    document.getElementById('statRevoked').textContent = data.stats.revokedKeys;
+                    document.getElementById('statRequests').textContent = data.stats.totalRequests.toLocaleString();
+
+                    // Render recently used
+                    const container = document.getElementById('recentKeysContainer');
+                    if (data.stats.recentlyUsed.length === 0) {
+                        container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">No API keys have been used yet.</p>';
+                    } else {
+                        container.innerHTML = data.stats.recentlyUsed.map(k => `
+                            <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-key text-purple-500 text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-800">${escapeHtml(k.name)}</p>
+                                        <p class="text-xs text-gray-500">${escapeHtml(k.keyPrefix)}... &mdash; ${k.owner ? escapeHtml(k.owner.fullName) : 'Unknown'}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-600">${k.requestCount.toLocaleString()} reqs</p>
+                                    <p class="text-xs text-gray-400">${timeAgo(k.lastUsedAt)}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+
+        // Load keys table
+        window.loadKeys = async function(page) {
+            currentPage = page || currentPage;
+            const active = document.getElementById('filterActive').value;
+            let qs = `?page=${currentPage}&limit=20`;
+            if (active) qs += `&active=${active}`;
+
+            try {
+                const data = await apiFetch('/admin/api-keys' + qs);
+                if (!data.success) throw new Error(data.error);
+
+                const tbody = document.getElementById('keysTableBody');
+                if (data.keys.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">No API keys found.</td></tr>';
+                } else {
+                    tbody.innerHTML = data.keys.map(k => `
+                        <tr class="border-b border-gray-50 hover:bg-gray-50 transition">
+                            <td class="px-5 py-3">
+                                <p class="font-medium text-gray-800">${escapeHtml(k.name)}</p>
+                                <p class="text-xs text-gray-400 font-mono">${escapeHtml(k.keyPrefix)}...</p>
+                            </td>
+                            <td class="px-5 py-3">
+                                ${k.owner ? `
+                                    <p class="text-gray-800">${escapeHtml(k.owner.fullName)}</p>
+                                    <p class="text-xs text-gray-500">${escapeHtml(k.owner.agentCode || k.owner.email)}</p>
+                                ` : '<span class="text-gray-400">Unknown</span>'}
+                            </td>
+                            <td class="px-5 py-3">
+                                <div class="flex flex-wrap gap-1">
+                                    ${(k.permissions || []).map(p => `<span class="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded">${escapeHtml(p)}</span>`).join('')}
+                                </div>
+                            </td>
+                            <td class="px-5 py-3 text-gray-600">${(k.requestCount || 0).toLocaleString()}</td>
+                            <td class="px-5 py-3">
+                                <p class="text-gray-600 text-xs">${timeAgo(k.lastUsedAt)}</p>
+                                ${k.lastUsedIP ? `<p class="text-gray-400 text-xs">${escapeHtml(k.lastUsedIP)}</p>` : ''}
+                            </td>
+                            <td class="px-5 py-3">
+                                ${k.isActive
+                                    ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Active</span>'
+                                    : '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Revoked</span>'}
+                            </td>
+                            <td class="px-5 py-3">
+                                ${k.isActive
+                                    ? `<button onclick="openRevokeModal('${k.id}', '${escapeHtml(k.name)}')" class="text-red-500 hover:text-red-700 text-xs font-medium"><i class="fas fa-ban mr-1"></i>Revoke</button>`
+                                    : '<span class="text-gray-400 text-xs">-</span>'}
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Pagination
+                const info = document.getElementById('paginationInfo');
+                info.textContent = `Showing ${data.keys.length} of ${data.pagination.total} keys (Page ${data.pagination.page}/${data.pagination.pages || 1})`;
+
+                const btns = document.getElementById('paginationBtns');
+                btns.innerHTML = '';
+                for (let p = 1; p <= data.pagination.pages; p++) {
+                    const btn = document.createElement('button');
+                    btn.textContent = p;
+                    btn.className = p === data.pagination.page
+                        ? 'px-3 py-1 bg-blue-600 text-white rounded text-sm'
+                        : 'px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200';
+                    btn.addEventListener('click', () => loadKeys(p));
+                    btns.appendChild(btn);
+                }
+            } catch (e) {
+                showToast('error', 'Error', e.message || 'Failed to load keys');
+            }
+        };
+
+        // Revoke modal
+        window.openRevokeModal = function(keyId, keyName) {
+            revokeKeyId = keyId;
+            document.getElementById('revokeKeyName').textContent = keyName;
+            document.getElementById('revokeModal').classList.remove('hidden');
+        };
+
+        window.closeRevokeModal = function() {
+            revokeKeyId = null;
+            document.getElementById('revokeModal').classList.add('hidden');
+        };
+
+        window.confirmRevoke = async function() {
+            if (!revokeKeyId) return;
+            const btn = document.getElementById('confirmRevokeBtn');
+            btn.disabled = true;
+            btn.textContent = 'Revoking...';
+
+            try {
+                const data = await apiFetch(`/admin/api-keys/${revokeKeyId}`, { method: 'DELETE' });
+                if (data.success) {
+                    showToast('success', 'Revoked', 'API key has been revoked.');
+                    closeRevokeModal();
+                    loadKeys();
+                    loadStats();
+                } else {
+                    showToast('error', 'Error', data.error);
+                }
+            } catch (e) {
+                showToast('error', 'Error', 'Failed to revoke key');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Revoke Key';
+            }
+        };
+
+        // Filter change handler
+        document.getElementById('filterActive').addEventListener('change', () => loadKeys(1));
+
+        // Init
+        if (!AdminCommon.checkAdminAuth()) return;
+        AdminCommon.initSidebar();
+        AdminCommon.setGreeting();
+        loadStats();
+        loadKeys(1);
+    })();
+    </script>
+</body>
+</html>

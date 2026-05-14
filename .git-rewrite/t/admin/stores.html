@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stores - DataEasy+ Admin</title>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../assets/js/config.js"></script>
+    <style>
+        .sidebar-link.active { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+        .loading-overlay { backdrop-filter: blur(4px); }
+        .sidebar-collapsed { width: 80px !important; }
+        .sidebar-collapsed .sidebar-text { display: none; }
+        .sidebar-collapsed .sidebar-link { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .sidebar-link i { width: auto; font-size: 1.25rem; }
+        .sidebar-collapsed .menu-label { display: none; }
+        .sidebar-collapsed .logo-text { display: none; }
+        .sidebar-collapsed .logout-btn { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .logout-btn span { display: none; }
+        .main-collapsed { margin-left: 80px !important; }
+        .payout-card { transition: all 0.2s ease; }
+        .payout-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center" id="loadingOverlay">
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-600">Loading store management...</p>
+    </div>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" id="sidebarOverlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="fixed top-0 left-0 w-64 h-screen bg-sidebar z-50 flex flex-col transform -translate-x-full md:translate-x-0 transition-all duration-300" id="sidebar">
+        <button class="absolute top-4 right-4 text-white/70 hover:text-white md:hidden" id="sidebarCloseBtn">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+
+        <div class="flex items-center gap-3 p-5 border-b border-white/10">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">BT</div>
+            <span class="text-white font-bold text-lg logo-text sidebar-text">DataEasy+</span>
+        </div>
+
+        <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
+        <nav class="flex-1 px-3 overflow-y-auto">
+            <a href="index" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Dashboard">
+                <i class="fas fa-th-large w-5"></i><span class="sidebar-text">Dashboard</span>
+            </a>
+            <a href="users" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Users">
+                <i class="fas fa-users w-5"></i><span class="sidebar-text">Users</span>
+            </a>
+            <a href="orders" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Orders">
+                <i class="fas fa-shopping-cart w-5"></i><span class="sidebar-text">Orders</span>
+            </a>
+            <a href="wallet" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Wallet">
+                <i class="fas fa-wallet w-5"></i><span class="sidebar-text">Wallet</span>
+            </a>
+            <a href="momo-deposits" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="MoMo Deposits">
+                <i class="fas fa-mobile-alt w-5"></i><span class="sidebar-text">MoMo Deposits</span>
+            </a>
+            <a href="packages" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Packages">
+                <i class="fas fa-cube w-5"></i><span class="sidebar-text">Packages</span>
+            </a>
+            <a href="stores" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-white rounded-lg mb-1 transition" title="Stores">
+                <i class="fas fa-store w-5"></i><span class="sidebar-text">Stores</span>
+            </a>
+            <div class="mb-1">
+                <button id="reportsMenuBtn" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reports">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-chart-bar w-5"></i><span class="sidebar-text">Reports</span>
+                    </div>
+                    <i class="fas fa-chevron-down w-4 text-xs transition-transform sidebar-text" id="reports-arrow"></i>
+                </button>
+                <div id="reports-submenu" class="hidden pl-4">
+                    <a href="reports?type=sales" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Sales">
+                        <i class="fas fa-shopping-cart w-4"></i><span class="sidebar-text">Sales</span>
+                    </a>
+                    <a href="reports?type=agents" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Agents">
+                        <i class="fas fa-user-tie w-4"></i><span class="sidebar-text">Agents</span>
+                    </a>
+                </div>
+            </div>
+            <a href="api-keys" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="API Keys">
+                <i class="fas fa-key w-5"></i>
+                <span class="sidebar-text">API Keys</span>
+            </a>
+            <a href="settings" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Settings">
+                <i class="fas fa-cog w-5"></i><span class="sidebar-text">Settings</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-white/10">
+            <button class="logout-btn w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition" id="logoutBtn" title="Logout">
+                <i class="fas fa-sign-out-alt w-5"></i><span class="sidebar-text">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="md:ml-64 min-h-screen transition-all duration-300" id="mainContent">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-30">
+            <div class="flex items-center justify-between px-4 md:px-6 py-4">
+                <div class="flex items-center gap-4">
+                    <button class="text-gray-600 hover:text-gray-900" id="sidebarToggleBtn" title="Toggle Sidebar">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-gray-800">Store Management</h1>
+                        <p class="text-sm text-gray-500">Manage agent stores, payouts and reconciliation</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn">
+                            <span id="profileInitial">A</span>
+                        </button>
+                        <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
+                            <div class="p-4 border-b border-gray-100">
+                                <p class="font-semibold text-gray-800" id="profileName">Administrator</p>
+                                <p class="text-sm text-gray-500" id="profileEmail">admin@dataeasyplus.com</p>
+                            </div>
+                            <div class="p-2">
+                                <a href="settings" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition"><i class="fas fa-cog w-5"></i> Settings</a>
+                                <button id="dropdownLogoutBtn" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition"><i class="fas fa-sign-out-alt w-5"></i> Logout</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="p-4 md:p-6">
+            <!-- Tab Navigation -->
+            <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+                <button class="admin-tab px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white whitespace-nowrap" data-tab="overview">
+                    <i class="fas fa-chart-pie mr-1"></i> Overview
+                </button>
+                <button class="admin-tab px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-600 whitespace-nowrap" data-tab="stores">
+                    <i class="fas fa-store mr-1"></i> All Stores
+                </button>
+                <button class="admin-tab px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-600 whitespace-nowrap" data-tab="payouts">
+                    <i class="fas fa-money-check-alt mr-1"></i> Payouts
+                </button>
+                <button class="admin-tab px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-600 whitespace-nowrap" data-tab="reconciliation">
+                    <i class="fas fa-balance-scale mr-1"></i> Reconciliation
+                </button>
+            </div>
+
+            <!-- OVERVIEW TAB -->
+            <div id="tab-overview" class="tab-content">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center"><i class="fas fa-store text-blue-600"></i></div>
+                            <div><p class="text-xs text-gray-500">Total Stores</p><p class="text-lg font-bold text-gray-800" id="statTotalStores">0</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center"><i class="fas fa-coins text-green-600"></i></div>
+                            <div><p class="text-xs text-gray-500">Total Revenue</p><p class="text-lg font-bold text-gray-800" id="statTotalRevenue">₵0.00</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center"><i class="fas fa-percentage text-purple-600"></i></div>
+                            <div><p class="text-xs text-gray-500">Commission Earned</p><p class="text-lg font-bold text-gray-800" id="statCommission">₵0.00</p></div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center"><i class="fas fa-hourglass-half text-yellow-600"></i></div>
+                            <div><p class="text-xs text-gray-500">Pending Payouts</p><p class="text-lg font-bold text-gray-800" id="statPendingPayouts">0</p></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <p class="text-xs text-gray-500 mb-1">Total Payouts</p>
+                        <p class="text-lg font-bold text-gray-800" id="statTotalPayouts">₵0.00</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <p class="text-xs text-gray-500 mb-1">Active Products</p>
+                        <p class="text-lg font-bold text-gray-800" id="statActiveProducts">0</p>
+                    </div>
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <p class="text-xs text-gray-500 mb-1">Total Orders</p>
+                        <p class="text-lg font-bold text-gray-800" id="statTotalOrders">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ALL STORES TAB -->
+            <div id="tab-stores" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 class="font-semibold text-gray-800">Agent Stores</h3>
+                        <input type="text" id="storeSearch" placeholder="Search stores..." class="px-3 py-2 border rounded-lg text-sm w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                    </div>
+                    <div id="storesList" class="divide-y divide-gray-100">
+                        <p class="text-gray-500 text-center py-8">Loading stores...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAYOUTS TAB -->
+            <div id="tab-payouts" class="tab-content hidden">
+                <!-- Payout Filters -->
+                <div class="flex gap-2 mb-4 flex-wrap">
+                    <button class="payout-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500 text-white" data-status="pending">Pending</button>
+                    <button class="payout-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600" data-status="approved">Approved</button>
+                    <button class="payout-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600" data-status="completed">Completed</button>
+                    <button class="payout-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600" data-status="rejected">Rejected</button>
+                    <button class="payout-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600" data-status="all">All</button>
+                </div>
+                <div id="payoutsList" class="space-y-3">
+                    <p class="text-gray-500 text-center py-8">Loading payouts...</p>
+                </div>
+            </div>
+
+            <!-- RECONCILIATION TAB -->
+            <div id="tab-reconciliation" class="tab-content hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-gray-800">Reconciliation Records</h3>
+                    <button id="runReconcileBtn" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition">
+                        <i class="fas fa-sync-alt mr-1"></i> Run Reconciliation
+                    </button>
+                </div>
+                <!-- Reconcile modal -->
+                <div id="reconcileModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl max-w-md w-full p-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Run Reconciliation</h3>
+                        <form id="reconcileForm">
+                            <label class="block text-sm text-gray-600 mb-1">Store</label>
+                            <select id="reconcileStore" class="w-full px-3 py-2 border rounded-lg text-sm mb-3 outline-none focus:ring-2 focus:ring-purple-500" required>
+                                <option value="">Select a store</option>
+                            </select>
+                            <label class="block text-sm text-gray-600 mb-1">Start Date</label>
+                            <input type="date" id="reconcileStart" class="w-full px-3 py-2 border rounded-lg text-sm mb-3 outline-none focus:ring-2 focus:ring-purple-500" required>
+                            <label class="block text-sm text-gray-600 mb-1">End Date</label>
+                            <input type="date" id="reconcileEnd" class="w-full px-3 py-2 border rounded-lg text-sm mb-4 outline-none focus:ring-2 focus:ring-purple-500" required>
+                            <div class="flex gap-3">
+                                <button type="submit" class="flex-1 bg-purple-600 text-white py-2 rounded-lg text-sm hover:bg-purple-700"><i class="fas fa-sync-alt mr-1"></i> Run</button>
+                                <button type="button" onclick="document.getElementById('reconcileModal').classList.add('hidden')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-300">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div id="reconciliationList" class="space-y-3">
+                    <p class="text-gray-500 text-center py-8">No reconciliation records.</p>
+                </div>
+            </div>
+
+            <!-- Store Detail Modal -->
+            <div id="storeDetailModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-800" id="detailStoreName">Store Details</h3>
+                        <button onclick="document.getElementById('storeDetailModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
+                    </div>
+                    <div id="storeDetailContent">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Payout Action Modal -->
+            <div id="payoutActionModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4" id="payoutActionTitle">Payout Action</h3>
+                    <div id="payoutActionContent"></div>
+                </div>
+            </div>
+
+            <!-- Adjust Settlement Modal -->
+            <div id="adjustModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl max-w-md w-full p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Adjust Settlement Balance</h3>
+                    <form id="adjustForm">
+                        <input type="hidden" id="adjustStoreId">
+                        <label class="block text-sm text-gray-600 mb-1">Type</label>
+                        <select id="adjustType" class="w-full px-3 py-2 border rounded-lg text-sm mb-3 outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="credit">Credit (Add funds)</option>
+                            <option value="debit">Debit (Remove funds)</option>
+                        </select>
+                        <label class="block text-sm text-gray-600 mb-1">Amount (₵)</label>
+                        <input type="number" id="adjustAmount" step="0.01" min="0.01" class="w-full px-3 py-2 border rounded-lg text-sm mb-3 outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <label class="block text-sm text-gray-600 mb-1">Reason</label>
+                        <input type="text" id="adjustReason" class="w-full px-3 py-2 border rounded-lg text-sm mb-4 outline-none focus:ring-2 focus:ring-blue-500" required placeholder="e.g., Manual correction for order XYZ">
+                        <div class="flex gap-3">
+                            <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700">Apply Adjustment</button>
+                            <button type="button" onclick="document.getElementById('adjustModal').classList.add('hidden')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-300">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="fixed top-4 right-4 z-[100] space-y-2" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/admin-common.js"></script>
+    <script src="../assets/js/security.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        let allStores = [];
+        let allPayouts = [];
+        let payoutFilter = 'pending';
+        let currentTab = 'overview';
+
+        function getToken() {
+            try { const s = localStorage.getItem('dataeasy_admin_token'); return s || null; } catch(e) { return null; }
+        }
+
+        async function apiRequest(endpoint, options = {}) {
+            const token = getToken();
+            if (!token) { window.location.href = '../pages/login'; return; }
+            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...options.headers };
+            const resp = await fetch(`${(window.API_BASE_URL || '/api')}${endpoint}`, { ...options, headers });
+            const data = await resp.json();
+            if (resp.status === 401) { localStorage.removeItem('dataeasy_admin_token'); window.location.href = '../pages/login'; return; }
+            if (!resp.ok) throw new Error(data.error || 'Request failed');
+            return data;
+        }
+
+        function toast(msg, type = 'info') {
+            const c = document.getElementById('toastContainer');
+            const colors = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500', warning: 'bg-yellow-500' };
+            const el = document.createElement('div');
+            el.className = `${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg text-sm flex items-center gap-2`;
+            el.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${escapeHtml(msg)}`;
+            c.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        // ========== TABS ==========
+        function showTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.querySelectorAll('.admin-tab').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-600');
+                if (btn.dataset.tab === tab) {
+                    btn.classList.remove('bg-gray-200', 'text-gray-600');
+                    btn.classList.add('bg-blue-500', 'text-white');
+                }
+            });
+            if (tab === 'overview') loadStats();
+            else if (tab === 'stores') loadAllStores();
+            else if (tab === 'payouts') loadPayouts();
+            else if (tab === 'reconciliation') loadReconciliations();
+        }
+
+        // ========== OVERVIEW ==========
+        async function loadStats() {
+            try {
+                const data = await apiRequest('/admin/stores/stats');
+                const s = data.stats;
+                document.getElementById('statTotalStores').textContent = s.totalStores;
+                document.getElementById('statTotalRevenue').textContent = `₵${parseFloat(s.totalRevenue || 0).toFixed(2)}`;
+                document.getElementById('statCommission').textContent = `₵${parseFloat(s.totalCommission || 0).toFixed(2)}`;
+                document.getElementById('statPendingPayouts').textContent = s.pendingPayouts;
+                document.getElementById('statTotalPayouts').textContent = `₵${parseFloat(s.totalPayouts || 0).toFixed(2)}`;
+                document.getElementById('statActiveProducts').textContent = s.activeProducts;
+                document.getElementById('statTotalOrders').textContent = s.totalOrders;
+            } catch (e) {
+                toast('Failed to load store stats', 'error');
+            }
+        }
+
+        // ========== ALL STORES ==========
+        async function loadAllStores() {
+            try {
+                const data = await apiRequest('/admin/stores');
+                allStores = data.stores;
+                renderStores(allStores);
+            } catch (e) {
+                document.getElementById('storesList').innerHTML = `<p class="text-red-500 text-center py-8">${escapeHtml(e.message)}</p>`;
+            }
+        }
+
+        function renderStores(stores) {
+            const container = document.getElementById('storesList');
+            if (!stores.length) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No stores registered yet.</p>';
+                return;
+            }
+
+            container.innerHTML = stores.map(s => {
+                const sa = s.settlementAccount || {};
+                return `
+                <div class="p-4 hover:bg-gray-50 transition cursor-pointer flex items-center justify-between" onclick="window._viewStore('${s.id}')">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                            ${escapeHtml((s.name || '?')[0].toUpperCase())}
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">${escapeHtml(s.name)}</p>
+                            <p class="text-xs text-gray-500">${escapeHtml(s.user ? s.user.name : '')} &middot; ${escapeHtml(s.location || 'No location')}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-green-600">₵${parseFloat(sa.availableBalance || 0).toFixed(2)}</p>
+                        <p class="text-xs text-gray-500">Available</p>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window._viewStore = async function(storeId) {
+            document.getElementById('storeDetailModal').classList.remove('hidden');
+            document.getElementById('storeDetailContent').innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+            try {
+                const data = await apiRequest(`/admin/stores/${storeId}`);
+                const s = data.store;
+                const sa = s.settlementAccount || {};
+                document.getElementById('detailStoreName').textContent = s.name;
+                document.getElementById('storeDetailContent').innerHTML = `
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div><p class="text-xs text-gray-500">Owner</p><p class="font-semibold">${escapeHtml(s.user ? s.user.name : 'N/A')}</p></div>
+                        <div><p class="text-xs text-gray-500">Location</p><p class="font-semibold">${escapeHtml(s.location || 'N/A')}</p></div>
+                        <div><p class="text-xs text-gray-500">Commission Rate</p><p class="font-semibold">${s.commissionRate}%</p></div>
+                        <div><p class="text-xs text-gray-500">Payout Threshold</p><p class="font-semibold">₵${parseFloat(s.payoutThreshold).toFixed(2)}</p></div>
+                    </div>
+                    <h4 class="font-bold text-gray-800 mb-2 mt-4 border-t pt-3">Settlement Account</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                        <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500">Ledger Balance</p><p class="font-bold text-gray-800">₵${parseFloat(sa.ledgerBalance || 0).toFixed(2)}</p></div>
+                        <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500">Available</p><p class="font-bold text-green-600">₵${parseFloat(sa.availableBalance || 0).toFixed(2)}</p></div>
+                        <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500">On Hold</p><p class="font-bold text-yellow-600">₵${parseFloat(sa.holdAmount || 0).toFixed(2)}</p></div>
+                        <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500">Total Revenue</p><p class="font-bold">₵${parseFloat(sa.totalRevenue || 0).toFixed(2)}</p></div>
+                        <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500">Total Commission</p><p class="font-bold">₵${parseFloat(sa.totalCommissionPaid || 0).toFixed(2)}</p></div>
+                        <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500">Total Payouts</p><p class="font-bold">₵${parseFloat(sa.totalPayouts || 0).toFixed(2)}</p></div>
+                    </div>
+                    <h4 class="font-bold text-gray-800 mb-2 border-t pt-3">Bank / MoMo</h4>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div><p class="text-xs text-gray-500">Bank</p><p class="text-sm">${escapeHtml(s.bankName || 'Not set')} - ${escapeHtml(s.bankAccountNumber || '')}</p></div>
+                        <div><p class="text-xs text-gray-500">MoMo</p><p class="text-sm">${escapeHtml(s.momoProvider || 'Not set')} - ${escapeHtml(s.momoNumber || '')}</p></div>
+                    </div>
+                    <div class="flex gap-3 border-t pt-4">
+                        <button onclick="window._adjustStore('${s.id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"><i class="fas fa-sliders-h mr-1"></i> Adjust Balance</button>
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('storeDetailContent').innerHTML = `<p class="text-red-500">${escapeHtml(e.message)}</p>`;
+            }
+        };
+
+        window._adjustStore = function(storeId) {
+            document.getElementById('storeDetailModal').classList.add('hidden');
+            document.getElementById('adjustStoreId').value = storeId;
+            document.getElementById('adjustForm').reset();
+            document.getElementById('adjustStoreId').value = storeId;
+            document.getElementById('adjustModal').classList.remove('hidden');
+        };
+
+        // ========== PAYOUTS ==========
+        async function loadPayouts() {
+            try {
+                const status = payoutFilter === 'all' ? '' : `?status=${payoutFilter}`;
+                const data = await apiRequest(`/admin/stores/payouts${status}`);
+                allPayouts = data.payouts;
+                renderPayouts(allPayouts);
+            } catch (e) {
+                document.getElementById('payoutsList').innerHTML = `<p class="text-red-500 text-center py-8">${escapeHtml(e.message)}</p>`;
+            }
+        }
+
+        function renderPayouts(payouts) {
+            const container = document.getElementById('payoutsList');
+            if (!payouts.length) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No payouts found for this filter.</p>';
+                return;
+            }
+
+            const statusColors = { pending: 'bg-yellow-100 text-yellow-800', approved: 'bg-blue-100 text-blue-800', processing: 'bg-blue-100 text-blue-800', completed: 'bg-green-100 text-green-800', failed: 'bg-red-100 text-red-800', rejected: 'bg-red-100 text-red-800' };
+
+            container.innerHTML = payouts.map(p => `
+                <div class="payout-card bg-white rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <span class="font-semibold text-gray-800">${escapeHtml(p.payoutId)}</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full ml-2 ${statusColors[p.status]}">${p.status}</span>
+                        </div>
+                        <span class="text-lg font-bold text-green-600">₵${parseFloat(p.amount).toFixed(2)}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm text-gray-500 mb-2">
+                        <span><i class="fas fa-store mr-1"></i>${escapeHtml(p.store ? p.store.name : 'N/A')}</span>
+                        <span><i class="fas fa-${p.method === 'bank_transfer' ? 'university' : 'mobile-alt'} mr-1"></i>${p.method === 'bank_transfer' ? 'Bank' : 'MoMo'}</span>
+                    </div>
+                    <div class="text-xs text-gray-400 mb-3">${new Date(p.createdAt).toLocaleString()}</div>
+                    ${p.status === 'pending' ? `
+                        <div class="flex gap-2">
+                            <button onclick="window._approvePayout('${p.id}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700"><i class="fas fa-check mr-1"></i> Approve</button>
+                            <button onclick="window._rejectPayout('${p.id}')" class="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700"><i class="fas fa-times mr-1"></i> Reject</button>
+                        </div>
+                    ` : ''}
+                    ${p.status === 'approved' ? `
+                        <button onclick="window._completePayout('${p.id}')" class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700"><i class="fas fa-paper-plane mr-1"></i> Mark Completed (Sent via Paystack)</button>
+                    ` : ''}
+                    ${p.rejectionReason ? `<p class="text-xs text-red-500 mt-2"><i class="fas fa-info-circle mr-1"></i>${escapeHtml(p.rejectionReason)}</p>` : ''}
+                </div>
+            `).join('');
+        }
+
+        window._approvePayout = async function(payoutId) {
+            if (!confirm('Approve this payout?')) return;
+            try {
+                await apiRequest(`/admin/stores/payouts/${payoutId}/approve`, { method: 'PUT' });
+                toast('Payout approved', 'success');
+                loadPayouts();
+            } catch (e) { toast(e.message, 'error'); }
+        };
+
+        window._rejectPayout = async function(payoutId) {
+            const reason = prompt('Rejection reason:');
+            if (!reason) return;
+            try {
+                await apiRequest(`/admin/stores/payouts/${payoutId}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) });
+                toast('Payout rejected', 'success');
+                loadPayouts();
+            } catch (e) { toast(e.message, 'error'); }
+        };
+
+        window._completePayout = async function(payoutId) {
+            const ref = prompt('Enter Paystack transfer reference (optional):');
+            try {
+                await apiRequest(`/admin/stores/payouts/${payoutId}/complete`, { method: 'PUT', body: JSON.stringify({ transferReference: ref || undefined }) });
+                toast('Payout marked as completed', 'success');
+                loadPayouts();
+                loadStats();
+            } catch (e) { toast(e.message, 'error'); }
+        };
+
+        // ========== RECONCILIATION ==========
+        async function loadReconciliations() {
+            try {
+                const data = await apiRequest('/admin/stores/reconciliation');
+                renderReconciliations(data.records);
+            } catch (e) {
+                document.getElementById('reconciliationList').innerHTML = `<p class="text-red-500 text-center py-8">${escapeHtml(e.message)}</p>`;
+            }
+        }
+
+        function renderReconciliations(records) {
+            const container = document.getElementById('reconciliationList');
+            if (!records || !records.length) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No reconciliation records yet. Run a reconciliation to check financial accuracy.</p>';
+                return;
+            }
+
+            const statusColors = { balanced: 'bg-green-100 text-green-800', discrepancy: 'bg-red-100 text-red-800', resolved: 'bg-blue-100 text-blue-800', investigating: 'bg-yellow-100 text-yellow-800' };
+
+            container.innerHTML = records.map(r => `
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <span class="font-semibold text-gray-800">${escapeHtml(r.store ? r.store.name : 'Store')}</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full ml-2 ${statusColors[r.status]}">${r.status}</span>
+                        </div>
+                        <span class="text-sm text-gray-500">${new Date(r.periodStart).toLocaleDateString()} - ${new Date(r.periodEnd).toLocaleDateString()}</span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div><p class="text-xs text-gray-500">Expected Revenue</p><p class="font-semibold">₵${parseFloat(r.expectedRevenue).toFixed(2)}</p></div>
+                        <div><p class="text-xs text-gray-500">Actual Revenue</p><p class="font-semibold">₵${parseFloat(r.actualRevenue).toFixed(2)}</p></div>
+                        <div><p class="text-xs text-gray-500">Expected Balance</p><p class="font-semibold">₵${parseFloat(r.expectedBalance).toFixed(2)}</p></div>
+                        <div><p class="text-xs text-gray-500">Actual Balance</p><p class="font-semibold">₵${parseFloat(r.actualBalance).toFixed(2)}</p></div>
+                    </div>
+                    ${parseFloat(r.discrepancy) !== 0 ? `<p class="text-sm mt-2 ${parseFloat(r.discrepancy) > 0 ? 'text-red-600' : 'text-green-600'}"><i class="fas fa-exclamation-triangle mr-1"></i>Discrepancy: ₵${parseFloat(r.discrepancy).toFixed(2)}</p>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // ========== EVENT LISTENERS ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize admin page (auth check, sidebar, profile, greeting)
+            if (window.AdminCommon && AdminCommon.initAdminPage) {
+                AdminCommon.initAdminPage();
+            }
+
+            // Wire dropdown logout button (not handled by admin-common)
+            const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
+            if (dropdownLogoutBtn) {
+                dropdownLogoutBtn.addEventListener('click', logout);
+            }
+
+            // Tabs
+            document.querySelectorAll('.admin-tab').forEach(btn => {
+                btn.addEventListener('click', () => showTab(btn.dataset.tab));
+            });
+
+            // Payout filters
+            document.querySelectorAll('.payout-filter').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    payoutFilter = btn.dataset.status;
+                    document.querySelectorAll('.payout-filter').forEach(b => {
+                        b.classList.remove('bg-blue-500', 'text-white');
+                        b.classList.add('bg-gray-200', 'text-gray-600');
+                    });
+                    btn.classList.remove('bg-gray-200', 'text-gray-600');
+                    btn.classList.add('bg-blue-500', 'text-white');
+                    loadPayouts();
+                });
+            });
+
+            // Store search
+            document.getElementById('storeSearch').addEventListener('input', function() {
+                const q = this.value.toLowerCase();
+                const filtered = allStores.filter(s => (s.name || '').toLowerCase().includes(q) || (s.user && s.user.name || '').toLowerCase().includes(q));
+                renderStores(filtered);
+            });
+
+            // Reconcile button
+            document.getElementById('runReconcileBtn').addEventListener('click', async function() {
+                // Populate store dropdown
+                if (!allStores.length) {
+                    try { const data = await apiRequest('/admin/stores'); allStores = data.stores; } catch(e) {}
+                }
+                const sel = document.getElementById('reconcileStore');
+                sel.innerHTML = '<option value="">Select a store</option>' + allStores.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+                document.getElementById('reconcileModal').classList.remove('hidden');
+            });
+
+            // Reconcile form
+            document.getElementById('reconcileForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const storeId = document.getElementById('reconcileStore').value;
+                const periodStart = document.getElementById('reconcileStart').value;
+                const periodEnd = document.getElementById('reconcileEnd').value;
+                if (!storeId || !periodStart || !periodEnd) return;
+                try {
+                    await apiRequest(`/admin/stores/${storeId}/reconcile`, { method: 'POST', body: JSON.stringify({ periodStart, periodEnd }) });
+                    toast('Reconciliation completed', 'success');
+                    document.getElementById('reconcileModal').classList.add('hidden');
+                    loadReconciliations();
+                } catch (e) { toast(e.message, 'error'); }
+            });
+
+            // Adjust form
+            document.getElementById('adjustForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const storeId = document.getElementById('adjustStoreId').value;
+                const type = document.getElementById('adjustType').value;
+                const amount = parseFloat(document.getElementById('adjustAmount').value);
+                const reason = document.getElementById('adjustReason').value;
+                if (!storeId || !amount || !reason) return;
+                try {
+                    await apiRequest(`/admin/stores/${storeId}/adjust`, { method: 'POST', body: JSON.stringify({ type, amount, reason }) });
+                    toast('Settlement adjusted', 'success');
+                    document.getElementById('adjustModal').classList.add('hidden');
+                    loadStats();
+                } catch (e) { toast(e.message, 'error'); }
+            });
+
+            // Load initial data
+            loadStats().finally(() => {
+                const lo = document.getElementById('loadingOverlay');
+                if (lo) lo.classList.add('hidden');
+            });
+        });
+    })();
+    </script>
+</body>
+</html>

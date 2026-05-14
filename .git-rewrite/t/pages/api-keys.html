@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataEasy+ - API Keys</title>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/custom.css?v=20260213c">
+    <script src="../assets/js/config.js"></script>
+    <style>
+        body { background: #0f172a; }
+        .key-reveal { word-break: break-all; font-size: 0.75rem; }
+    </style>
+</head>
+<body class="bg-dark-bg min-h-screen text-gray-100">
+
+    <!-- Header -->
+    <header class="bg-[#1e293b] border-b border-[#334155] px-4 py-3">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href=".." class="text-gray-400 hover:text-white transition"><i class="fas fa-arrow-left"></i></a>
+                <h1 class="text-lg font-bold text-white"><i class="fas fa-key mr-2 text-blue-400"></i>API Keys</h1>
+            </div>
+            <a href="account-details" class="text-gray-400 hover:text-white text-sm"><i class="fas fa-user mr-1"></i> Account</a>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-6">
+
+        <!-- Info Banner -->
+        <div class="bg-blue-900/30 border border-blue-700/50 rounded-xl p-4 mb-6">
+            <h3 class="text-blue-300 font-semibold text-sm mb-1"><i class="fas fa-plug mr-1"></i> Connect Your Website</h3>
+            <p class="text-blue-200/70 text-xs leading-relaxed">Create an API key to integrate DataEasy+ data bundle purchases into your own website or app. Orders placed via API are charged to your wallet.</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <span class="text-xs bg-blue-800/50 text-blue-300 px-2 py-1 rounded">Base URL: <span id="apiBaseUrl" class="font-mono"></span></span>
+                <span class="text-xs bg-blue-800/50 text-blue-300 px-2 py-1 rounded">Max 5 keys</span>
+                <span class="text-xs bg-blue-800/50 text-blue-300 px-2 py-1 rounded">60 reqs/min</span>
+            </div>
+        </div>
+
+        <!-- Create Key Form -->
+        <div class="bg-[#1e293b] border border-[#334155] rounded-xl p-5 mb-6">
+            <h2 class="text-white font-bold text-base mb-4"><i class="fas fa-plus-circle mr-2 text-green-400"></i>Create New API Key</h2>
+            <form id="createKeyForm" class="space-y-3">
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Key Name *</label>
+                    <input type="text" id="keyName" placeholder="e.g. My WordPress Site" class="w-full bg-[#1e293b] border border-[#475569] text-black px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none placeholder-gray-500" required maxlength="100">
+                </div>
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Permissions</label>
+                    <div class="flex flex-wrap gap-3">
+                        <label class="flex items-center gap-2 text-sm text-gray-300">
+                            <input type="checkbox" value="packages:read" class="perm-checkbox rounded" checked disabled>
+                            <span>Read Packages</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-300">
+                            <input type="checkbox" value="orders:create" class="perm-checkbox rounded" checked>
+                            <span>Create Orders</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-300">
+                            <input type="checkbox" value="orders:read" class="perm-checkbox rounded" checked>
+                            <span>Read Orders</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-300">
+                            <input type="checkbox" value="account:read" class="perm-checkbox rounded">
+                            <span>Read Account</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Allowed Domains <span class="text-gray-500">(optional, comma-separated)</span></label>
+                    <input type="text" id="allowedDomains" placeholder="e.g. mysite.com, shop.mysite.com" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none">
+                </div>
+                <button type="submit" id="createBtn" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-6 rounded-lg text-sm transition-colors">
+                    <i class="fas fa-key mr-1"></i> Generate API Key
+                </button>
+            </form>
+        </div>
+
+        <!-- New Key Reveal (hidden by default) -->
+        <div id="keyRevealSection" class="hidden bg-green-900/30 border border-green-700/50 rounded-xl p-5 mb-6">
+            <h3 class="text-green-300 font-bold text-sm mb-2"><i class="fas fa-check-circle mr-1"></i> API Key Created!</h3>
+            <p class="text-green-200/70 text-xs mb-3">Copy this key now. It will <strong>not</strong> be shown again.</p>
+            <div class="bg-[#0f172a] rounded-lg p-3 flex items-center justify-between gap-2">
+                <code class="key-reveal text-white flex-1" id="newKeyDisplay"></code>
+                <button onclick="copyKey()" class="text-green-400 hover:text-green-300 text-sm flex-shrink-0" title="Copy">
+                    <i class="fas fa-copy text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Existing Keys -->
+        <div class="bg-[#1e293b] border border-[#334155] rounded-xl overflow-hidden">
+            <div class="flex items-center justify-between p-5 border-b border-[#334155]">
+                <h2 class="text-white font-bold text-base"><i class="fas fa-list mr-2 text-blue-400"></i>Your API Keys</h2>
+                <button onclick="loadKeys()" class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+            </div>
+            <div id="keysContainer" class="divide-y divide-[#334155]">
+                <div class="p-8 text-center text-gray-500 text-sm">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Quick API Reference -->
+        <div class="bg-[#1e293b] border border-[#334155] rounded-xl p-5 mt-6">
+            <h2 class="text-white font-bold text-base mb-3"><i class="fas fa-code mr-2 text-purple-400"></i>Quick Start</h2>
+            <p class="text-gray-400 text-xs mb-3">Once you have your API key, you can start making requests from your server:</p>
+            <div class="bg-[#0f172a] rounded-lg p-4 overflow-x-auto">
+                <pre class="text-xs text-gray-300 leading-relaxed"><code>// Fetch available data packages
+const res = await fetch('<span id="exampleBaseUrl"></span>/api/v1/packages', {
+  headers: { 'X-API-Key': 'de_live_your_key_here' }
+});
+const data = await res.json();
+
+// Place an order (debits your wallet)
+const order = await fetch('<span id="exampleBaseUrl2"></span>/api/v1/orders', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'de_live_your_key_here',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    network: 'MTN',
+    items: [{ packageId: 'mtn-5gb', phoneNumber: '0241234567' }]
+  })
+});</code></pre>
+            </div>
+        </div>
+
+        <!-- API Documentation Link -->
+        <a href="api-docs" class="block bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl p-5 mt-6 hover:border-blue-400/50 transition group">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-600/30 flex items-center justify-center group-hover:bg-blue-600/50 transition">
+                        <i class="fas fa-book text-blue-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-white font-bold text-sm">API Documentation</h3>
+                        <p class="text-gray-400 text-xs mt-0.5">Endpoints, code examples, authentication &amp; more</p>
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right text-blue-400 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+        </a>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script src="../assets/js/api.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        const baseUrl = window.location.origin;
+        document.getElementById('apiBaseUrl').textContent = baseUrl + '/api/v1';
+        document.getElementById('exampleBaseUrl').textContent = baseUrl;
+        document.getElementById('exampleBaseUrl2').textContent = baseUrl;
+
+        // Check auth
+        const session = localStorage.getItem('dataeasy_session');
+        if (!session) {
+            window.location.href = 'login';
+            return;
+        }
+
+        let newKeyValue = '';
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function toast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-blue-600' };
+            const el = document.createElement('div');
+            el.className = `${colors[type] || colors.info} text-white px-4 py-3 rounded-lg shadow-lg text-sm`;
+            el.textContent = msg;
+            container.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
+        }
+
+        function timeAgo(dateStr) {
+            if (!dateStr) return 'Never';
+            const diff = Date.now() - new Date(dateStr).getTime();
+            const mins = Math.floor(diff / 60000);
+            if (mins < 1) return 'Just now';
+            if (mins < 60) return mins + 'm ago';
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return hrs + 'h ago';
+            return Math.floor(hrs / 24) + 'd ago';
+        }
+
+        // Load keys
+        window.loadKeys = async function() {
+            const container = document.getElementById('keysContainer');
+            try {
+                const data = await DataEasyAPI.Developer.listKeys();
+                if (!data.success || !data.keys.length) {
+                    container.innerHTML = '<div class="p-8 text-center text-gray-500 text-sm">No API keys yet. Create one above to get started.</div>';
+                    return;
+                }
+
+                container.innerHTML = data.keys.map(k => `
+                    <div class="p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-white font-semibold text-sm">${escapeHtml(k.name)}</span>
+                                    ${k.isActive
+                                        ? '<span class="text-xs bg-green-900/50 text-green-400 px-2 py-0.5 rounded-full">Active</span>'
+                                        : '<span class="text-xs bg-red-900/50 text-red-400 px-2 py-0.5 rounded-full">Revoked</span>'}
+                                </div>
+                                <p class="text-gray-500 text-xs font-mono mb-2">${escapeHtml(k.keyPrefix)}...</p>
+                                <div class="flex flex-wrap gap-1 mb-2">
+                                    ${(k.permissions || []).map(p => `<span class="text-xs bg-[#0f172a] text-blue-400 px-2 py-0.5 rounded">${escapeHtml(p)}</span>`).join('')}
+                                </div>
+                                <div class="flex gap-4 text-xs text-gray-500">
+                                    <span><i class="fas fa-exchange-alt mr-1"></i>${(k.requestCount || 0).toLocaleString()} requests</span>
+                                    <span><i class="fas fa-clock mr-1"></i>Last used: ${timeAgo(k.lastUsedAt)}</span>
+                                </div>
+                                ${k.allowedDomains && k.allowedDomains.length > 0 ? `<p class="text-xs text-gray-500 mt-1"><i class="fas fa-globe mr-1"></i>Domains: ${k.allowedDomains.map(d => escapeHtml(d)).join(', ')}</p>` : ''}
+                            </div>
+                            ${k.isActive ? `
+                                <button onclick="revokeKey('${k.id}', '${escapeHtml(k.name)}')" class="text-red-400 hover:text-red-300 text-xs font-medium px-3 py-1.5 border border-red-800 rounded-lg hover:bg-red-900/30 transition flex-shrink-0">
+                                    <i class="fas fa-ban mr-1"></i>Revoke
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = `<div class="p-8 text-center text-red-400 text-sm">${escapeHtml(e.message)}</div>`;
+            }
+        };
+
+        // Create key
+        document.getElementById('createKeyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('createBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Creating...';
+
+            try {
+                const permissions = ['packages:read']; // Always included
+                document.querySelectorAll('.perm-checkbox:checked').forEach(cb => {
+                    if (!permissions.includes(cb.value)) permissions.push(cb.value);
+                });
+
+                const domainsInput = document.getElementById('allowedDomains').value.trim();
+                const allowedDomains = domainsInput ? domainsInput.split(',').map(d => d.trim()).filter(Boolean) : [];
+
+                const data = await DataEasyAPI.Developer.createKey({
+                    name: document.getElementById('keyName').value.trim(),
+                    permissions,
+                    allowedDomains
+                });
+
+                if (data.success) {
+                    newKeyValue = data.key.apiKey;
+                    document.getElementById('newKeyDisplay').textContent = newKeyValue;
+                    document.getElementById('keyRevealSection').classList.remove('hidden');
+                    document.getElementById('keyRevealSection').scrollIntoView({ behavior: 'smooth' });
+                    document.getElementById('keyName').value = '';
+                    document.getElementById('allowedDomains').value = '';
+                    toast('API key created successfully!', 'success');
+                    loadKeys();
+                } else {
+                    toast(data.error || 'Failed to create key', 'error');
+                }
+            } catch (e) {
+                toast(e.message || 'Failed to create key', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-key mr-1"></i> Generate API Key';
+            }
+        });
+
+        // Copy key
+        window.copyKey = function() {
+            if (!newKeyValue) return;
+            navigator.clipboard.writeText(newKeyValue).then(() => {
+                toast('Copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback
+                const ta = document.createElement('textarea');
+                ta.value = newKeyValue;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                toast('Copied to clipboard!', 'success');
+            });
+        };
+
+        // Revoke key
+        window.revokeKey = async function(keyId, keyName) {
+            if (!confirm(`Revoke API key "${keyName}"? Any website using this key will lose access immediately.`)) return;
+            try {
+                const data = await DataEasyAPI.Developer.revokeKey(keyId);
+                if (data.success) {
+                    toast('API key revoked', 'success');
+                    loadKeys();
+                } else {
+                    toast(data.error || 'Failed to revoke', 'error');
+                }
+            } catch (e) {
+                toast(e.message || 'Failed to revoke key', 'error');
+            }
+        };
+
+        // Init
+        loadKeys();
+    })();
+    </script>
+</body>
+</html>

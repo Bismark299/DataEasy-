@@ -92,6 +92,7 @@ const storeRoutes = require('./routes/store');
 const developerRoutes = require('./routes/developer');
 const v1Routes = require('./routes/v1');
 const lookupRoutes = require('./routes/lookup');
+const checkerRoutes = require('./routes/checker');
 
 console.log('✅ Routes loaded successfully');
 
@@ -332,6 +333,7 @@ app.use('/api/store', storeRoutes);
 app.use('/api/developer', developerRoutes);
 app.use('/api/v1', v1Routes);
 app.use('/api/lookup', lookupRoutes);
+app.use('/api/checker', checkerRoutes);
 
 // ==========================================
 // SERVE STATIC FRONTEND FILES
@@ -376,6 +378,11 @@ app.get('/ad', (req, res) => {
 // Secret standalone lookup page - accessible only via direct URL
 app.get('/hstn-lookup', (req, res) => {
     res.sendFile(path.join(frontendPath, 'pages', 'hstn-lookup.html'));
+});
+
+// Secret standalone MTN order checker page - accessible only via direct URL
+app.get('/mtn-checker', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'pages', 'mtn-checker.html'));
 });
 
 // Serve pages/ clean URL routes

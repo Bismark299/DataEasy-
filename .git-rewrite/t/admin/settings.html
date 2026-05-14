@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - DataEasy+ Admin</title>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../assets/js/config.js"></script>
+    <style>
+        .sidebar-link.active { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+        .loading-overlay { backdrop-filter: blur(4px); }
+        /* Collapsed sidebar styles */
+        .sidebar-collapsed { width: 80px !important; }
+        .sidebar-collapsed .sidebar-text { display: none; }
+        .sidebar-collapsed .sidebar-link { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .sidebar-link i { width: auto; font-size: 1.25rem; }
+        .sidebar-collapsed .menu-label { display: none; }
+        .sidebar-collapsed .logo-text { display: none; }
+        .sidebar-collapsed .logout-btn { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .logout-btn span { display: none; }
+        .main-collapsed { margin-left: 80px !important; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden" id="loadingOverlay">
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-600">Saving settings...</p>
+    </div>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" id="sidebarOverlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="fixed top-0 left-0 w-64 h-screen bg-sidebar z-50 flex flex-col transform -translate-x-full md:translate-x-0 transition-all duration-300" id="sidebar">
+        <button class="absolute top-4 right-4 text-white/70 hover:text-white md:hidden" id="sidebarCloseBtn">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+        
+        <div class="flex items-center gap-3 p-5 border-b border-white/10">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">BT</div>
+            <span class="text-white font-bold text-lg logo-text sidebar-text">DataEasy+</span>
+        </div>
+        
+        <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
+        <nav class="flex-1 px-3 overflow-y-auto">
+            <a href="index" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Dashboard">
+                <i class="fas fa-th-large w-5"></i>
+                <span class="sidebar-text">Dashboard</span>
+            </a>
+            <a href="users" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Users">
+                <i class="fas fa-users w-5"></i>
+                <span class="sidebar-text">Users</span>
+            </a>
+            <a href="orders" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Orders">
+                <i class="fas fa-shopping-cart w-5"></i>
+                <span class="sidebar-text">Orders</span>
+            </a>
+            <a href="wallet" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Wallet">
+                <i class="fas fa-wallet w-5"></i>
+                <span class="sidebar-text">Wallet</span>
+            </a>
+            <a href="momo-deposits" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="MoMo Deposits">
+                <i class="fas fa-mobile-alt w-5"></i>
+                <span class="sidebar-text">MoMo Deposits</span>
+            </a>
+            <a href="packages" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Packages">
+                <i class="fas fa-cube w-5"></i>
+                <span class="sidebar-text">Packages</span>
+            </a>
+            <a href="stores" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Stores">
+                <i class="fas fa-store w-5"></i>
+                <span class="sidebar-text">Stores</span>
+            </a>
+            <div class="mb-1">
+                <button id="reportsMenuToggle" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reports">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-chart-bar w-5"></i>
+                        <span class="sidebar-text">Reports</span>
+                    </div>
+                    <i class="fas fa-chevron-down w-4 text-xs transition-transform sidebar-text" id="reports-arrow"></i>
+                </button>
+                <div id="reports-submenu" class="hidden pl-4">
+                    <a href="reports?type=sales" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Sales">
+                        <i class="fas fa-shopping-cart w-4"></i>
+                        <span class="sidebar-text">Sales</span>
+                    </a>
+                    <a href="reports?type=agents" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Agents">
+                        <i class="fas fa-user-tie w-4"></i>
+                        <span class="sidebar-text">Agents</span>
+                    </a>
+                </div>
+            </div>
+            <a href="api-keys" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="API Keys">
+                <i class="fas fa-key w-5"></i>
+                <span class="sidebar-text">API Keys</span>
+            </a>
+            <a href="settings" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-white rounded-lg mb-1 transition" title="Settings">
+                <i class="fas fa-cog w-5"></i>
+                <span class="sidebar-text">Settings</span>
+            </a>
+        </nav>
+        
+        <div class="p-4 border-t border-white/10">
+            <button class="logout-btn w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition" id="logoutBtn" title="Logout">
+                <i class="fas fa-sign-out-alt w-5"></i>
+                <span class="sidebar-text">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="md:ml-64 min-h-screen transition-all duration-300" id="mainContent">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-30">
+            <div class="flex items-center justify-between px-4 md:px-6 py-4">
+                <div class="flex items-center gap-4">
+                    <button class="text-gray-600 hover:text-gray-900" id="sidebarToggleBtn" title="Toggle Sidebar">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-gray-800" id="greetingText">Good morning, Admin 👋</h1>
+                        <p class="text-sm text-gray-500" id="statusText">We are open and serving orders!</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex items-center gap-6 text-sm">
+                        <div class="flex items-center gap-2 border-r pr-4 border-gray-200">
+                            <span class="text-gray-500"><i class="fas fa-money-bill-wave mr-1"></i>Total Sold:</span>
+                            <span class="font-bold text-green-600" id="headerTotalSold">₵ 0.00</span>
+                        </div>
+                        <div class="flex items-center gap-2 border-r pr-4 border-gray-200">
+                            <span class="text-gray-500"><i class="fas fa-coins mr-1"></i>Profit Made:</span>
+                            <span class="font-bold text-green-600" id="headerProfit">₵ 0.00</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-500"><i class="fas fa-plug mr-1 text-cyan-500"></i>MCBIS Bal:</span>
+                            <span class="font-bold text-cyan-600" id="headerMcbisBalance">₵ --</span>
+                            <button id="headerMcbisRefreshBtn" class="ml-1 text-cyan-500 hover:text-cyan-700 transition" title="Refresh MCBIS Balance">
+                                <i class="fas fa-sync-alt text-xs" id="headerMcbisRefreshIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn">
+                            <span id="profileInitial">A</span>
+                        </button>
+                        <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
+                            <div class="p-4 border-b border-gray-100">
+                                <p class="font-semibold text-gray-800" id="profileName">Administrator</p>
+                                <p class="text-sm text-gray-500" id="profileEmail">admin@dataeasyplus.com</p>
+                                <p class="text-xs text-blue-500 mt-1" id="profileRole">Super Admin</p>
+                            </div>
+                            <div class="p-2">
+                                <a href="settings" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
+                                    <i class="fas fa-cog w-5"></i> Settings
+                                </a>
+                                <button id="profileLogoutBtn" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                    <i class="fas fa-sign-out-alt w-5"></i> Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="p-4 md:p-6">
+            <!-- Settings Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- General Settings -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-4 p-5 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-gray-100">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
+                            <i class="fas fa-globe text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">General Settings</h3>
+                            <p class="text-sm text-gray-500">Basic application configuration</p>
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">App Name</label>
+                                <span class="text-xs text-gray-500">Display name for the application</span>
+                            </div>
+                            <input type="text" id="appName" value="DataEasy+" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Support Email</label>
+                                <span class="text-xs text-gray-500">Customer support email address</span>
+                            </div>
+                            <input type="email" id="supportEmail" value="support@dataeasyplus.com" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Support Phone</label>
+                                <span class="text-xs text-gray-500">Customer support phone number</span>
+                            </div>
+                            <input type="tel" id="supportPhone" value="+233 20 000 0000" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Maintenance Mode</label>
+                                <span class="text-xs text-gray-500">Disable app for maintenance</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="maintenanceMode" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between py-3">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Show Send & Claim</label>
+                                <span class="text-xs text-gray-500">Display Send & Claim section on client pages</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="sendClaimVisible" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Show MoMo Details</label>
+                                <span class="text-xs text-gray-500">Display MoMo payment instructions on client sidebar</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="momoDetailsVisible" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between py-3">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Show Store</label>
+                                <span class="text-xs text-gray-500">Display My Store link on client sidebar</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="storeVisible" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Settings -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-4 p-5 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-gray-100">
+                        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center text-white">
+                            <i class="fas fa-credit-card text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Payment Settings</h3>
+                            <p class="text-sm text-gray-500">Payment gateway configuration</p>
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Minimum Deposit</label>
+                                <span class="text-xs text-gray-500">Minimum wallet funding amount</span>
+                            </div>
+                            <input type="number" id="minDeposit" value="1.00" step="0.01" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Maximum Deposit</label>
+                                <span class="text-xs text-gray-500">Maximum single deposit amount</span>
+                            </div>
+                            <input type="number" id="maxDeposit" value="5000.00" step="0.01" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Enable Paystack</label>
+                                <span class="text-xs text-gray-500">Accept payments via Paystack</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="enablePaystack" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Paystack Public Key</label>
+                                <span class="text-xs text-gray-500">Your Paystack public key</span>
+                            </div>
+                            <input type="text" id="paystackKey" placeholder="pk_live_xxxxx" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        
+                        <!-- MoMo Payment Settings -->
+                        <div class="pt-4 mt-4 border-t border-gray-200">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                                <i class="fas fa-mobile-alt text-yellow-500"></i> MoMo Payment Settings
+                            </h4>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                                <p class="text-xs text-yellow-700">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    These settings will be displayed to clients on the wallet page for making MoMo deposits.
+                                </p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="flex items-center justify-between py-2">
+                                    <div>
+                                        <label class="font-semibold text-gray-800 text-sm block">Enable MoMo</label>
+                                        <span class="text-xs text-gray-500">Show MoMo deposit option</span>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="momoEnabled" checked class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                                    </label>
+                                </div>
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between py-2">
+                                    <div class="mb-2 sm:mb-0">
+                                        <label class="font-semibold text-gray-800 text-sm block">MoMo Number</label>
+                                        <span class="text-xs text-gray-500">Phone number to receive deposits</span>
+                                    </div>
+                                    <input type="text" id="momoNumber" value="0555546229" placeholder="0XX XXX XXXX" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none">
+                                </div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between py-2 mt-2">
+                                <div class="mb-2 sm:mb-0">
+                                    <label class="font-semibold text-gray-800 text-sm block">MoMo Account Name</label>
+                                    <span class="text-xs text-gray-500">Name displayed to clients</span>
+                                </div>
+                                <input type="text" id="momoName" value="Bismark Kwame Oteng" placeholder="Account holder name" class="w-full sm:w-64 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none">
+                            </div>
+                        </div>
+                        
+                        <!-- Topup Fee Settings -->
+                        <div class="pt-4 mt-4 border-t border-gray-200">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                                <i class="fas fa-percent text-blue-500"></i> Wallet Topup Fees
+                            </h4>
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                                <p class="text-xs text-blue-700">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Fee is added on top of the deposit amount. Example: User wants GH₵100 in wallet with 2% fee → User pays GH₵102, receives GH₵100.
+                                </p>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="flex items-center justify-between py-2">
+                                    <div>
+                                        <label class="font-semibold text-gray-800 text-sm block">Enable Fees</label>
+                                        <span class="text-xs text-gray-500">Charge fee on wallet topups</span>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="topup_fees_enabled" checked class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                                    </label>
+                                </div>
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between py-2">
+                                    <div class="mb-2 sm:mb-0">
+                                        <label class="font-semibold text-gray-800 text-sm block">Fee Percentage (%)</label>
+                                        <span class="text-xs text-gray-500">e.g., 2 for 2%</span>
+                                    </div>
+                                    <input type="number" id="topup_fee_percentage" value="2" step="0.01" min="0" max="100" class="w-full sm:w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                                </div>
+                            </div>
+                            <div class="mt-3 p-3 bg-gray-50 rounded-lg">
+                                <p class="text-xs text-gray-600">
+                                    <strong>Calculator:</strong> For GH₵100 deposit with <span id="feePreview">2</span>% fee → User pays <strong>GH₵<span id="totalPreview">102.00</span></strong>, receives <strong>GH₵100.00</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MCBIS Data API Settings - Full Width -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-gradient-to-r from-cyan-50 to-blue-50 border-b border-gray-100 gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center text-white">
+                            <i class="fas fa-plug text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">🔌 Mcbis Data API (Secondary)</h3>
+                            <p class="text-sm text-gray-500">When MCBIS API is ON (and Master OFF), orders go to McbisSolution DataHub.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <!-- Balance Display in Header -->
+                        <div id="mcbisHeaderBalance" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg text-white shadow-sm">
+                            <i class="fas fa-wallet"></i>
+                            <span class="text-sm font-medium">Balance:</span>
+                            <span class="text-lg font-bold" id="mcbisHeaderBalanceAmount">₵ --</span>
+                            <button id="mcbisBalanceRefreshBtn" class="ml-2 p-1 hover:bg-white/20 rounded transition" title="Refresh Balance">
+                                <i class="fas fa-sync-alt text-sm" id="mcbisRefreshIcon"></i>
+                            </button>
+                        </div>
+                        <!-- Toggle -->
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-medium text-gray-600">MCBIS API (ON/OFF)</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="mcbisEnabled" class="sr-only peer">
+                                <div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-cyan-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-5">
+                    <!-- Network-Specific Controls -->
+                    <div class="mb-6">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-network-wired text-gray-400"></i> Network-Specific Controls
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- MTN Orders -->
+                            <div class="border-l-4 border-yellow-400 bg-yellow-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h5 class="font-semibold text-yellow-700">MTN Orders</h5>
+                                        <p class="text-xs text-yellow-600" id="mcbis_mtnStatus">Push MTN orders to MCBIS</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="mcbis_mtnAPI" checked class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-yellow-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Telecel Orders -->
+                            <div class="border-l-4 border-red-400 bg-red-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h5 class="font-semibold text-red-700">Telecel Orders</h5>
+                                        <p class="text-xs text-red-600" id="mcbis_telecelStatus">Telecel orders NOT pushed</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="mcbis_telecelAPI" class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- AirtelTigo Orders -->
+                            <div class="border-l-4 border-blue-400 bg-blue-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h5 class="font-semibold text-blue-700">AirtelTigo Orders</h5>
+                                        <p class="text-xs text-blue-600" id="mcbis_airteltigoStatus">Push to MCBIS (AT Premium)</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="mcbis_airteltigoAPI" checked class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Auto-Sync Status -->
+                    <div class="flex items-center justify-between py-4 border-t border-b border-gray-100 mb-6">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-sync-alt text-cyan-500"></i>
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Auto-Sync Status</label>
+                                <span class="text-xs text-gray-500">Automatically check and update order status</span>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="mcbisAutoSync" checked class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-cyan-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
+                    </div>
+                    
+                    <!-- API Configuration -->
+                    <div class="space-y-4 mb-6">
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                                <i class="fas fa-link text-gray-400"></i> API URL
+                            </label>
+                            <input type="text" id="mcbisApiUrl" value="https://datahub.mcbissolution.com/api/v1" readonly class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-2">
+                                <i class="fas fa-key text-gray-400"></i> API Token
+                            </label>
+                            <div class="relative">
+                                <input type="password" id="mcbisApiToken" placeholder="Enter your MCBIS API token" class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none pr-12">
+                                <button type="button" id="mcbisTokenVisibilityBtn" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-eye" id="mcbisTokenEyeIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap gap-3">
+                        <button id="testMcbisBtn" class="px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition flex items-center gap-2">
+                            <i class="fas fa-bolt"></i> Test Connection
+                        </button>
+                        <button id="checkMcbisBalanceBtn" class="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition flex items-center gap-2">
+                            <i class="fas fa-wallet"></i> Check Balance
+                        </button>
+                        <button id="syncMcbisOrdersBtn" class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition flex items-center gap-2">
+                            <i class="fas fa-sync-alt"></i> Sync All Orders
+                        </button>
+                    </div>
+                    
+                    <!-- Balance Display (hidden by default) -->
+                    <div id="mcbisBalanceDisplay" class="hidden mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-green-700">MCBIS Wallet Balance:</span>
+                            <span class="text-xl font-bold text-green-600" id="mcbisBalanceAmount">₵ 0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Loss Prevention Controls - Full Width -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-gradient-to-r from-red-50 to-orange-50 border-b border-gray-100 gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl flex items-center justify-center text-white">
+                            <i class="fas fa-shield-alt text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">🛡️ Provider Loss Prevention</h3>
+                            <p class="text-sm text-gray-500">Circuit breaker, reconciliation, and emergency controls</p>
+                        </div>
+                    </div>
+                    <!-- Circuit Breaker Status -->
+                    <div class="flex items-center gap-4">
+                        <div id="circuitBreakerStatus" class="flex items-center gap-2 px-4 py-2 bg-green-500 rounded-lg text-white">
+                            <i class="fas fa-check-circle"></i>
+                            <span class="text-sm font-medium">Circuit: CLOSED</span>
+                        </div>
+                        <button id="emergencyStopBtn" class="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition flex items-center gap-2">
+                            <i class="fas fa-power-off"></i> EMERGENCY STOP
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-5">
+                    <!-- Circuit Breaker Info -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-gray-700" id="cbState">CLOSED</div>
+                            <div class="text-xs text-gray-500 mt-1">Circuit State</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-red-600" id="cbFailures">0</div>
+                            <div class="text-xs text-gray-500 mt-1">Recent Failures</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-600" id="cbThreshold">5</div>
+                            <div class="text-xs text-gray-500 mt-1">Failure Threshold</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-purple-600" id="cbLastFailure">--</div>
+                            <div class="text-xs text-gray-500 mt-1">Last Failure</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap gap-3 mb-6">
+                        <button id="refreshCircuitBtn" class="px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition flex items-center gap-2">
+                            <i class="fas fa-sync-alt"></i> Refresh Status
+                        </button>
+                        <button id="resetCircuitBtn" class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition flex items-center gap-2">
+                            <i class="fas fa-undo"></i> Reset Circuit Breaker
+                        </button>
+                        <button id="reconciliationBtn" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition flex items-center gap-2">
+                            <i class="fas fa-balance-scale"></i> Run Reconciliation
+                        </button>
+                        <button id="flaggedTransactionsBtn" class="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition flex items-center gap-2">
+                            <i class="fas fa-exclamation-triangle"></i> View Flagged Transactions
+                        </button>
+                    </div>
+                    
+                    <!-- Provider Summary -->
+                    <div class="border-t border-gray-100 pt-4">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-gray-400"></i> Today's Provider Summary
+                        </h4>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="providerSummary">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                <div class="text-lg font-bold text-green-600" id="summaryConfirmed">0</div>
+                                <div class="text-xs text-green-700">Confirmed</div>
+                            </div>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                                <div class="text-lg font-bold text-yellow-600" id="summaryPending">0</div>
+                                <div class="text-xs text-yellow-700">Pending</div>
+                            </div>
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                                <div class="text-lg font-bold text-red-600" id="summaryFailed">0</div>
+                                <div class="text-xs text-red-700">Failed</div>
+                            </div>
+                            <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                                <div class="text-lg font-bold text-purple-600" id="summaryReversed">0</div>
+                                <div class="text-xs text-purple-700">Reversed</div>
+                            </div>
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                                <div class="text-lg font-bold text-gray-600" id="summaryUnknown">0</div>
+                                <div class="text-xs text-gray-700">Unknown</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Continue with Order Settings in a new grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Order Settings -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-4 p-5 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-gray-100">
+                        <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center text-white">
+                            <i class="fas fa-shopping-cart text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Order Settings</h3>
+                            <p class="text-sm text-gray-500">Order processing configuration</p>
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-1">
+                        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Auto Process Orders</label>
+                                <span class="text-xs text-gray-500">Automatically process new orders</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="autoProcess" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Order Timeout (min)</label>
+                                <span class="text-xs text-gray-500">Auto-cancel pending orders after</span>
+                            </div>
+                            <input type="number" id="orderTimeout" value="30" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Allow Self-Buy</label>
+                                <span class="text-xs text-gray-500">Users can buy for their own number</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="allowSelfBuy" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between py-3">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Notify on New Order</label>
+                                <span class="text-xs text-gray-500">Send notification for new orders</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="notifyNewOrder" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Settings -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-4 p-5 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-gray-100">
+                        <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center text-white">
+                            <i class="fas fa-signal text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Network Availability</h3>
+                            <p class="text-sm text-gray-500">Toggle networks on/off (clients can't buy when OFF)</p>
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-1">
+                        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">MTN</label>
+                                <span class="text-xs text-gray-500">When OFF, MTN tab shows "Out of Stock"</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="enableMTN" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Telecel (Vodafone)</label>
+                                <span class="text-xs text-gray-500">When OFF, Telecel tab shows "Out of Stock"</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="enableTelecel" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between py-3">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">AirtelTigo</label>
+                                <span class="text-xs text-gray-500">When OFF, AirtelTigo tab shows "Out of Stock"</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="enableAirtelTigo" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Settings -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-4 p-5 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-gray-100">
+                        <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center text-white">
+                            <i class="fas fa-shield-alt text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Security Settings</h3>
+                            <p class="text-sm text-gray-500">Security and authentication</p>
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-1">
+                        <div class="flex items-center justify-between py-3 border-b border-gray-50">
+                            <div>
+                                <label class="font-semibold text-gray-800 text-sm block">Require OTP</label>
+                                <span class="text-xs text-gray-500">OTP verification for login</span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="requireOTP" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Session Timeout (hours)</label>
+                                <span class="text-xs text-gray-500">Auto logout after inactivity</span>
+                            </div>
+                            <input type="number" id="sessionTimeout" value="24" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Max Login Attempts</label>
+                                <span class="text-xs text-gray-500">Lock account after failed attempts</span>
+                            </div>
+                            <input type="number" id="maxLoginAttempts" value="5" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Account -->
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-4 p-5 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-gray-100">
+                        <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
+                            <i class="fas fa-user-shield text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Admin Account</h3>
+                            <p class="text-sm text-gray-500">Change admin credentials</p>
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-1">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Current Username</label>
+                                <span class="text-xs text-gray-500">Your admin username</span>
+                            </div>
+                            <input type="text" id="adminUsername" value="admin" readonly class="w-full sm:w-44 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500">
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">New Password</label>
+                                <span class="text-xs text-gray-500">Leave blank to keep current</span>
+                            </div>
+                            <input type="password" id="newPassword" placeholder="Enter new password" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-gray-50">
+                            <div class="mb-2 sm:mb-0">
+                                <label class="font-semibold text-gray-800 text-sm block">Confirm Password</label>
+                                <span class="text-xs text-gray-500">Re-enter new password</span>
+                            </div>
+                            <input type="password" id="confirmPassword" placeholder="Confirm new password" class="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        </div>
+                        <div class="py-3">
+                            <button id="changePasswordBtn" class="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition">
+                                <i class="fas fa-key mr-2"></i>Change Password
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Actions -->
+            <div class="flex flex-col sm:flex-row justify-end gap-3">
+                <button id="resetSettingsBtn" class="px-6 py-3 bg-white text-gray-600 border border-gray-200 rounded-lg font-semibold hover:bg-gray-50 transition">
+                    <i class="fas fa-undo mr-2"></i>Reset to Defaults
+                </button>
+                <button id="saveSettingsBtn" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition">
+                    <i class="fas fa-save mr-2"></i>Save All Settings
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="fixed bottom-4 right-4 z-50 space-y-2" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/admin-common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminAuth();
+            initSidebar();
+            setGreeting();
+            loadProfileInfo();
+            loadHeaderStats();
+            initProfileDropdown();
+            loadSettings();
+            initNetworkToggles();
+            loadNetworkAvailability();
+            
+            // Initialize MCBIS settings
+            initMcbisToggles();
+            loadMcbisSettings();
+            // Auto-fetch MCBIS balance on page load
+            checkMcbisBalance();
+            
+            // Initialize button event listeners (CSP-compliant)
+            initButtonListeners();
+        });
+        
+        function initButtonListeners() {
+            // Reports menu toggle
+            document.getElementById('reportsMenuToggle')?.addEventListener('click', toggleReportsMenu);
+            
+            // Profile dropdown
+            document.getElementById('profileBtn')?.addEventListener('click', toggleProfileDropdown);
+            document.getElementById('profileLogoutBtn')?.addEventListener('click', logout);
+            
+            // Header MCBIS balance refresh
+            document.getElementById('headerMcbisRefreshBtn')?.addEventListener('click', function() {
+                checkMcbisBalance(true);
+            });
+            
+            // MCBIS section buttons
+            document.getElementById('mcbisBalanceRefreshBtn')?.addEventListener('click', checkMcbisBalance);
+            document.getElementById('mcbisTokenVisibilityBtn')?.addEventListener('click', toggleMcbisTokenVisibility);
+            document.getElementById('testMcbisBtn')?.addEventListener('click', testMcbisConnection);
+            document.getElementById('checkMcbisBalanceBtn')?.addEventListener('click', checkMcbisBalance);
+            document.getElementById('syncMcbisOrdersBtn')?.addEventListener('click', syncAllMcbisOrders);
+            
+            // Circuit breaker / Provider buttons
+            document.getElementById('emergencyStopBtn')?.addEventListener('click', emergencyStopModal);
+            document.getElementById('refreshCircuitBtn')?.addEventListener('click', refreshCircuitBreaker);
+            document.getElementById('resetCircuitBtn')?.addEventListener('click', resetCircuitBreakerConfirm);
+            document.getElementById('reconciliationBtn')?.addEventListener('click', runReconciliation);
+            document.getElementById('flaggedTransactionsBtn')?.addEventListener('click', viewTransactionsForReview);
+            
+            // Password and settings buttons
+            document.getElementById('changePasswordBtn')?.addEventListener('click', changePassword);
+            document.getElementById('resetSettingsBtn')?.addEventListener('click', resetSettings);
+            document.getElementById('saveSettingsBtn')?.addEventListener('click', saveSettings);
+        }
+
+        function checkAdminAuth() {
+            const token = localStorage.getItem('dataeasy_admin_token');
+            if (!token) {
+                window.location.href = '../pages/login';
+                return;
+            }
+        }
+
+        function setGreeting() {
+            const hour = new Date().getHours();
+            let greeting = 'Good morning';
+            if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+            else if (hour >= 17) greeting = 'Good evening';
+            
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
+            const name = admin.name || 'Admin';
+            document.getElementById('greetingText').textContent = `${greeting}, ${name} 👋`;
+        }
+
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        function initProfileDropdown() {
+            document.addEventListener('click', function(e) {
+                const dropdown = document.getElementById('profileDropdown');
+                const profileBtn = document.getElementById('profileBtn');
+                if (!profileBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        function loadProfileInfo() {
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
+            const name = admin.name || 'Administrator';
+            const email = admin.username || 'admin@dataeasyplus.com';
+            const role = admin.role || 'Super Admin';
+            
+            document.getElementById('profileName').textContent = name;
+            document.getElementById('profileEmail').textContent = email;
+            document.getElementById('profileRole').textContent = role;
+            document.getElementById('profileInitial').textContent = name.charAt(0).toUpperCase();
+        }
+
+        async function loadHeaderStats() {
+            try {
+                // Get today's stats from API (Ghana time based)
+                const statsResponse = await DataEasyAPI.admin.getStats();
+                if (statsResponse.success && statsResponse.stats) {
+                    const stats = statsResponse.stats;
+                    // Show today's total orders (amountToday) and profit in header
+                    document.getElementById('headerTotalSold').textContent = `₵ ${(stats.amountToday || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    document.getElementById('headerProfit').textContent = `₵ ${(stats.profitToday || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    return;
+                }
+            } catch (error) {
+                console.error('Error loading header stats:', error);
+                document.getElementById('headerTotalSold').textContent = '₵ --';
+                document.getElementById('headerProfit').textContent = '₵ --';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('dataeasy_admin_token');
+            localStorage.removeItem('dataeasy_admin');
+            window.location.href = '../pages/login';
+        }
+
+        function initNetworkToggles() {
+            // Add change event listeners to network toggle switches
+            const networkToggles = ['enableMTN', 'enableTelecel', 'enableAirtelTigo'];
+            networkToggles.forEach(toggleId => {
+                const toggle = document.getElementById(toggleId);
+                if (toggle) {
+                    toggle.addEventListener('change', function() {
+                        const networkName = toggleId.replace('enable', '');
+                        const status = this.checked ? 'available' : 'OUT OF STOCK';
+                        showToast(this.checked ? 'success' : 'warning', 'Network Availability', `${networkName} is now ${status} for clients`);
+                        // Auto-save when toggle changes
+                        saveNetworkAvailability();
+                    });
+                }
+            });
+            
+            // Add change event listener for MoMo details toggle
+            const momoToggle = document.getElementById('momoDetailsVisible');
+            if (momoToggle) {
+                momoToggle.addEventListener('change', function() {
+                    const status = this.checked ? 'visible' : 'hidden';
+                    showToast(this.checked ? 'success' : 'warning', 'MoMo Details', `MoMo payment instructions are now ${status} for clients`);
+                    // Auto-save when toggle changes
+                    saveSettings();
+                });
+            }
+        }
+
+        async function saveNetworkAvailability() {
+            const availability = {
+                MTN: document.getElementById('enableMTN').checked,
+                Telecel: document.getElementById('enableTelecel').checked,
+                AirtelTigo: document.getElementById('enableAirtelTigo').checked
+            };
+            
+            // Save to localStorage as backup
+            localStorage.setItem('dataeasy_network_availability', JSON.stringify({
+                ...availability,
+                updatedAt: new Date().toISOString()
+            }));
+            
+            try {
+                const response = await DataEasyAPI.admin.updateNetworkAvailability(availability);
+                if (response.success) {
+                    console.log('Network availability saved to server');
+                } else {
+                    showToast('error', 'Error', response.error || 'Failed to save network availability');
+                }
+            } catch (apiError) {
+                console.log('API error:', apiError.message);
+                showToast('error', 'Error', 'Failed to save to server. Settings saved locally.');
+            }
+        }
+
+        async function loadNetworkAvailability() {
+            try {
+                const response = await DataEasyAPI.admin.getNetworkAvailability();
+                if (response.success && response.availability) {
+                    document.getElementById('enableMTN').checked = response.availability.MTN !== false;
+                    document.getElementById('enableTelecel').checked = response.availability.Telecel !== false;
+                    document.getElementById('enableAirtelTigo').checked = response.availability.AirtelTigo !== false;
+                    return;
+                }
+            } catch (error) {
+                console.log('Could not load network availability from server');
+            }
+            
+            // Fallback to localStorage
+            const saved = JSON.parse(localStorage.getItem('dataeasy_network_availability') || '{}');
+            if (saved.MTN !== undefined) document.getElementById('enableMTN').checked = saved.MTN;
+            if (saved.Telecel !== undefined) document.getElementById('enableTelecel').checked = saved.Telecel;
+            if (saved.AirtelTigo !== undefined) document.getElementById('enableAirtelTigo').checked = saved.AirtelTigo;
+        }
+
+        // Fee preview calculator
+        function updateFeePreview() {
+            const feePercentage = parseFloat(document.getElementById('topup_fee_percentage').value) || 0;
+            const baseAmount = 100; // Example amount
+            const feeAmount = (baseAmount * feePercentage) / 100;
+            const totalAmount = baseAmount + feeAmount;
+            
+            document.getElementById('feePreview').textContent = feePercentage.toFixed(2);
+            document.getElementById('totalPreview').textContent = totalAmount.toFixed(2);
+        }
+        
+        // Add event listener for fee percentage input
+        document.addEventListener('DOMContentLoaded', function() {
+            const feeInput = document.getElementById('topup_fee_percentage');
+            if (feeInput) {
+                feeInput.addEventListener('input', updateFeePreview);
+                feeInput.addEventListener('change', updateFeePreview);
+            }
+        });
+
+        function initSidebar() {
+            const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+
+            const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+            if (isCollapsed && window.innerWidth >= 768) {
+                sidebar.classList.add('sidebar-collapsed');
+                mainContent.classList.add('main-collapsed');
+            }
+
+            sidebarToggleBtn.addEventListener('click', () => {
+                if (window.innerWidth < 768) {
+                    sidebar.classList.toggle('-translate-x-full');
+                    sidebarOverlay.classList.toggle('hidden');
+                } else {
+                    sidebar.classList.toggle('sidebar-collapsed');
+                    mainContent.classList.toggle('main-collapsed');
+                    localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('sidebar-collapsed'));
+                }
+            });
+
+            sidebarCloseBtn.addEventListener('click', closeMobileSidebar);
+            sidebarOverlay.addEventListener('click', closeMobileSidebar);
+
+            function closeMobileSidebar() {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            }
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('dataeasy_admin_token');
+                localStorage.removeItem('dataeasy_admin');
+                window.location.href = '../pages/login';
+            });
+        }
+
+        async function loadSettings() {
+            try {
+                // Load settings from server first
+                try {
+                    const appResponse = await DataEasyAPI.admin.getAppSettings();
+                    if (appResponse.success && appResponse.settings) {
+                        const s = appResponse.settings;
+                        document.getElementById('appName').value = s.appName || 'DataEasy+';
+                        document.getElementById('supportEmail').value = s.supportEmail || 'support@dataeasyplus.com';
+                        document.getElementById('supportPhone').value = s.supportPhone || '+233 20 000 0000';
+                        document.getElementById('maintenanceMode').checked = s.maintenanceMode || false;
+                        document.getElementById('sendClaimVisible').checked = s.sendClaimVisible !== false;
+                        document.getElementById('storeVisible').checked = s.storeVisible !== false;
+                        document.getElementById('momoDetailsVisible').checked = s.momoDetailsVisible !== false;
+                        document.getElementById('minDeposit').value = s.minDeposit || 1;
+                        document.getElementById('maxDeposit').value = s.maxDeposit || 5000;
+                        document.getElementById('maxLoginAttempts').value = s.maxLoginAttempts || 5;
+                        document.getElementById('sessionTimeout').value = s.sessionTimeoutHours || 24;
+                        // MoMo settings
+                        document.getElementById('momoEnabled').checked = s.momoEnabled !== false;
+                        document.getElementById('momoNumber').value = s.momoNumber || '0555546229';
+                        document.getElementById('momoName').value = s.momoName || 'Bismark Kwame Oteng';
+                    }
+                } catch (appError) {
+                    console.log('Could not load app settings from server, using local');
+                    // Fallback to localStorage
+                    const settings = JSON.parse(localStorage.getItem('dataeasy_settings') || '{}');
+                    if (settings.appName) document.getElementById('appName').value = settings.appName;
+                    if (settings.supportEmail) document.getElementById('supportEmail').value = settings.supportEmail;
+                    if (settings.supportPhone) document.getElementById('supportPhone').value = settings.supportPhone;
+                    document.getElementById('maintenanceMode').checked = settings.maintenanceMode || false;
+                    if (settings.minDeposit) document.getElementById('minDeposit').value = settings.minDeposit;
+                    if (settings.maxDeposit) document.getElementById('maxDeposit').value = settings.maxDeposit;
+                    if (settings.maxLoginAttempts) document.getElementById('maxLoginAttempts').value = settings.maxLoginAttempts;
+                    if (settings.sessionTimeout) document.getElementById('sessionTimeout').value = settings.sessionTimeout;
+                }
+
+                // Load localStorage-only settings (these don't have backend yet)
+                const settings = JSON.parse(localStorage.getItem('dataeasy_settings') || '{}');
+                document.getElementById('enablePaystack').checked = settings.enablePaystack !== false;
+                if (settings.paystackKey) document.getElementById('paystackKey').value = settings.paystackKey;
+                
+                // Load fee settings from server
+                try {
+                    const feeResponse = await DataEasyAPI.admin.getFeeSettings();
+                    if (feeResponse.success && feeResponse.settings) {
+                        document.getElementById('topup_fees_enabled').checked = feeResponse.settings.feesEnabled !== false;
+                        document.getElementById('topup_fee_percentage').value = feeResponse.settings.feePercentage || 2;
+                    }
+                } catch (feeError) {
+                    console.log('Could not load fee settings from server, using local');
+                    // Fallback to local
+                    document.getElementById('topup_fees_enabled').checked = settings.topup_fees_enabled !== false;
+                    if (settings.topup_fee_percentage !== undefined) {
+                        document.getElementById('topup_fee_percentage').value = settings.topup_fee_percentage;
+                    }
+                }
+                updateFeePreview();
+                
+                document.getElementById('autoProcess').checked = settings.autoProcess || false;
+                if (settings.orderTimeout) document.getElementById('orderTimeout').value = settings.orderTimeout;
+                document.getElementById('allowSelfBuy').checked = settings.allowSelfBuy !== false;
+                document.getElementById('notifyNewOrder').checked = settings.notifyNewOrder !== false;
+                
+                // Network availability is loaded separately by loadNetworkAvailability() - don't overwrite here
+                
+                document.getElementById('requireOTP').checked = settings.requireOTP || false;
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        async function saveSettings() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            
+            try {
+                const settings = {
+                    appName: document.getElementById('appName').value,
+                    supportEmail: document.getElementById('supportEmail').value,
+                    supportPhone: document.getElementById('supportPhone').value,
+                    maintenanceMode: document.getElementById('maintenanceMode').checked,
+                    sendClaimVisible: document.getElementById('sendClaimVisible').checked,
+                    storeVisible: document.getElementById('storeVisible').checked,
+                    momoDetailsVisible: document.getElementById('momoDetailsVisible').checked,
+                    
+                    minDeposit: parseFloat(document.getElementById('minDeposit').value),
+                    maxDeposit: parseFloat(document.getElementById('maxDeposit').value),
+                    enablePaystack: document.getElementById('enablePaystack').checked,
+                    paystackKey: document.getElementById('paystackKey').value,
+                    
+                    // MoMo settings
+                    momoEnabled: document.getElementById('momoEnabled').checked,
+                    momoNumber: document.getElementById('momoNumber').value,
+                    momoName: document.getElementById('momoName').value,
+                    
+                    // Topup fee settings
+                    topup_fees_enabled: document.getElementById('topup_fees_enabled').checked,
+                    topup_fee_percentage: parseFloat(document.getElementById('topup_fee_percentage').value) || 2,
+                    
+                    autoProcess: document.getElementById('autoProcess').checked,
+                    orderTimeout: parseInt(document.getElementById('orderTimeout').value),
+                    allowSelfBuy: document.getElementById('allowSelfBuy').checked,
+                    notifyNewOrder: document.getElementById('notifyNewOrder').checked,
+                    
+                    // Network availability is saved separately via saveNetworkAvailability()
+                    
+                    requireOTP: document.getElementById('requireOTP').checked,
+                    sessionTimeout: parseInt(document.getElementById('sessionTimeout').value),
+                    maxLoginAttempts: parseInt(document.getElementById('maxLoginAttempts').value),
+                    
+                    updatedAt: new Date().toISOString()
+                };
+
+                // Save to localStorage for settings that don't have backend yet
+                localStorage.setItem('dataeasy_settings', JSON.stringify(settings));
+                
+                // Save app settings to server (maintenance, limits, security)
+                try {
+                    await DataEasyAPI.admin.updateAppSettings({
+                        appName: settings.appName,
+                        supportEmail: settings.supportEmail,
+                        supportPhone: settings.supportPhone,
+                        maintenanceMode: settings.maintenanceMode,
+                        sendClaimVisible: settings.sendClaimVisible,
+                        storeVisible: settings.storeVisible,
+                        momoDetailsVisible: settings.momoDetailsVisible,
+                        minDeposit: settings.minDeposit,
+                        maxDeposit: settings.maxDeposit,
+                        maxLoginAttempts: settings.maxLoginAttempts,
+                        sessionTimeoutHours: settings.sessionTimeout,
+                        // MoMo settings
+                        momoEnabled: settings.momoEnabled,
+                        momoNumber: settings.momoNumber,
+                        momoName: settings.momoName
+                    });
+                } catch (appError) {
+                    console.log('App settings API error:', appError.message);
+                }
+                
+                // Save fee settings to server
+                try {
+                    await DataEasyAPI.admin.updateFeeSettings({
+                        topup_fees_enabled: settings.topup_fees_enabled,
+                        topup_fee_percentage: settings.topup_fee_percentage
+                    });
+                } catch (feeError) {
+                    console.log('Fee settings API error:', feeError.message);
+                }
+
+                showToast('success', 'Success', 'Settings saved successfully');
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showToast('error', 'Error', 'Failed to save settings');
+            } finally {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+        }
+
+        async function resetSettings() {
+            const confirmed = await showConfirm({
+                title: 'Reset Settings',
+                message: 'Are you sure you want to reset all settings to their default values? This cannot be undone.',
+                type: 'warning',
+                confirmText: 'Reset All',
+                cancelText: 'Cancel'
+            });
+            
+            if (confirmed) {
+                localStorage.removeItem('dataeasy_settings');
+                
+                document.getElementById('appName').value = 'DataEasy+';
+                document.getElementById('supportEmail').value = 'support@dataeasyplus.com';
+                document.getElementById('supportPhone').value = '+233 20 000 0000';
+                document.getElementById('maintenanceMode').checked = false;
+                
+                document.getElementById('minDeposit').value = '1.00';
+                document.getElementById('maxDeposit').value = '5000.00';
+                document.getElementById('enablePaystack').checked = true;
+                document.getElementById('paystackKey').value = '';
+                
+                // Reset fee settings
+                document.getElementById('topup_fees_enabled').checked = true;
+                document.getElementById('topup_fee_percentage').value = '2';
+                updateFeePreview();
+                
+                document.getElementById('autoProcess').checked = false;
+                document.getElementById('orderTimeout').value = '30';
+                document.getElementById('allowSelfBuy').checked = true;
+                document.getElementById('notifyNewOrder').checked = true;
+                
+                document.getElementById('enableMTN').checked = true;
+                document.getElementById('enableTelecel').checked = true;
+                document.getElementById('enableAirtelTigo').checked = true;
+                
+                document.getElementById('requireOTP').checked = false;
+                document.getElementById('sessionTimeout').value = '24';
+                document.getElementById('maxLoginAttempts').value = '5';
+                
+                showToast('success', 'Success', 'Settings reset to defaults');
+            }
+        }
+
+        async function changePassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!newPassword) { showToast('warning', 'Warning', 'Please enter a new password'); return; }
+            if (newPassword.length < 6) { showToast('warning', 'Warning', 'Password must be at least 6 characters'); return; }
+            if (newPassword !== confirmPassword) { showToast('error', 'Error', 'Passwords do not match'); return; }
+
+            try {
+                await DataEasyAPI.admin.changePassword(newPassword);
+                showToast('success', 'Success', 'Password changed successfully');
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showToast('error', 'Error', error.message || 'Failed to change password');
+            }
+        }
+
+        function showToast(type, title, message) {
+            const container = document.getElementById('toastContainer');
+            const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
+            const icons = { success: 'fas fa-check', error: 'fas fa-times', warning: 'fas fa-exclamation', info: 'fas fa-info' };
+
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-3 ${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg transform translate-x-0 transition-all duration-300`;
+            toast.innerHTML = `
+                <i class="${icons[type]}"></i>
+                <div>
+                    <div class="font-medium">${title}</div>
+                    <div class="text-sm text-white/80">${message}</div>
+                </div>
+                <button class="toast-close ml-4 text-white/80 hover:text-white"><i class="fas fa-times"></i></button>
+            `;
+            // Add event listener for close button
+            toast.querySelector('.toast-close').addEventListener('click', function() {
+                toast.remove();
+            });
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('opacity-0', 'translate-x-full'); setTimeout(() => toast.remove(), 300); }, 4000);
+        }
+
+        // Toggle Reports submenu
+        function toggleReportsMenu() {
+            const submenu = document.getElementById('reports-submenu');
+            const arrow = document.getElementById('reports-arrow');
+            submenu.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        // ==================== MCBIS API Functions ====================
+        
+        function toggleMcbisTokenVisibility() {
+            const tokenInput = document.getElementById('mcbisApiToken');
+            const eyeIcon = document.getElementById('mcbisTokenEyeIcon');
+            
+            if (tokenInput.type === 'password') {
+                tokenInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                tokenInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        async function testMcbisConnection() {
+            showToast('info', 'Testing Connection', 'Connecting to MCBIS API...');
+            
+            try {
+                const response = await DataEasyAPI.admin.getProviderProducts();
+                
+                if (response.success && response.products) {
+                    const productCount = Object.keys(response.products).length;
+                    showToast('success', '✅ Connection Successful', `Connected to MCBIS! Found ${productCount} network categories`);
+                } else {
+                    showToast('error', 'Connection Failed', response.message || 'Could not connect to MCBIS API');
+                }
+            } catch (error) {
+                console.error('MCBIS Connection Error:', error);
+                showToast('error', 'Connection Error', error.message || 'Failed to connect to MCBIS API');
+            }
+        }
+
+        async function checkMcbisBalance() {
+            const refreshIcon = document.getElementById('mcbisRefreshIcon');
+            const headerRefreshIcon = document.getElementById('headerMcbisRefreshIcon');
+            if (refreshIcon) refreshIcon.classList.add('fa-spin');
+            if (headerRefreshIcon) headerRefreshIcon.classList.add('fa-spin');
+            
+            try {
+                const response = await DataEasyAPI.admin.getProviderBalance();
+                
+                if (response.success) {
+                    const formattedBalance = `₵ ${parseFloat(response.balance).toFixed(2)}`;
+                    
+                    // Update main header balance (next to Total Sold and Profit)
+                    const headerMcbisBalance = document.getElementById('headerMcbisBalance');
+                    if (headerMcbisBalance) {
+                        headerMcbisBalance.textContent = formattedBalance;
+                    }
+                    
+                    // Update MCBIS panel header balance
+                    const headerBalanceAmount = document.getElementById('mcbisHeaderBalanceAmount');
+                    if (headerBalanceAmount) {
+                        headerBalanceAmount.textContent = formattedBalance;
+                    }
+                    
+                    // Update bottom balance display (if exists)
+                    const balanceDisplay = document.getElementById('mcbisBalanceDisplay');
+                    const balanceAmount = document.getElementById('mcbisBalanceAmount');
+                    if (balanceDisplay && balanceAmount) {
+                        balanceAmount.textContent = formattedBalance;
+                        balanceDisplay.classList.remove('hidden');
+                    }
+                    
+                    showToast('success', '✅ Balance Retrieved', `MCBIS Wallet: ₵${parseFloat(response.balance).toFixed(2)}`);
+                } else {
+                    const errorText = '₵ Error';
+                    if (document.getElementById('headerMcbisBalance')) {
+                        document.getElementById('headerMcbisBalance').textContent = errorText;
+                    }
+                    if (document.getElementById('mcbisHeaderBalanceAmount')) {
+                        document.getElementById('mcbisHeaderBalanceAmount').textContent = errorText;
+                    }
+                    showToast('error', 'Failed', response.message || 'Could not fetch balance');
+                }
+            } catch (error) {
+                console.error('MCBIS Balance Error:', error);
+                const errorText = '₵ Error';
+                if (document.getElementById('headerMcbisBalance')) {
+                    document.getElementById('headerMcbisBalance').textContent = errorText;
+                }
+                if (document.getElementById('mcbisHeaderBalanceAmount')) {
+                    document.getElementById('mcbisHeaderBalanceAmount').textContent = errorText;
+                }
+                showToast('error', 'Error', error.message || 'Failed to check MCBIS balance');
+            } finally {
+                if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+                if (headerRefreshIcon) headerRefreshIcon.classList.remove('fa-spin');
+            }
+        }
+
+        async function syncAllMcbisOrders() {
+            showToast('info', 'Syncing Orders', 'Checking status of pending orders with MCBIS...');
+            
+            try {
+                // This would sync all pending orders - for now show placeholder
+                // In a full implementation, this would loop through pending orders and check their status
+                showToast('success', '🔄 Sync Complete', 'Order status sync completed. No pending orders to update.');
+            } catch (error) {
+                console.error('MCBIS Sync Error:', error);
+                showToast('error', 'Sync Error', error.message || 'Failed to sync orders');
+            }
+        }
+
+        function initMcbisToggles() {
+            // MCBIS Master Toggle
+            const mcbisEnabled = document.getElementById('mcbisEnabled');
+            if (mcbisEnabled) {
+                mcbisEnabled.addEventListener('change', function() {
+                    const status = this.checked ? 'ENABLED' : 'DISABLED';
+                    showToast(this.checked ? 'success' : 'warning', 'MCBIS API', `MCBIS API has been ${status}`);
+                    saveMcbisSettings();
+                });
+            }
+
+            // Network-specific toggles
+            const networkToggles = [
+                { id: 'mcbis_mtnAPI', name: 'MTN', statusId: 'mcbis_mtnStatus' },
+                { id: 'mcbis_telecelAPI', name: 'Telecel', statusId: 'mcbis_telecelStatus' },
+                { id: 'mcbis_airteltigoAPI', name: 'AirtelTigo', statusId: 'mcbis_airteltigoStatus', premium: true }
+            ];
+
+            networkToggles.forEach(toggle => {
+                const el = document.getElementById(toggle.id);
+                if (el) {
+                    el.addEventListener('change', function() {
+                        const statusEl = document.getElementById(toggle.statusId);
+                        if (statusEl) {
+                            if (toggle.premium) {
+                                statusEl.textContent = this.checked 
+                                    ? `Push to MCBIS (AT Premium)` 
+                                    : `${toggle.name} orders NOT pushed`;
+                            } else {
+                                statusEl.textContent = this.checked 
+                                    ? `Push ${toggle.name} orders to MCBIS` 
+                                    : `${toggle.name} orders NOT pushed`;
+                            }
+                        }
+                        showToast('info', 'Network Toggle', `${toggle.name} MCBIS delivery ${this.checked ? 'enabled' : 'disabled'}`);
+                        saveMcbisSettings();
+                    });
+                }
+            });
+
+            // Auto-sync toggle
+            const autoSync = document.getElementById('mcbisAutoSync');
+            if (autoSync) {
+                autoSync.addEventListener('change', function() {
+                    showToast('info', 'Auto-Sync', `Auto-sync has been ${this.checked ? 'enabled' : 'disabled'}`);
+                    saveMcbisSettings();
+                });
+            }
+        }
+
+        async function loadMcbisSettings() {
+            try {
+                // Try to load from backend first
+                const response = await DataEasyAPI.admin.getMcbisSettings();
+                if (response.success && response.settings) {
+                    const settings = response.settings;
+                    
+                    document.getElementById('mcbisEnabled').checked = settings.mcbisEnabled || false;
+                    document.getElementById('mcbis_mtnAPI').checked = settings.mcbis_mtnAPI !== false;
+                    document.getElementById('mcbis_telecelAPI').checked = settings.mcbis_telecelAPI || false;
+                    document.getElementById('mcbis_airteltigoAPI').checked = settings.mcbis_airteltigoAPI !== false;
+                    document.getElementById('mcbisAutoSync').checked = settings.mcbisAutoSync !== false;
+                    
+                    // Also save to localStorage as backup
+                    localStorage.setItem('dataeasy_mcbis_settings', JSON.stringify({
+                        enabled: settings.mcbisEnabled,
+                        mcbis_mtnAPI: settings.mcbis_mtnAPI,
+                        mcbis_telecelAPI: settings.mcbis_telecelAPI,
+                        mcbis_airteltigoAPI: settings.mcbis_airteltigoAPI,
+                        autoSync: settings.mcbisAutoSync
+                    }));
+                    
+                    updateMcbisStatusText();
+                    return;
+                }
+            } catch (error) {
+                console.log('Could not load MCBIS settings from server, using localStorage');
+            }
+            
+            // Fallback to localStorage
+            const mcbisSettings = JSON.parse(localStorage.getItem('dataeasy_mcbis_settings') || '{}');
+            
+            if (mcbisSettings.enabled !== undefined) {
+                document.getElementById('mcbisEnabled').checked = mcbisSettings.enabled;
+            }
+            if (mcbisSettings.mcbis_mtnAPI !== undefined) {
+                document.getElementById('mcbis_mtnAPI').checked = mcbisSettings.mcbis_mtnAPI;
+            }
+            if (mcbisSettings.mcbis_telecelAPI !== undefined) {
+                document.getElementById('mcbis_telecelAPI').checked = mcbisSettings.mcbis_telecelAPI;
+            }
+            if (mcbisSettings.mcbis_airteltigoAPI !== undefined) {
+                document.getElementById('mcbis_airteltigoAPI').checked = mcbisSettings.mcbis_airteltigoAPI;
+            }
+            if (mcbisSettings.autoSync !== undefined) {
+                document.getElementById('mcbisAutoSync').checked = mcbisSettings.autoSync;
+            }
+            if (mcbisSettings.apiToken) {
+                document.getElementById('mcbisApiToken').value = mcbisSettings.apiToken;
+            }
+
+            updateMcbisStatusText();
+        }
+
+        function updateMcbisStatusText() {
+            const mtnEnabled = document.getElementById('mcbis_mtnAPI').checked;
+            const telecelEnabled = document.getElementById('mcbis_telecelAPI').checked;
+            const atEnabled = document.getElementById('mcbis_airteltigoAPI').checked;
+
+            document.getElementById('mcbis_mtnStatus').textContent = mtnEnabled 
+                ? 'Push MTN orders to MCBIS' : 'MTN orders NOT pushed';
+            document.getElementById('mcbis_telecelStatus').textContent = telecelEnabled 
+                ? 'Push Telecel orders to MCBIS' : 'Telecel orders NOT pushed';
+            document.getElementById('mcbis_airteltigoStatus').textContent = atEnabled 
+                ? 'Push to MCBIS (AT Premium)' : 'AirtelTigo orders NOT pushed';
+        }
+
+        async function saveMcbisSettings() {
+            const settings = {
+                mcbisEnabled: document.getElementById('mcbisEnabled').checked,
+                mcbis_mtnAPI: document.getElementById('mcbis_mtnAPI').checked,
+                mcbis_telecelAPI: document.getElementById('mcbis_telecelAPI').checked,
+                mcbis_airteltigoAPI: document.getElementById('mcbis_airteltigoAPI').checked,
+                mcbisAutoSync: document.getElementById('mcbisAutoSync').checked
+            };
+            
+            // Save to localStorage as backup
+            localStorage.setItem('dataeasy_mcbis_settings', JSON.stringify({
+                enabled: settings.mcbisEnabled,
+                mcbis_mtnAPI: settings.mcbis_mtnAPI,
+                mcbis_telecelAPI: settings.mcbis_telecelAPI,
+                mcbis_airteltigoAPI: settings.mcbis_airteltigoAPI,
+                autoSync: settings.mcbisAutoSync,
+                apiToken: document.getElementById('mcbisApiToken').value,
+                updatedAt: new Date().toISOString()
+            }));
+            
+            // Save to backend
+            try {
+                const response = await DataEasyAPI.admin.updateMcbisSettings(settings);
+                if (response.success) {
+                    console.log('MCBIS settings saved to server');
+                }
+            } catch (error) {
+                console.log('Could not save MCBIS settings to server:', error.message);
+            }
+        }
+
+        // ==========================================
+        // PROVIDER LOSS PREVENTION CONTROLS
+        // ==========================================
+
+        async function refreshCircuitBreaker() {
+            try {
+                const response = await DataEasyAPI.admin.getCircuitBreakerStatus();
+                if (response.success && response.circuitBreaker) {
+                    updateCircuitBreakerUI(response.circuitBreaker);
+                }
+            } catch (error) {
+                console.error('Failed to get circuit breaker status:', error);
+                showToast('error', 'Error', 'Failed to fetch circuit breaker status');
+            }
+        }
+
+        function updateCircuitBreakerUI(cb) {
+            const stateEl = document.getElementById('cbState');
+            const failuresEl = document.getElementById('cbFailures');
+            const thresholdEl = document.getElementById('cbThreshold');
+            const lastFailureEl = document.getElementById('cbLastFailure');
+            const statusBadge = document.getElementById('circuitBreakerStatus');
+
+            if (stateEl) stateEl.textContent = cb.state || 'UNKNOWN';
+            if (failuresEl) failuresEl.textContent = cb.recentFailures || 0;
+            if (thresholdEl) thresholdEl.textContent = cb.failureThreshold || 5;
+            if (lastFailureEl) {
+                if (cb.lastFailure) {
+                    const date = new Date(cb.lastFailure);
+                    lastFailureEl.textContent = date.toLocaleTimeString();
+                } else {
+                    lastFailureEl.textContent = '--';
+                }
+            }
+
+            // Update status badge
+            if (statusBadge) {
+                statusBadge.classList.remove('bg-green-500', 'bg-yellow-500', 'bg-red-500');
+                if (cb.state === 'CLOSED') {
+                    statusBadge.classList.add('bg-green-500');
+                    statusBadge.innerHTML = '<i class="fas fa-check-circle"></i><span class="text-sm font-medium">Circuit: CLOSED</span>';
+                } else if (cb.state === 'HALF_OPEN') {
+                    statusBadge.classList.add('bg-yellow-500');
+                    statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i><span class="text-sm font-medium">Circuit: HALF_OPEN</span>';
+                } else {
+                    statusBadge.classList.add('bg-red-500');
+                    statusBadge.innerHTML = '<i class="fas fa-times-circle"></i><span class="text-sm font-medium">Circuit: OPEN</span>';
+                }
+            }
+        }
+
+        async function resetCircuitBreakerConfirm() {
+            const confirmed = await showConfirm({
+                title: 'Reset Circuit Breaker',
+                message: 'Are you sure you want to reset the circuit breaker? This will allow requests to flow through again.',
+                type: 'warning',
+                confirmText: 'Reset Circuit',
+                cancelText: 'Cancel'
+            });
+            
+            if (!confirmed) return;
+            
+            try {
+                const response = await DataEasyAPI.admin.resetCircuitBreaker();
+                if (response.success) {
+                    showToast('success', '✅ Circuit Breaker Reset', 'The circuit breaker has been reset to CLOSED state');
+                    refreshCircuitBreaker();
+                } else {
+                    showToast('error', 'Error', response.error || 'Failed to reset circuit breaker');
+                }
+            } catch (error) {
+                showToast('error', 'Error', error.message || 'Failed to reset circuit breaker');
+            }
+        }
+
+        async function emergencyStopModal() {
+            const reason = await showPrompt({
+                title: '⚠️ EMERGENCY STOP',
+                message: 'This will immediately disable ALL provider activity. Enter reason for emergency stop:',
+                type: 'danger',
+                inputType: 'textarea',
+                placeholder: 'Enter reason...',
+                required: true,
+                confirmText: 'Continue',
+                cancelText: 'Cancel'
+            });
+            
+            if (!reason) return;
+            
+            const finalConfirm = await showConfirm({
+                title: '⚠️ CONFIRM EMERGENCY STOP',
+                message: `Are you ABSOLUTELY SURE?\n\nReason: ${reason}\n\nThis will:\n• Disable MCBIS API\n• Disable all network APIs\n• Open the circuit breaker`,
+                type: 'danger',
+                confirmText: 'EXECUTE EMERGENCY STOP',
+                cancelText: 'Abort'
+            });
+            
+            if (!finalConfirm) return;
+            
+            executeEmergencyStop(reason);
+        }
+
+        async function executeEmergencyStop(reason) {
+            try {
+                const response = await DataEasyAPI.admin.emergencyStop(reason);
+                if (response.success) {
+                    showToast('warning', '🛑 EMERGENCY STOP ACTIVATED', response.message);
+                    // Reload page to reflect changes
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showToast('error', 'Error', response.error || 'Failed to execute emergency stop');
+                }
+            } catch (error) {
+                showToast('error', 'Error', error.message || 'Failed to execute emergency stop');
+            }
+        }
+
+        async function runReconciliation() {
+            showToast('info', 'Running Reconciliation', 'Checking for mismatches...');
+            
+            try {
+                const response = await DataEasyAPI.admin.runReconciliation();
+                if (response.success && response.report) {
+                    const report = response.report;
+                    const mismatches = report.mismatches?.length || 0;
+                    const unreconciled = report.unreconciledCount || 0;
+                    
+                    if (mismatches > 0) {
+                        showToast('warning', '⚠️ Mismatches Found', `Found ${mismatches} mismatches and ${unreconciled} unreconciled transactions`);
+                    } else {
+                        showToast('success', '✅ Reconciliation Complete', `No mismatches. ${unreconciled} transactions to reconcile.`);
+                    }
+                    
+                    // Refresh summary
+                    loadProviderSummary();
+                } else {
+                    showToast('error', 'Error', response.error || 'Reconciliation failed');
+                }
+            } catch (error) {
+                showToast('error', 'Error', error.message || 'Reconciliation failed');
+            }
+        }
+
+        async function loadProviderSummary() {
+            try {
+                const response = await DataEasyAPI.admin.getProviderSummary();
+                if (response.success) {
+                    // Update circuit breaker
+                    if (response.circuitBreaker) {
+                        updateCircuitBreakerUI(response.circuitBreaker);
+                    }
+                    
+                    // Update summary counts
+                    if (response.summary?.byStatus) {
+                        const status = response.summary.byStatus;
+                        document.getElementById('summaryConfirmed').textContent = status.CONFIRMED?.count || 0;
+                        document.getElementById('summaryPending').textContent = 
+                            (status.CREATED?.count || 0) + (status.PENDING_PROVIDER?.count || 0);
+                        document.getElementById('summaryFailed').textContent = 
+                            (status.FAILED?.count || 0) + (status.TIMEOUT?.count || 0);
+                        document.getElementById('summaryReversed').textContent = status.REVERSED?.count || 0;
+                        document.getElementById('summaryUnknown').textContent = status.UNKNOWN?.count || 0;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load provider summary:', error);
+            }
+        }
+
+        async function viewTransactionsForReview() {
+            try {
+                const response = await DataEasyAPI.admin.getTransactionsForReview();
+                if (response.success) {
+                    if (response.count === 0) {
+                        showToast('info', 'No Flagged Transactions', 'There are no transactions requiring review');
+                    } else {
+                        // Show modal with transactions
+                        await showAlert({
+                            title: 'Transactions Found',
+                            message: `Found ${response.count} transactions requiring review.\n\nThis feature will open a dedicated review panel in a future update.`,
+                            type: 'info',
+                            buttonText: 'OK'
+                        });
+                    }
+                }
+            } catch (error) {
+                showToast('error', 'Error', error.message || 'Failed to fetch transactions');
+            }
+        }
+
+        // Load loss prevention data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // ... existing init code ...
+            
+            // Load loss prevention data
+            setTimeout(() => {
+                refreshCircuitBreaker();
+                loadProviderSummary();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - DataEasy+</title>
+    <link rel="stylesheet" href="../assets/css/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="../assets/js/config.js"></script>
+    <style>
+        .sidebar-link.active { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+        .loading-overlay { backdrop-filter: blur(4px); }
+        /* Collapsed sidebar styles */
+        .sidebar-collapsed { width: 80px !important; }
+        .sidebar-collapsed .sidebar-text { display: none; }
+        .sidebar-collapsed .sidebar-link { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .sidebar-link i { width: auto; font-size: 1.25rem; }
+        .sidebar-collapsed .menu-label { display: none; }
+        .sidebar-collapsed .logo-text { display: none; }
+        .sidebar-collapsed .logout-btn { justify-content: center; padding-left: 0; padding-right: 0; }
+        .sidebar-collapsed .logout-btn span { display: none; }
+        .main-collapsed { margin-left: 80px !important; }
+        /* Network button styles */
+        .network-btn { border: 2px solid; }
+        .network-btn.mtn { border-color: #f59e0b; color: #f59e0b; }
+        .network-btn.telecel { border-color: #ef4444; color: #ef4444; }
+        .network-btn.airteltigo { border-color: #3b82f6; color: #3b82f6; }
+        .network-btn.active { background-color: currentColor; }
+        .network-btn.active span { color: white; }
+        /* Mobile card styles */
+        .order-card { transition: all 0.2s ease; }
+        .order-card:active { transform: scale(0.98); }
+        .order-card-checkbox { position: absolute; top: 12px; left: 12px; }
+        @media (min-width: 1024px) {
+            .mobile-orders { display: none; }
+            .desktop-orders { display: block; }
+        }
+        @media (max-width: 1023px) {
+            .mobile-orders { display: block; }
+            .desktop-orders { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center" id="loadingOverlay">
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-600">Loading admin panel...</p>
+    </div>
+
+    <!-- Sidebar Overlay (Mobile) -->
+    <div class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" id="sidebarOverlay"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="fixed top-0 left-0 w-64 h-screen bg-sidebar z-50 flex flex-col transform -translate-x-full md:translate-x-0 transition-all duration-300" id="sidebar">
+        <button class="absolute top-4 right-4 text-white/70 hover:text-white md:hidden" id="sidebarCloseBtn">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+        
+        <div class="flex items-center gap-3 p-5 border-b border-white/10">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">BT</div>
+            <span class="text-white font-bold text-lg logo-text sidebar-text">DataEasy+</span>
+        </div>
+        
+        <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
+        <nav class="flex-1 px-3 overflow-y-auto">
+            <a href="index" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-white rounded-lg mb-1 transition" title="Dashboard">
+                <i class="fas fa-th-large w-5"></i>
+                <span class="sidebar-text">Dashboard</span>
+            </a>
+            <a href="users" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Users">
+                <i class="fas fa-users w-5"></i>
+                <span class="sidebar-text">Users</span>
+            </a>
+            <a href="orders" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Orders">
+                <i class="fas fa-shopping-cart w-5"></i>
+                <span class="sidebar-text">Orders</span>
+            </a>
+            <a href="wallet" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Wallet">
+                <i class="fas fa-wallet w-5"></i>
+                <span class="sidebar-text">Wallet</span>
+            </a>
+            <a href="momo-deposits" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="MoMo Deposits">
+                <i class="fas fa-mobile-alt w-5"></i>
+                <span class="sidebar-text">MoMo Deposits</span>
+            </a>
+            <a href="packages" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Packages">
+                <i class="fas fa-cube w-5"></i>
+                <span class="sidebar-text">Packages</span>
+            </a>
+            <!-- Store module disabled - not finished
+            <a href="stores" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Stores">
+                <i class="fas fa-store w-5"></i>
+                <span class="sidebar-text">Stores</span>
+            </a>
+            -->
+            <div class="mb-1">
+                <button id="reportsMenuBtn" class="w-full flex items-center justify-between gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition" title="Reports">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-chart-bar w-5"></i>
+                        <span class="sidebar-text">Reports</span>
+                    </div>
+                    <i class="fas fa-chevron-down w-4 text-xs transition-transform sidebar-text" id="reports-arrow"></i>
+                </button>
+                <div id="reports-submenu" class="hidden pl-4">
+                    <a href="reports?type=sales" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Sales">
+                        <i class="fas fa-shopping-cart w-4"></i>
+                        <span class="sidebar-text">Sales</span>
+                    </a>
+                    <a href="reports?type=agents" class="sidebar-link flex items-center gap-3 px-4 py-2 pl-8 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition text-sm" title="Agents">
+                        <i class="fas fa-user-tie w-4"></i>
+                        <span class="sidebar-text">Agents</span>
+                    </a>
+                </div>
+            </div>
+            <a href="api-keys" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="API Keys">
+                <i class="fas fa-key w-5"></i>
+                <span class="sidebar-text">API Keys</span>
+            </a>
+            <a href="settings" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition" title="Settings">
+                <i class="fas fa-cog w-5"></i>
+                <span class="sidebar-text">Settings</span>
+            </a>
+        </nav>
+        
+        <div class="p-4 border-t border-white/10">
+            <button class="logout-btn w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition" id="logoutBtn" title="Logout">
+                <i class="fas fa-sign-out-alt w-5"></i>
+                <span class="sidebar-text">Logout</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="md:ml-64 min-h-screen transition-all duration-300" id="mainContent">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-30">
+            <div class="flex items-center justify-between px-4 md:px-6 py-4">
+                <div class="flex items-center gap-4">
+                    <button class="text-gray-600 hover:text-gray-900" id="sidebarToggleBtn" title="Toggle Sidebar">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-gray-800" id="greetingText">Good morning, Admin 👋</h1>
+                        <p class="text-sm text-gray-500" id="statusText">We are open and serving orders!</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex items-center gap-6 text-sm">
+                        <div class="flex items-center gap-2 border-r pr-4 border-gray-200">
+                            <span class="text-gray-500"><i class="fas fa-money-bill-wave mr-1"></i>Total Sold:</span>
+                            <span class="font-bold text-green-600" id="headerTotalSold">₵ 0.00</span>
+                        </div>
+                        <div class="flex items-center gap-2 border-r pr-4 border-gray-200">
+                            <span class="text-gray-500"><i class="fas fa-coins mr-1"></i>Profit Made:</span>
+                            <span class="font-bold text-green-600" id="headerProfit">₵ 0.00</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-500"><i class="fas fa-plug mr-1 text-cyan-500"></i>MCBIS Bal:</span>
+                            <span class="font-bold text-cyan-600" id="headerMcbisBalance">₵ --</span>
+                            <button id="mcbisRefreshBtn" class="ml-1 text-cyan-500 hover:text-cyan-700 transition" title="Refresh MCBIS Balance">
+                                <i class="fas fa-sync-alt text-xs" id="headerMcbisRefreshIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <button class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold cursor-pointer" id="profileBtn">
+                            <span id="profileInitial">A</span>
+                        </button>
+                        <div class="hidden absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50" id="profileDropdown">
+                            <div class="p-4 border-b border-gray-100">
+                                <p class="font-semibold text-gray-800" id="profileName">Administrator</p>
+                                <p class="text-sm text-gray-500" id="profileEmail">admin@dataeasyplus.com</p>
+                                <p class="text-xs text-blue-500 mt-1" id="profileRole">Super Admin</p>
+                            </div>
+                            <div class="p-2">
+                                <a href="settings" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition">
+                                    <i class="fas fa-cog w-5"></i> Settings
+                                </a>
+                                <button id="dropdownLogoutBtn" class="w-full flex items-center gap-3 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                    <i class="fas fa-sign-out-alt w-5"></i> Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="p-4 md:p-6">
+            <!-- Dashboard Title with Today's Date -->
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+                        <i class="fas fa-th-large"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Dashboard</h2>
+                        <p class="text-sm text-gray-500" id="todayDateDisplay">Today's Recording</p>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg shadow-sm">
+                    <p class="text-xs opacity-80">Ghana Time (GMT)</p>
+                    <p class="font-bold text-lg" id="ghanaDateDisplay">--</p>
+                </div>
+            </div>
+
+            <!-- Today's Summary Banner -->
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 mb-6 text-white shadow-lg">
+                <div class="flex items-center gap-2 mb-3">
+                    <i class="fas fa-calendar-day"></i>
+                    <span class="font-semibold">Today's Summary</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <p class="text-white/70 text-xs">Total Orders</p>
+                        <p class="text-2xl font-bold" id="todaySummaryOrders">0</p>
+                    </div>
+                    <div>
+                        <p class="text-white/70 text-xs">Completed</p>
+                        <p class="text-2xl font-bold" id="todaySummaryCompleted">0</p>
+                    </div>
+                    <div>
+                        <p class="text-white/70 text-xs">Today's Revenue</p>
+                        <p class="text-2xl font-bold" id="todaySummaryRevenue">₵0.00</p>
+                    </div>
+                    <div>
+                        <p class="text-white/70 text-xs">Today's Profit</p>
+                        <p class="text-2xl font-bold" id="todaySummaryProfit">₵0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Stats Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-5 shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Wallet Balances</p>
+                        <p class="text-2xl font-bold text-gray-800" id="totalWalletBalance">GH₵ 0.00</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-wallet text-green-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Orders Today</p>
+                        <p class="text-2xl font-bold text-gray-800" id="ordersToday">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-shopping-cart text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Amount Today</p>
+                        <p class="text-2xl font-bold text-gray-800" id="amountToday">GH₵ 0.00</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-coins text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow-sm flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-500 text-sm mb-1">Bundle Today</p>
+                        <p class="text-2xl font-bold text-gray-800" id="bundleToday">0 GB</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-database text-red-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Status Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+                <div class="bg-yellow-50 rounded-xl p-4 border border-yellow-100">
+                    <p class="text-yellow-700 font-semibold text-sm mb-2">Pending Orders</p>
+                    <p class="text-3xl font-bold text-gray-800 mb-3" id="pendingCount">0</p>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Amount:</span>
+                            <span class="font-medium" id="pendingAmount">GH₵ 0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Capacity:</span>
+                            <span class="font-medium" id="pendingCapacity">0 GB</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-green-50 rounded-xl p-4 border border-green-100">
+                    <p class="text-green-700 font-semibold text-sm mb-2">Processing Orders</p>
+                    <p class="text-3xl font-bold text-gray-800 mb-3" id="processingCount">0</p>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Amount:</span>
+                            <span class="font-medium" id="processingAmount">GH₵ 0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Capacity:</span>
+                            <span class="font-medium" id="processingCapacity">0 GB</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+                    <p class="text-emerald-700 font-semibold text-sm mb-2">Completed Orders</p>
+                    <p class="text-3xl font-bold text-gray-800 mb-3" id="completedCount">0</p>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Amount:</span>
+                            <span class="font-medium" id="completedAmount">GH₵ 0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Capacity:</span>
+                            <span class="font-medium" id="completedCapacity">0 GB</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <p class="text-gray-700 font-semibold text-sm mb-2">Canceled Orders</p>
+                    <p class="text-3xl font-bold text-gray-800 mb-3" id="cancelledCount">0</p>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Amount:</span>
+                            <span class="font-medium" id="cancelledAmount">GH₵ 0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Capacity:</span>
+                            <span class="font-medium" id="cancelledCapacity">0 GB</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-red-50 rounded-xl p-4 border border-red-100 col-span-2 sm:col-span-1">
+                    <p class="text-red-600 font-semibold text-sm mb-2">All Orders</p>
+                    <p class="text-3xl font-bold text-red-600 mb-3" id="allOrdersCount">0</p>
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Amount:</span>
+                            <span class="font-medium text-red-600" id="allOrdersAmount">GH₵ 0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Capacity:</span>
+                            <span class="font-medium text-red-600" id="allOrdersCapacity">0 GB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Options -->
+            <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <h3 class="font-semibold text-gray-800">Filter Options</h3>
+                    <i class="fas fa-filter text-gray-400"></i>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Filter by Date:</label>
+                        <input type="date" id="dateFilter" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Filter by Order No.:</label>
+                        <input type="text" id="orderNoFilter" placeholder="Eg. ####" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Filter by Agent Code:</label>
+                        <input type="text" id="agentCodeFilter" placeholder="Eg. ####" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Filter by Phone:</label>
+                        <input type="text" id="phoneFilter" placeholder="Eg. 233247689098" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Filter By Network:</label>
+                        <select id="networkFilter" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                            <option value="">-- Select Network --</option>
+                            <option value="MTN">MTN</option>
+                            <option value="Telecel">Telecel</option>
+                            <option value="AirtelTigo">AirtelTigo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Filter By Status:</label>
+                        <select id="statusFilter" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                            <option value="">-- Select Status --</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Filter By Payment:</label>
+                        <select id="paymentFilter" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                            <option value="">-- Select Status --</option>
+                            <option value="completed">Completed</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Network Buttons and Actions -->
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex flex-wrap gap-2">
+                        <button class="network-btn mtn flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:opacity-80" data-network="MTN" title="Click to copy pending MTN orders">
+                            <i class="fas fa-copy"></i>
+                            <span>MTN</span>
+                            <span class="text-xs" id="mtnPending">0 Pending</span>
+                        </button>
+                        <button class="network-btn telecel flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:opacity-80" data-network="Telecel" title="Click to copy pending Telecel orders">
+                            <i class="fas fa-copy"></i>
+                            <span>TELECEL</span>
+                            <span class="text-xs" id="telecelPending">0 Pending</span>
+                        </button>
+                        <button class="network-btn airteltigo flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition hover:opacity-80" data-network="AirtelTigo" title="Click to copy pending AirtelTigo orders">
+                            <i class="fas fa-copy"></i>
+                            <span>AIRTELTIGO</span>
+                            <span class="text-xs" id="airteltigoPending">0 Pending</span>
+                        </button>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition" id="syncMcbisBtn">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Sync MCBIS</span>
+                        </button>
+                        <button class="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition" id="completeProcessingBtn">
+                            <i class="fas fa-check"></i>
+                            <span>Complete Processing</span>
+                        </button>
+                        <button class="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition" id="cancelRefundBtn">
+                            <i class="fas fa-undo"></i>
+                            <span>Cancel & Refund</span>
+                        </button>
+                        <button class="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-medium transition" id="addToCompleteBtn">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Add To Complete</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Section -->
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                <!-- Mobile Header with Select All -->
+                <div class="lg:hidden flex items-center justify-between px-4 py-3 bg-sidebar text-white">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" id="selectAllOrdersMobile" class="rounded">
+                        <span class="text-sm font-medium">Select All</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm" id="selectedCountMobile">0 selected</span>
+                        <button id="mobileCompleteBtn" class="hidden px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition">
+                            <i class="fas fa-check mr-1"></i>Complete
+                        </button>
+                        <button id="mobileCancelBtn" class="hidden px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-medium transition">
+                            <i class="fas fa-undo mr-1"></i>Cancel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Desktop Table View -->
+                <div class="desktop-orders overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-sidebar text-white">
+                            <tr>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">
+                                    <input type="checkbox" id="selectAllOrders" class="rounded">
+                                </th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Order Date</th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Agent</th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Order #</th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Recipient</th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Network</th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Data (GB)</th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Total (GHS)</th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Payment</th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Order Status</th>
+                                <th class="text-left text-xs font-semibold uppercase px-4 py-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody" class="divide-y divide-gray-100">
+                            <tr>
+                                <td colspan="11" class="px-4 py-8 text-center text-gray-400">
+                                    <i class="fas fa-inbox text-3xl mb-2 block"></i>
+                                    <p>Loading orders...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Card View -->
+                <div class="mobile-orders" id="mobileOrdersContainer">
+                    <div class="p-4 space-y-3" id="mobileOrderCards">
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fas fa-inbox text-3xl mb-2 block"></i>
+                            <p>Loading orders...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <p class="text-sm text-gray-500" id="paginationInfo">Showing 0 orders</p>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-gray-500">Per page:</label>
+                            <select id="perPageSelect" class="px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                                <option value="10">10</option>
+                                <option value="20" selected>20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-1" id="paginationButtons">
+                        <!-- Pagination buttons will be added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add To Complete Modal -->
+    <div class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4" id="addToCompleteModal">
+        <div class="bg-white rounded-xl w-full max-w-lg">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h3 class="font-semibold text-gray-800"><i class="fas fa-clipboard-check text-purple-500 mr-2"></i>Add To Complete</h3>
+                <button class="modal-close-btn text-gray-400 hover:text-gray-600 text-xl" data-modal="addToCompleteModal">&times;</button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-500 mb-3">Paste phone numbers with data size (one per line).<br>Format: <code class="bg-gray-100 px-1 rounded">0555546229 2</code> &nbsp; (phone &amp; GB)</p>
+                <textarea id="matchCompleteInput" class="w-full h-48 border border-gray-300 rounded-lg p-3 text-sm font-mono focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-y" placeholder="0555546229 2&#10;0247879363 10&#10;0201234567 5"></textarea>
+                <div id="matchCompleteResult" class="mt-3 text-sm hidden"></div>
+            </div>
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+                <button class="modal-close-btn px-4 py-2 text-gray-600 hover:text-gray-800 transition" data-modal="addToCompleteModal">Cancel</button>
+                <button id="matchCompleteSubmitBtn" class="px-5 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition">
+                    <i class="fas fa-check mr-1"></i>Complete Orders
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="fixed bottom-4 right-4 z-50 space-y-2" id="toastContainer"></div>
+
+    <!-- View Order Modal -->
+    <div class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4" id="viewOrderModal">
+        <div class="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-auto">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h3 class="font-semibold text-gray-800"><i class="fas fa-receipt text-blue-500 mr-2"></i>Order Details</h3>
+                <button class="modal-close-btn text-gray-400 hover:text-gray-600 text-xl" data-modal="viewOrderModal">&times;</button>
+            </div>
+            <div class="p-6" id="orderDetailContent"></div>
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+                <button class="modal-close-btn px-4 py-2 text-gray-600 hover:text-gray-800 transition" data-modal="viewOrderModal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/admin-common.js"></script>
+    <script src="../assets/js/security.js"></script>
+    <script>
+        let allOrders = [];
+        let filteredOrders = [];
+        let packageCostMap = {}; // Map packageId to costPrice for profit calculation
+        let currentPage = 1;
+        let ordersPerPage = 20;
+        let selectedOrders = new Set();
+
+        // XSS Protection - escape HTML in user data
+        function esc(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminAuth();
+            initSidebar();
+            initButtonListeners();
+            setGreeting();
+            loadProfileInfo();
+            loadDashboardData();
+            initFilters();
+            initBulkActions();
+            initBulkActionButtons();
+            initProfileDropdown();
+            // Load MCBIS balance
+            if (typeof loadMcbisBalance === 'function') {
+                loadMcbisBalance();
+            }
+        });
+
+        function initButtonListeners() {
+            // Reports menu toggle
+            const reportsMenuBtn = document.getElementById('reportsMenuBtn');
+            if (reportsMenuBtn) reportsMenuBtn.addEventListener('click', toggleReportsMenu);
+
+            // MCBIS refresh button
+            const mcbisRefreshBtn = document.getElementById('mcbisRefreshBtn');
+            if (mcbisRefreshBtn) mcbisRefreshBtn.addEventListener('click', () => checkMcbisBalance(true));
+
+            // Profile dropdown toggle
+            const profileBtn = document.getElementById('profileBtn');
+            if (profileBtn) profileBtn.addEventListener('click', toggleProfileDropdown);
+
+            // Dropdown logout button
+            const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
+            if (dropdownLogoutBtn) dropdownLogoutBtn.addEventListener('click', logout);
+
+            // Sync MCBIS button
+            const syncMcbisBtn = document.getElementById('syncMcbisBtn');
+            if (syncMcbisBtn) syncMcbisBtn.addEventListener('click', syncWithMcbis);
+
+            // Modal close buttons with data-modal attribute
+            document.querySelectorAll('.modal-close-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const modalId = this.getAttribute('data-modal');
+                    if (modalId) closeModal(modalId);
+                });
+            });
+
+            // Event delegation for dynamically generated table action buttons and pagination
+            document.addEventListener('click', function(e) {
+                // Complete item button
+                const completeBtn = e.target.closest('.complete-item-btn');
+                if (completeBtn) {
+                    completeOrderItem(completeBtn.dataset.orderId, parseInt(completeBtn.dataset.itemIndex));
+                    return;
+                }
+
+                // Cancel item button
+                const cancelBtn = e.target.closest('.cancel-item-btn');
+                if (cancelBtn) {
+                    cancelAndRefundItem(cancelBtn.dataset.orderId, parseInt(cancelBtn.dataset.itemIndex));
+                    return;
+                }
+
+                // Pagination buttons
+                const paginationBtn = e.target.closest('.pagination-btn');
+                if (paginationBtn && !paginationBtn.disabled) {
+                    const page = parseInt(paginationBtn.dataset.page);
+                    if (page) goToPage(page);
+                    return;
+                }
+            });
+        }
+
+        function checkAdminAuth() {
+            const token = localStorage.getItem('dataeasy_admin_token');
+            if (!token) {
+                window.location.href = '../pages/login';
+                return;
+            }
+        }
+
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        function initProfileDropdown() {
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                const dropdown = document.getElementById('profileDropdown');
+                const profileBtn = document.getElementById('profileBtn');
+                if (!profileBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        function loadProfileInfo() {
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
+            const name = admin.name || 'Administrator';
+            const email = admin.username || 'admin@dataeasyplus.com';
+            const role = admin.role || 'Super Admin';
+            
+            document.getElementById('profileName').textContent = name;
+            document.getElementById('profileEmail').textContent = email;
+            document.getElementById('profileRole').textContent = role;
+            document.getElementById('profileInitial').textContent = name.charAt(0).toUpperCase();
+        }
+
+        function logout() {
+            localStorage.removeItem('dataeasy_admin_token');
+            localStorage.removeItem('dataeasy_admin');
+            window.location.href = '../pages/login';
+        }
+
+        function initSidebar() {
+            const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+            const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+
+            const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+            if (isCollapsed && window.innerWidth >= 768) {
+                sidebar.classList.add('sidebar-collapsed');
+                mainContent.classList.add('main-collapsed');
+            }
+
+            sidebarToggleBtn.addEventListener('click', () => {
+                if (window.innerWidth < 768) {
+                    sidebar.classList.toggle('-translate-x-full');
+                    sidebarOverlay.classList.toggle('hidden');
+                } else {
+                    sidebar.classList.toggle('sidebar-collapsed');
+                    mainContent.classList.toggle('main-collapsed');
+                    localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('sidebar-collapsed'));
+                }
+            });
+
+            sidebarCloseBtn.addEventListener('click', closeMobileSidebar);
+            sidebarOverlay.addEventListener('click', closeMobileSidebar);
+
+            function closeMobileSidebar() {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            }
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('dataeasy_admin_token');
+                localStorage.removeItem('dataeasy_admin');
+                window.location.href = '../pages/login';
+            });
+        }
+
+        function setGreeting() {
+            const hour = new Date().getHours();
+            let greeting = 'Good morning';
+            if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+            else if (hour >= 17) greeting = 'Good evening';
+            
+            const admin = JSON.parse(localStorage.getItem('dataeasy_admin') || '{}');
+            const name = admin.name || 'Admin';
+            document.getElementById('greetingText').textContent = `${greeting}, ${name} 👋`;
+        }
+
+        // Sync all pending orders with MCBIS
+        async function syncWithMcbis() {
+            const syncBtn = document.getElementById('syncMcbisBtn');
+            const originalContent = syncBtn.innerHTML;
+            
+            try {
+                syncBtn.disabled = true;
+                syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+                
+                const token = localStorage.getItem('dataeasy_admin_token');
+                const apiBase = window.API_BASE_URL || 'http://localhost:3000/api';
+                const response = await fetch(`${apiBase}/admin/provider/sync-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({}) // Sync all pending orders
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('success', 'Sync Complete', data.message);
+                    // Reload dashboard to show updated statuses
+                    await loadDashboardData();
+                } else {
+                    showToast('error', 'Sync Failed', data.error || 'Failed to sync with MCBIS');
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                showToast('error', 'Error', 'Failed to sync with MCBIS');
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = originalContent;
+            }
+        }
+
+        async function loadDashboardData() {
+            try {
+                await Promise.all([
+                    loadPackages(), // Load packages first for cost price lookup
+                    loadStats(),
+                    loadOrders()
+                ]);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showToast('error', 'Error', 'Failed to load dashboard data');
+            } finally {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+        }
+
+        async function loadPackages() {
+            try {
+                const response = await DataEasyAPI.admin.getPackages();
+                if (response.success && response.packages) {
+                    const grouped = response.packages;
+                    // Build cost price lookup map by packageId
+                    Object.keys(grouped).forEach(network => {
+                        const networkPackages = grouped[network] || [];
+                        networkPackages.forEach(pkg => {
+                            if (pkg.costPrice !== null && pkg.costPrice !== undefined) {
+                                packageCostMap[pkg.id] = parseFloat(pkg.costPrice);
+                            }
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading packages:', error);
+            }
+        }
+
+        // Helper: Get Ghana date string (GMT+0)
+        function getGhanaDateString() {
+            const now = new Date();
+            // Ghana is GMT+0, use UTC
+            return now.toISOString().split('T')[0];
+        }
+
+        // Helper: Format date for display (e.g., "5th Feb 2026")
+        function formatDateDisplay(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00Z');
+            const day = date.getUTCDate();
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[date.getUTCMonth()];
+            const year = date.getUTCFullYear();
+            
+            const suffix = (d) => {
+                if (d > 3 && d < 21) return 'th';
+                switch (d % 10) {
+                    case 1: return 'st';
+                    case 2: return 'nd';
+                    case 3: return 'rd';
+                    default: return 'th';
+                }
+            };
+            
+            return `${day}${suffix(day)} ${month} ${year}`;
+        }
+
+        async function loadStats() {
+            try {
+                const response = await DataEasyAPI.admin.getStats();
+                if (response.success && response.stats) {
+                    const stats = response.stats;
+                    
+                    // Display Ghana date
+                    const ghanaDate = stats.ghanaDate || getGhanaDateString();
+                    document.getElementById('ghanaDateDisplay').textContent = formatDateDisplay(ghanaDate);
+                    document.getElementById('todayDateDisplay').textContent = `Recording for ${formatDateDisplay(ghanaDate)}`;
+                    
+                    // Today's Summary Banner
+                    document.getElementById('todaySummaryOrders').textContent = stats.itemsToday || 0;
+                    document.getElementById('todaySummaryCompleted').textContent = stats.completedItemsToday || 0;
+                    document.getElementById('todaySummaryRevenue').textContent = `₵${(stats.completedAmountToday || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    document.getElementById('todaySummaryProfit').textContent = `₵${(stats.profitToday || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    
+                    // Total wallet balance from API
+                    document.getElementById('totalWalletBalance').textContent = `GH₵ ${(stats.totalWalletBalance || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    
+                    // Today's stats from API (calculated server-side)
+                    document.getElementById('ordersToday').textContent = stats.itemsToday || 0;
+                    document.getElementById('amountToday').textContent = `GH₵ ${(stats.amountToday || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    document.getElementById('bundleToday').textContent = `${Math.round(stats.bundleToday || 0)} GB`;
+                    
+                    // Update header with today's stats (amountToday = all orders placed today)
+                    document.getElementById('headerTotalSold').textContent = `₵ ${(stats.amountToday || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    document.getElementById('headerProfit').textContent = `₵ ${(stats.profitToday || 0).toFixed(2)}`;
+                    
+                    // Set date filter to Ghana date
+                    document.getElementById('dateFilter').value = ghanaDate;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const response = await DataEasyAPI.admin.getOrders({ limit: 1000 });
+                allOrders = response.orders || response || [];
+                
+                // Sort by date (newest first)
+                allOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                // Filter first (defaults to today based on Ghana time), then calculate stats on filtered orders
+                filterOrders();
+
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                document.getElementById('ordersTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="11" class="px-4 py-8 text-center text-gray-400">
+                            <i class="fas fa-exclamation-triangle text-3xl mb-2 block text-red-400"></i>
+                            <p>Failed to load orders</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function calculateStats() {
+            const today = new Date().toDateString();
+            
+            let stats = {
+                itemsToday: 0,
+                amountToday: 0,
+                bundleToday: 0,
+                totalSold: 0,
+                profit: 0,
+                pending: { count: 0, amount: 0, capacity: 0 },
+                processing: { count: 0, amount: 0, capacity: 0 },
+                completed: { count: 0, amount: 0, capacity: 0 },
+                cancelled: { count: 0, amount: 0, capacity: 0 },
+                all: { count: 0, amount: 0, capacity: 0 },
+                mtnPending: 0,
+                telecelPending: 0,
+                airteltigoPending: 0
+            };
+
+            // Use filteredOrders for card stats (reflects current filter, defaults to today)
+            filteredOrders.forEach(order => {
+                const items = order.items || [];
+                const network = order.network || '';
+                
+                // Count each item individually
+                items.forEach(item => {
+                    const itemPrice = parseFloat(item.price) || 0;
+                    let itemCapacity = 0;
+                    const match = (item.packageName || item.data || '').match(/(\d+)\s*(GB|MB)/i);
+                    if (match) {
+                        itemCapacity = match[2].toUpperCase() === 'GB' ? parseFloat(match[1]) : parseFloat(match[1]) / 1024;
+                    }
+                    
+                    // Get item-level status or fall back to order status
+                    const itemStatus = (item.deliveryStatus || order.deliveryStatus || order.status || 'Pending').toLowerCase();
+
+                    stats.all.count++;
+                    stats.all.amount += itemPrice;
+                    stats.all.capacity += itemCapacity;
+
+                    switch (itemStatus) {
+                        case 'pending':
+                            stats.pending.count++;
+                            stats.pending.amount += itemPrice;
+                            stats.pending.capacity += itemCapacity;
+                            // Only count truly pending items for network buttons
+                            if (network === 'MTN') stats.mtnPending++;
+                            else if (network === 'Telecel') stats.telecelPending++;
+                            else if (network === 'AirtelTigo') stats.airteltigoPending++;
+                            break;
+                        case 'processing':
+                            stats.processing.count++;
+                            stats.processing.amount += itemPrice;
+                            stats.processing.capacity += itemCapacity;
+                            // Processing items are NOT counted as pending for network buttons
+                            break;
+                        case 'delivered':
+                        case 'completed':
+                            stats.completed.count++;
+                            stats.completed.amount += itemPrice;
+                            stats.completed.capacity += itemCapacity;
+                            stats.totalSold += itemPrice;
+                            
+                            // Calculate profit: selling price - cost price
+                            // Use stored costPrice if available, else lookup from packageCostMap
+                            const packageId = item.packageId;
+                            let itemCost = 0;
+                            if (item.costPrice && parseFloat(item.costPrice) > 0) {
+                                itemCost = parseFloat(item.costPrice);
+                            } else if (packageId && packageCostMap[packageId]) {
+                                itemCost = packageCostMap[packageId];
+                            }
+                            stats.profit += (itemPrice - itemCost);
+                            break;
+                        case 'cancelled':
+                        case 'failed':
+                            stats.cancelled.count++;
+                            stats.cancelled.amount += itemPrice;
+                            stats.cancelled.capacity += itemCapacity;
+                            break;
+                    }
+                });
+            });
+
+            // Update UI (today's stats are now handled by loadStats from API)
+            document.getElementById('headerTotalSold').textContent = `₵ ${stats.totalSold.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('headerProfit').textContent = `₵ ${stats.profit.toFixed(2)}`;
+
+            // Order status cards
+            document.getElementById('pendingCount').textContent = stats.pending.count;
+            document.getElementById('pendingAmount').textContent = `GH₵ ${stats.pending.amount.toFixed(2)}`;
+            document.getElementById('pendingCapacity').textContent = `${Math.round(stats.pending.capacity)} GB`;
+
+            document.getElementById('processingCount').textContent = stats.processing.count;
+            document.getElementById('processingAmount').textContent = `GH₵ ${stats.processing.amount.toFixed(2)}`;
+            document.getElementById('processingCapacity').textContent = `${Math.round(stats.processing.capacity)} GB`;
+
+            document.getElementById('completedCount').textContent = stats.completed.count;
+            document.getElementById('completedAmount').textContent = `GH₵ ${stats.completed.amount.toFixed(2)}`;
+            document.getElementById('completedCapacity').textContent = `${Math.round(stats.completed.capacity)} GB`;
+
+            document.getElementById('cancelledCount').textContent = stats.cancelled.count;
+            document.getElementById('cancelledAmount').textContent = `GH₵ ${stats.cancelled.amount.toFixed(2)}`;
+            document.getElementById('cancelledCapacity').textContent = `${Math.round(stats.cancelled.capacity)} GB`;
+
+            document.getElementById('allOrdersCount').textContent = stats.all.count;
+            document.getElementById('allOrdersAmount').textContent = `GH₵ ${stats.all.amount.toFixed(2)}`;
+            document.getElementById('allOrdersCapacity').textContent = `${Math.round(stats.all.capacity)} GB`;
+
+            // Network pending counts
+            document.getElementById('mtnPending').textContent = `${stats.mtnPending} Pending`;
+            document.getElementById('telecelPending').textContent = `${stats.telecelPending} Pending`;
+            document.getElementById('airteltigoPending').textContent = `${stats.airteltigoPending} Pending`;
+        }
+
+        function initFilters() {
+            const debounce = (func, wait) => {
+                let timeout;
+                return (...args) => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), wait);
+                };
+            };
+
+            // Set today's date as default using Ghana time (GMT+0)
+            // Note: loadStats will update this with the server's Ghana date
+            const today = getGhanaDateString();
+            document.getElementById('dateFilter').value = today;
+
+            document.getElementById('dateFilter').addEventListener('change', filterOrders);
+            document.getElementById('orderNoFilter').addEventListener('input', debounce(filterOrders, 300));
+            document.getElementById('agentCodeFilter').addEventListener('input', debounce(filterOrders, 300));
+            document.getElementById('phoneFilter').addEventListener('input', debounce(filterOrders, 300));
+            document.getElementById('networkFilter').addEventListener('change', filterOrders);
+            document.getElementById('statusFilter').addEventListener('change', filterOrders);
+            document.getElementById('paymentFilter').addEventListener('change', filterOrders);
+
+            // Network buttons - copy pending orders for that network
+            document.querySelectorAll('.network-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const network = btn.dataset.network;
+                    copyPendingOrdersForNetwork(network);
+                });
+            });
+
+            // Per page selector
+            document.getElementById('perPageSelect').addEventListener('change', (e) => {
+                ordersPerPage = parseInt(e.target.value);
+                currentPage = 1;
+                renderOrdersTable();
+            });
+        }
+
+        async function copyPendingOrdersForNetwork(network) {
+            // Get pending items for this network from filtered orders (today by default)
+            let pendingItems = [];
+            let itemsToUpdate = []; // Track items to update status
+            
+            filteredOrders.forEach(order => {
+                if (order.network !== network) return;
+                
+                const items = order.items || [];
+                items.forEach((item, itemIndex) => {
+                    const itemStatus = (item.deliveryStatus || order.deliveryStatus || 'Pending').toLowerCase();
+                    if (itemStatus === 'pending') {
+                        const phone = item.phoneNumber || item.phone || '';
+                        const dataMatch = (item.packageName || item.data || '').match(/(\d+)\s*(GB|MB)/i);
+                        let dataSize = '';
+                        if (dataMatch) {
+                            dataSize = dataMatch[2].toUpperCase() === 'GB' ? dataMatch[1] : (parseFloat(dataMatch[1]) / 1024).toFixed(1);
+                        }
+                        if (phone && dataSize) {
+                            // Use tab separator for Excel column format
+                            pendingItems.push(`${phone}\t${dataSize}`);
+                            itemsToUpdate.push({ orderId: order.id, itemIndex: itemIndex });
+                        }
+                    }
+                });
+            });
+
+            if (pendingItems.length === 0) {
+                showToast('info', 'No Pending', `No pending orders for ${network}`);
+                return;
+            }
+
+            const text = pendingItems.join('\n');
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('success', 'Copied!', `${pendingItems.length} pending ${network} orders copied to clipboard`);
+                
+                // Update all copied items to Processing status in one request
+                showToast('info', 'Updating...', 'Changing status to Processing...');
+                
+                try {
+                    const result = await DataEasyAPI.admin.bulkUpdateItemStatus(itemsToUpdate, 'Processing');
+                    if (result.updated > 0) {
+                        showToast('success', 'Updated', `${result.updated} items changed to Processing`);
+                        await loadOrders();
+                    }
+                    if (result.failed > 0) {
+                        showToast('warning', 'Partial', `${result.failed} items failed to update`);
+                    }
+                } catch (err) {
+                    console.error('Bulk update failed:', err);
+                    showToast('error', 'Error', 'Failed to update item statuses');
+                }
+            } catch (err) {
+                showToast('error', 'Error', 'Failed to copy to clipboard');
+                console.error('Copy failed:', err);
+            }
+        }
+
+        function filterOrders() {
+            const dateFilter = document.getElementById('dateFilter').value;
+            const orderNoFilter = document.getElementById('orderNoFilter').value.toLowerCase();
+            const agentCodeFilter = document.getElementById('agentCodeFilter').value.toLowerCase();
+            const phoneFilter = document.getElementById('phoneFilter').value;
+            const networkFilter = document.getElementById('networkFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const paymentFilter = document.getElementById('paymentFilter').value;
+
+            filteredOrders = allOrders.filter(order => {
+                const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+                const orderId = (order.orderId || order.id || '').toString().toLowerCase();
+                const agentCode = (order.user?.agentCode || '').toLowerCase();
+                const phone = (order.items?.[0]?.phone || order.items?.[0]?.phoneNumber || order.recipientNumber || '').replace(/\D/g, '');
+                const network = order.network || '';
+                const status = (order.deliveryStatus || order.status || 'Pending').toLowerCase();
+                // Map 'delivered' to 'completed' for filter matching
+                const normalizedStatus = status === 'delivered' ? 'completed' : status;
+                const paymentStatus = (order.paymentStatus || 'Completed').toLowerCase();
+
+                if (dateFilter && orderDate !== dateFilter) return false;
+                if (orderNoFilter && !orderId.includes(orderNoFilter)) return false;
+                if (agentCodeFilter && !agentCode.includes(agentCodeFilter)) return false;
+                if (phoneFilter && !phone.includes(phoneFilter.replace(/\D/g, ''))) return false;
+                if (networkFilter && network !== networkFilter) return false;
+                if (statusFilter && normalizedStatus !== statusFilter) return false;
+                if (paymentFilter && paymentStatus !== paymentFilter) return false;
+
+                return true;
+            });
+
+            currentPage = 1;
+            calculateStats(); // Calculate stats based on filtered orders
+            renderOrdersTable();
+        }
+
+        function renderOrdersTable() {
+            const tbody = document.getElementById('ordersTableBody');
+            const mobileCards = document.getElementById('mobileOrderCards');
+            
+            // Expand orders into individual items - each item becomes a row (same logic as orders)
+            let expandedItems = [];
+            filteredOrders.forEach(order => {
+                const items = order.items || [];
+                if (items.length === 0) {
+                    // Order with no items - show as single row
+                    expandedItems.push({
+                        ...order,
+                        itemData: null,
+                        itemIndex: 0
+                    });
+                } else {
+                    // Each item becomes its own row
+                    items.forEach((item, index) => {
+                        expandedItems.push({
+                            ...order,
+                            itemData: item,
+                            itemIndex: index
+                        });
+                    });
+                }
+            });
+            
+            const start = (currentPage - 1) * ordersPerPage;
+            const end = start + ordersPerPage;
+            const pageItems = expandedItems.slice(start, end);
+
+            if (expandedItems.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="px-4 py-8 text-center text-gray-400">
+                            <i class="fas fa-inbox text-3xl mb-2 block"></i>
+                            <p>No orders found</p>
+                        </td>
+                    </tr>
+                `;
+                mobileCards.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fas fa-inbox text-3xl mb-2 block"></i>
+                        <p>No orders found</p>
+                    </div>
+                `;
+                document.getElementById('paginationInfo').textContent = 'Showing 0 orders';
+                document.getElementById('paginationButtons').innerHTML = '';
+                return;
+            }
+
+            // Status color classes - Completed: green, Processing: light yellow, Cancelled/Failed: red
+            function getStatusClasses(status) {
+                const s = (status || 'pending').toLowerCase();
+                if (s === 'completed' || s === 'delivered') {
+                    return 'bg-green-100 text-green-800 border border-green-300';
+                } else if (s === 'processing') {
+                    return 'bg-yellow-50 text-yellow-700 border border-yellow-300';
+                } else if (s === 'pending') {
+                    return 'bg-gray-100 text-gray-700 border border-gray-300';
+                } else { // cancelled, failed
+                    return 'bg-red-100 text-red-800 border border-red-300';
+                }
+            }
+
+            function getPaymentStatusClasses(status) {
+                const s = (status || 'pending').toLowerCase();
+                if (s === 'completed') {
+                    return 'bg-green-100 text-green-800 border border-green-300';
+                } else if (s === 'pending') {
+                    return 'bg-yellow-50 text-yellow-700 border border-yellow-300';
+                } else { // failed, refunded
+                    return 'bg-red-100 text-red-800 border border-red-300';
+                }
+            }
+
+            function getStatusDot(status) {
+                const s = (status || 'pending').toLowerCase();
+                if (s === 'completed' || s === 'delivered') return 'bg-green-500';
+                if (s === 'processing') return 'bg-yellow-400';
+                if (s === 'pending') return 'bg-gray-400';
+                return 'bg-red-500';
+            }
+
+            const statusBorderColors = {
+                'pending': 'border-l-yellow-500',
+                'processing': 'border-l-blue-500',
+                'completed': 'border-l-green-500',
+                'delivered': 'border-l-green-500',
+                'cancelled': 'border-l-red-500',
+                'failed': 'border-l-red-500'
+            };
+
+            // Desktop Table View - each item is a separate row
+            tbody.innerHTML = pageItems.map(orderItem => {
+                const item = orderItem.itemData || {};
+                const itemStatus = (item.deliveryStatus || orderItem.deliveryStatus || orderItem.status || 'pending').toLowerCase();
+                const paymentStatus = (orderItem.paymentStatus || 'completed').toLowerCase();
+                const orderDate = new Date(orderItem.createdAt);
+                const dateStr = orderDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                const timeStr = orderDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                
+                const agentName = orderItem.user?.fullName || orderItem.user?.name || 'N/A';
+                const agentCode = orderItem.user?.agentCode || `BT-${Math.floor(1000 + Math.random() * 9000)}`;
+                const recipient = item.phoneNumber || item.phone || orderItem.recipientNumber || 'N/A';
+                const dataStr = item.packageName || item.data || '1 GB';
+                const itemPrice = item.price || orderItem.total || 0;
+
+                const networkDisplay = orderItem.network === 'AirtelTigo' ? 'AT NON-EXPIRY BUNDLES' : 
+                    orderItem.network === 'MTN' ? 'MTN NON-EXPIRY BUNDLES' : 
+                    orderItem.network === 'Telecel' ? 'TELECEL BUNDLES' : orderItem.network || 'N/A';
+
+                return `
+                    <tr class="hover:bg-gray-50 border-b border-gray-100">
+                        <td class="px-4 py-3">
+                            <input type="checkbox" class="order-checkbox rounded" data-order-id="${esc(orderItem.id)}" data-item-index="${esc(orderItem.itemIndex)}" ${selectedOrders.has(orderItem.id) ? 'checked' : ''}>
+                        </td>
+                        <td class="px-4 py-3 text-blue-600 text-sm">${esc(dateStr)} at ${esc(timeStr)}</td>
+                        <td class="px-4 py-3 text-blue-600 text-sm font-medium">${esc(agentName)} - ${esc(agentCode)}</td>
+                        <td class="px-4 py-3 text-gray-800 font-medium">${esc(orderItem.orderId || orderItem.id)}</td>
+                        <td class="px-4 py-3 text-gray-600 font-medium">${esc(recipient)}</td>
+                        <td class="px-4 py-3 text-blue-600 text-sm">${esc(networkDisplay)}</td>
+                        <td class="px-4 py-3 text-gray-800">${esc(dataStr)}</td>
+                        <td class="px-4 py-3 text-gray-800 font-medium">${esc(parseFloat(itemPrice).toFixed(2))}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusClasses(paymentStatus)}">${esc(paymentStatus)}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(itemStatus)}">${esc(itemStatus)}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-1">
+                                ${itemStatus !== 'delivered' && itemStatus !== 'completed' && itemStatus !== 'failed' && itemStatus !== 'cancelled' ? `
+                                <button class="complete-item-btn w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Complete">
+                                    <i class="fas fa-check text-xs"></i>
+                                </button>
+                                <button class="cancel-item-btn w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Cancel & Refund">
+                                    <i class="fas fa-undo text-xs"></i>
+                                </button>
+                                ` : ''}
+                                <span class="w-3 h-3 rounded-full ${getStatusDot(itemStatus)}"></span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Mobile Card View - each item is a separate card
+            mobileCards.innerHTML = pageItems.map(orderItem => {
+                const item = orderItem.itemData || {};
+                const itemStatus = (item.deliveryStatus || orderItem.deliveryStatus || orderItem.status || 'pending').toLowerCase();
+                const paymentStatus = (orderItem.paymentStatus || 'completed').toLowerCase();
+                const orderDate = new Date(orderItem.createdAt);
+                const dateStr = orderDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                const timeStr = orderDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                
+                const agentName = orderItem.user?.fullName || orderItem.user?.name || 'N/A';
+                const recipient = item.phoneNumber || item.phone || orderItem.recipientNumber || 'N/A';
+                const dataStr = item.packageName || item.data || '1 GB';
+                const itemPrice = item.price || orderItem.total || 0;
+
+                const networkShort = orderItem.network === 'AirtelTigo' ? 'AT' : 
+                    orderItem.network === 'MTN' ? 'MTN' : 
+                    orderItem.network === 'Telecel' ? 'Telecel' : orderItem.network || 'N/A';
+
+                return `
+                    <div class="order-card relative bg-white border ${statusBorderColors[itemStatus] || 'border-l-gray-300'} border-l-4 rounded-lg p-4 shadow-sm">
+                        <input type="checkbox" class="order-checkbox-mobile rounded absolute top-3 right-3" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" ${selectedOrders.has(orderItem.id) ? 'checked' : ''}>
+                        
+                        <div class="flex items-start justify-between mb-3 pr-8">
+                            <div>
+                                <p class="font-bold text-gray-800">#${orderItem.orderId || orderItem.id}</p>
+                                <p class="text-xs text-blue-600">${dateStr} at ${timeStr}</p>
+                            </div>
+                            <div class="flex gap-1">
+                                <span class="px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusClasses(paymentStatus)}">${paymentStatus}</span>
+                                <span class="px-2 py-0.5 rounded-full text-xs font-medium ${getStatusClasses(itemStatus)}">${itemStatus}</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
+                            <div>
+                                <p class="text-gray-400 text-xs">Agent</p>
+                                <p class="text-gray-800 font-medium truncate">${agentName}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-xs">Recipient</p>
+                                <p class="text-gray-800">${recipient}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-xs">Network</p>
+                                <p class="text-blue-600 font-medium">${networkShort}</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-400 text-xs">Package</p>
+                                <p class="text-gray-800 font-medium">${dataStr}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                            <div>
+                                <p class="text-gray-400 text-xs">Amount</p>
+                                <p class="text-lg font-bold text-gray-800">GH₵ ${parseFloat(itemPrice).toFixed(2)}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${itemStatus !== 'delivered' && itemStatus !== 'completed' && itemStatus !== 'failed' && itemStatus !== 'cancelled' ? `
+                                <button class="complete-item-btn w-10 h-10 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition shadow-sm" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Complete">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="cancel-item-btn w-10 h-10 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition shadow-sm" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Cancel & Refund">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                                ` : ''}
+                                <span class="w-4 h-4 rounded-full ${getStatusDot(itemStatus)}"></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update pagination info
+            document.getElementById('paginationInfo').textContent = `Showing ${start + 1} - ${Math.min(end, expandedItems.length)} of ${expandedItems.length} items`;
+
+            // Render pagination buttons
+            const totalPages = Math.ceil(expandedItems.length / ordersPerPage);
+            let paginationHTML = '';
+            
+            if (totalPages > 1) {
+                // Previous button
+                paginationHTML += `<button class="pagination-btn px-3 py-1 rounded ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} text-sm transition" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>`;
+                
+                // Page numbers (show max 5 pages)
+                let startPage = Math.max(1, currentPage - 2);
+                let endPage = Math.min(totalPages, startPage + 4);
+                if (endPage - startPage < 4) {
+                    startPage = Math.max(1, endPage - 4);
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHTML += `
+                        <button class="pagination-btn px-3 py-1 rounded ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} text-sm transition" data-page="${i}">${i}</button>
+                    `;
+                }
+                
+                // Next button
+                paginationHTML += `<button class="pagination-btn px-3 py-1 rounded ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} text-sm transition" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>`;
+            }
+            
+            document.getElementById('paginationButtons').innerHTML = paginationHTML;
+
+            // Add checkbox event listeners for desktop
+            document.querySelectorAll('.order-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const orderId = e.target.dataset.orderId;
+                    if (e.target.checked) {
+                        selectedOrders.add(orderId);
+                    } else {
+                        selectedOrders.delete(orderId);
+                    }
+                    updateSelectedCount();
+                    syncCheckboxes(orderId, e.target.checked);
+                });
+            });
+
+            // Add checkbox event listeners for mobile
+            document.querySelectorAll('.order-checkbox-mobile').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const orderId = e.target.dataset.orderId;
+                    if (e.target.checked) {
+                        selectedOrders.add(orderId);
+                    } else {
+                        selectedOrders.delete(orderId);
+                    }
+                    updateSelectedCount();
+                    syncCheckboxes(orderId, e.target.checked);
+                });
+            });
+
+            updateSelectedCount();
+        }
+
+        function syncCheckboxes(orderId, checked) {
+            document.querySelectorAll(`[data-order-id="${orderId}"]`).forEach(cb => {
+                cb.checked = checked;
+            });
+        }
+
+        function updateSelectedCount() {
+            const count = selectedOrders.size;
+            const mobileCountEl = document.getElementById('selectedCountMobile');
+            const mobileCompleteBtn = document.getElementById('mobileCompleteBtn');
+            const mobileCancelBtn = document.getElementById('mobileCancelBtn');
+            
+            if (mobileCountEl) {
+                mobileCountEl.textContent = `${count} selected`;
+            }
+            
+            // Show/hide mobile bulk action buttons
+            if (mobileCompleteBtn && mobileCancelBtn) {
+                if (count > 0) {
+                    mobileCompleteBtn.classList.remove('hidden');
+                    mobileCancelBtn.classList.remove('hidden');
+                } else {
+                    mobileCompleteBtn.classList.add('hidden');
+                    mobileCancelBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            renderOrdersTable();
+        }
+
+        function initBulkActions() {
+            // Desktop select all
+            document.getElementById('selectAllOrders').addEventListener('change', (e) => {
+                handleSelectAll(e.target.checked);
+            });
+
+            // Mobile select all
+            const mobileSelectAll = document.getElementById('selectAllOrdersMobile');
+            if (mobileSelectAll) {
+                mobileSelectAll.addEventListener('change', (e) => {
+                    handleSelectAll(e.target.checked);
+                });
+            }
+        }
+
+        function handleSelectAll(checked) {
+            // Update all checkboxes (desktop and mobile)
+            const allCheckboxes = document.querySelectorAll('.order-checkbox, .order-checkbox-mobile');
+            allCheckboxes.forEach(cb => {
+                cb.checked = checked;
+                const orderId = cb.dataset.orderId;
+                if (checked) {
+                    selectedOrders.add(orderId);
+                } else {
+                    selectedOrders.delete(orderId);
+                }
+            });
+            
+            // Sync both select all checkboxes
+            const desktopSelectAll = document.getElementById('selectAllOrders');
+            const mobileSelectAll = document.getElementById('selectAllOrdersMobile');
+            if (desktopSelectAll) desktopSelectAll.checked = checked;
+            if (mobileSelectAll) mobileSelectAll.checked = checked;
+            
+            updateSelectedCount();
+        }
+
+        function initBulkActionButtons() {
+            // Desktop Complete Processing Button
+            document.getElementById('completeProcessingBtn').addEventListener('click', handleCompleteOrders);
+            
+            // Desktop Cancel & Refund Button
+            document.getElementById('cancelRefundBtn').addEventListener('click', handleCancelOrders);
+            
+            // Mobile Complete Button
+            const mobileCompleteBtn = document.getElementById('mobileCompleteBtn');
+            if (mobileCompleteBtn) {
+                mobileCompleteBtn.addEventListener('click', handleCompleteOrders);
+            }
+            
+            // Mobile Cancel Button
+            const mobileCancelBtn = document.getElementById('mobileCancelBtn');
+            if (mobileCancelBtn) {
+                mobileCancelBtn.addEventListener('click', handleCancelOrders);
+            }
+
+            // Add To Complete Button
+            document.getElementById('addToCompleteBtn').addEventListener('click', () => {
+                document.getElementById('matchCompleteInput').value = '';
+                document.getElementById('matchCompleteResult').classList.add('hidden');
+                const modal = document.getElementById('addToCompleteModal');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+
+            // Complete Orders submit
+            document.getElementById('matchCompleteSubmitBtn').addEventListener('click', handleMatchComplete);
+        }
+
+        async function handleMatchComplete() {
+            const raw = document.getElementById('matchCompleteInput').value.trim();
+            if (!raw) {
+                showToast('warning', 'Empty', 'Please paste phone numbers with data sizes');
+                return;
+            }
+
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+            const entries = [];
+            for (const line of lines) {
+                // Support tab or space separator: "0555546229 2" or "0555546229\t2"
+                const parts = line.split(/[\t\s]+/);
+                if (parts.length >= 2) {
+                    entries.push({ phone: parts[0], data: parts[1] });
+                }
+            }
+
+            if (entries.length === 0) {
+                showToast('warning', 'Invalid', 'No valid entries found. Use format: phone data');
+                return;
+            }
+
+            const confirmed = await showConfirm({
+                title: 'Complete Orders',
+                message: `Match and complete ${entries.length} order item(s)?`,
+                type: 'success',
+                confirmText: 'Complete',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+
+            const btn = document.getElementById('matchCompleteSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
+
+            try {
+                const result = await DataEasyAPI.admin.matchAndCompleteOrders(entries);
+
+                // Close the modal
+                const modal = document.getElementById('addToCompleteModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+
+                showToast('success', 'Done', `${result.matched} orders completed`);
+
+                if (result.matched > 0) {
+                    await loadOrders();
+                }
+            } catch (error) {
+                console.error('Match complete error:', error);
+                showToast('error', 'Error', 'Failed to complete orders');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check mr-1"></i>Complete Orders';
+            }
+        }
+
+        async function handleCompleteOrders() {
+            // Get all processing items from filtered orders (current filter/date)
+            let itemsToComplete = [];
+            
+            filteredOrders.forEach(order => {
+                const items = order.items || [];
+                items.forEach((item, itemIndex) => {
+                    const itemStatus = (item.deliveryStatus || order.deliveryStatus || 'Pending').toLowerCase();
+                    if (itemStatus === 'processing') {
+                        itemsToComplete.push({ orderId: order.id, itemIndex: itemIndex });
+                    }
+                });
+            });
+
+            if (itemsToComplete.length === 0) {
+                showToast('warning', 'No Items', 'No processing orders found for the selected date');
+                return;
+            }
+
+            const confirmed = await showConfirm({
+                title: 'Complete Orders',
+                message: `Complete ${itemsToComplete.length} processing order item(s)?`,
+                type: 'success',
+                confirmText: 'Complete All',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+
+            showToast('info', 'Processing...', `Completing ${itemsToComplete.length} items...`);
+            
+            let successCount = 0;
+            for (const item of itemsToComplete) {
+                try {
+                    await DataEasyAPI.admin.updateItemStatus(item.orderId, item.itemIndex, 'Delivered');
+                    successCount++;
+                } catch (error) {
+                    console.error(`Error completing item:`, error);
+                }
+            }
+            
+            selectedOrders.clear();
+            showToast('success', 'Success', `${successCount} items completed successfully`);
+            loadOrders();
+        }
+
+        async function handleCancelOrders() {
+            // Get all processing items from filtered orders for cancel & refund
+            let itemsToCancel = [];
+            
+            filteredOrders.forEach(order => {
+                const items = order.items || [];
+                items.forEach((item, itemIndex) => {
+                    const itemStatus = (item.deliveryStatus || order.deliveryStatus || 'Pending').toLowerCase();
+                    if (itemStatus === 'processing') {
+                        itemsToCancel.push({ orderId: order.id, itemIndex: itemIndex, price: parseFloat(item.price) || 0, userId: order.userId });
+                    }
+                });
+            });
+
+            if (itemsToCancel.length === 0) {
+                showToast('warning', 'No Items', 'No processing orders found for the selected date');
+                return;
+            }
+
+            const confirmed = await showConfirm({
+                title: 'Cancel & Refund Orders',
+                message: `Cancel and refund ${itemsToCancel.length} processing order item(s)?`,
+                type: 'danger',
+                confirmText: 'Cancel & Refund All',
+                cancelText: 'Keep Orders'
+            });
+            if (!confirmed) return;
+
+            showToast('info', 'Processing...', `Cancelling ${itemsToCancel.length} items and processing refunds...`);
+            
+            let successCount = 0;
+            for (const item of itemsToCancel) {
+                try {
+                    await DataEasyAPI.admin.updateItemStatus(item.orderId, item.itemIndex, 'Failed');
+                    successCount++;
+                } catch (error) {
+                    console.error(`Error cancelling item:`, error);
+                }
+            }
+            
+            selectedOrders.clear();
+            showToast('success', 'Success', `${successCount} items cancelled and refunded`);
+            loadOrders();
+        }
+
+        async function viewOrder(orderId) {
+            const order = allOrders.find(o => o.id === orderId);
+            if (!order) {
+                showToast('error', 'Error', 'Order not found');
+                return;
+            }
+
+            const items = order.items || [];
+            const status = order.deliveryStatus || order.status || 'pending';
+            const content = document.getElementById('orderDetailContent');
+            content.innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Order ID</p>
+                        <p class="font-medium text-gray-800">#${order.orderId || order.id}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Status</p>
+                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-${status === 'completed' ? 'green' : status === 'pending' ? 'yellow' : 'blue'}-100 text-${status === 'completed' ? 'green' : status === 'pending' ? 'yellow' : 'blue'}-800">${status}</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Customer</p>
+                        <p class="font-medium text-gray-800">${order.user?.fullName || order.user?.name || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Network</p>
+                        <p class="font-medium text-gray-800">${order.network || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Amount</p>
+                        <p class="font-bold text-gray-800">GH₵ ${parseFloat(order.total || order.totalAmount || 0).toFixed(2)}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Date</p>
+                        <p class="text-gray-600">${new Date(order.createdAt).toLocaleString()}</p>
+                    </div>
+                    <div class="col-span-2">
+                        <p class="text-xs text-gray-500 mb-2">Items (${items.length})</p>
+                        <div class="bg-gray-50 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+                            ${items.length > 0 ? items.map(item => `
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">${item.phone} - ${item.packageName}</span>
+                                    <span class="font-medium">GH₵ ${item.price}</span>
+                                </div>
+                            `).join('') : '<p class="text-gray-400 text-sm">No items</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('viewOrderModal').classList.remove('hidden');
+            document.getElementById('viewOrderModal').classList.add('flex');
+        }
+
+        async function completeOrder(orderId) {
+            const confirmed = await showConfirm({
+                title: 'Complete Order',
+                message: 'Mark this order as completed?',
+                type: 'success',
+                confirmText: 'Complete',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+            try {
+                await DataEasyAPI.admin.updateOrderStatus(orderId, 'completed');
+                showToast('success', 'Success', 'Order completed');
+                loadOrders();
+            } catch (error) {
+                showToast('error', 'Error', 'Failed to complete order');
+            }
+        }
+
+        async function cancelOrder(orderId) {
+            const confirmed = await showConfirm({
+                title: 'Cancel Order',
+                message: 'Cancel this order and refund the customer?',
+                type: 'danger',
+                confirmText: 'Cancel & Refund',
+                cancelText: 'Keep Order'
+            });
+            if (!confirmed) return;
+            try {
+                await DataEasyAPI.admin.updateOrderStatus(orderId, 'cancelled');
+                showToast('success', 'Success', 'Order cancelled');
+                loadOrders();
+            } catch (error) {
+                showToast('error', 'Error', 'Failed to cancel order');
+            }
+        }
+
+        async function retryOrderItem(orderId, itemIndex) {
+            const confirmed = await showConfirm({
+                title: 'Retry Item',
+                message: 'Retry processing this item?',
+                type: 'info',
+                confirmText: 'Retry',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+            try {
+                await DataEasyAPI.admin.updateItemStatus(orderId, itemIndex, 'Processing');
+                showToast('success', 'Success', 'Item is being retried');
+                loadOrders();
+            } catch (error) {
+                console.error('Error retrying item:', error);
+                showToast('error', 'Error', error.message || 'Failed to retry item');
+            }
+        }
+
+        async function completeOrderItem(orderId, itemIndex) {
+            const confirmed = await showConfirm({
+                title: 'Complete Item',
+                message: 'Mark this item as delivered?',
+                type: 'success',
+                confirmText: 'Mark Delivered',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+            try {
+                await DataEasyAPI.admin.updateItemStatus(orderId, itemIndex, 'Delivered');
+                showToast('success', 'Success', 'Item marked as delivered');
+                loadOrders();
+            } catch (error) {
+                console.error('Error completing item:', error);
+                showToast('error', 'Error', error.message || 'Failed to complete item');
+            }
+        }
+
+        async function cancelAndRefundItem(orderId, itemIndex) {
+            const confirmed = await showConfirm({
+                title: 'Cancel & Refund',
+                message: 'Cancel this item and refund the customer?',
+                type: 'danger',
+                confirmText: 'Cancel & Refund',
+                cancelText: 'Keep Item'
+            });
+            if (!confirmed) return;
+            try {
+                await DataEasyAPI.admin.updateItemStatus(orderId, itemIndex, 'Failed');
+                showToast('success', 'Success', 'Item cancelled and refunded');
+                loadOrders();
+            } catch (error) {
+                console.error('Error cancelling item:', error);
+                showToast('error', 'Error', error.message || 'Failed to cancel item');
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).classList.remove('flex');
+        }
+
+        function showToast(type, title, message) {
+            const container = document.getElementById('toastContainer');
+            const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
+            const icons = { success: 'fas fa-check', error: 'fas fa-times', warning: 'fas fa-exclamation', info: 'fas fa-info' };
+
+            const toast = document.createElement('div');
+            toast.className = `flex items-center gap-3 ${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg transition-all duration-300`;
+            toast.innerHTML = `
+                <i class="${icons[type]}"></i>
+                <div>
+                    <div class="font-medium">${title}</div>
+                    <div class="text-sm text-white/80">${message}</div>
+                </div>
+                <button class="ml-4 text-white/80 hover:text-white toast-close-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            const closeBtn = toast.querySelector('.toast-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', function() { toast.remove(); });
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Toggle Reports submenu
+        function toggleReportsMenu() {
+            const submenu = document.getElementById('reports-submenu');
+            const arrow = document.getElementById('reports-arrow');
+            submenu.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+    </script>
+</body>
+</html>

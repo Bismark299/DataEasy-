@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@color/surface_elevated">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="14dp"
+        android:gravity="center_vertical">
+
+        <!-- Status Icon Circle -->
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="12dp">
+            
+            <View
+                android:id="@+id/statusIconBg"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/status_badge_bg" />
+            
+            <TextView
+                android:id="@+id/statusIcon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="✓"
+                android:textSize="18sp"
+                android:textColor="@color/success" />
+        </FrameLayout>
+
+        <!-- Middle: Details -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Amount Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                
+                <TextView
+                    android:id="@+id/amountText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="GHS 0.00"
+                    android:textSize="17sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/on_surface" />
+                
+                <!-- Status Badge -->
+                <TextView
+                    android:id="@+id/statusBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SUCCESS"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/success"
+                    android:background="@drawable/status_badge_bg"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp" />
+            </LinearLayout>
+
+            <!-- Sender/Reference -->
+            <TextView
+                android:id="@+id/senderText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="From: JOHN DOE"
+                android:textSize="12sp"
+                android:textColor="@color/on_surface_secondary"
+                android:layout_marginTop="3dp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!-- Transaction ID & Time -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp">
+                
+                <TextView
+                    android:id="@+id/txIdText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="ID: 1234567890"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_muted"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+                
+                <TextView
+                    android:id="@+id/timeText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2m ago"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_muted" />
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
