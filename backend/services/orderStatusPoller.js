@@ -236,7 +236,7 @@ async function updateOrderItemStatus(orderId, itemIndex, status, reference, erro
         if (allDelivered) {
             overallStatus = 'Delivered';
         } else if (anyFailed && !allPending) {
-            overallStatus = 'Partial'; // Some delivered, some failed
+            overallStatus = 'Partially Delivered'; // Some delivered, some failed
         } else if (anyFailed && allPending) {
             overallStatus = 'Failed';
         }

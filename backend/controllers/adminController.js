@@ -1615,7 +1615,7 @@ exports.deliverOrder = async (req, res) => {
 
         await order.update({
             items,
-            deliveryStatus: allDelivered ? 'Delivered' : (anyFailed ? 'Partial' : 'Processing'),
+            deliveryStatus: allDelivered ? 'Delivered' : (anyFailed ? 'Partially Delivered' : 'Processing'),
             processedBy: req.admin?.username || 'admin',
             processedAt: new Date()
         }, { transaction: t });
@@ -1645,7 +1645,7 @@ exports.deliverOrder = async (req, res) => {
                 : `Delivery status: ${deliveryResult.status}`,
             order: {
                 id: order.id,
-                deliveryStatus: allDelivered ? 'Delivered' : (anyFailed ? 'Partial' : 'Processing')
+                deliveryStatus: allDelivered ? 'Delivered' : (anyFailed ? 'Partially Delivered' : 'Processing')
             }
         });
     } catch (error) {
@@ -2125,7 +2125,7 @@ exports.secureDeliverOrder = async (req, res) => {
 
             await order.update({
                 items,
-                deliveryStatus: allDelivered ? 'Delivered' : (anyFailed ? 'Partial' : 'Processing'),
+                deliveryStatus: allDelivered ? 'Delivered' : (anyFailed ? 'Partially Delivered' : 'Processing'),
                 processedBy: req.admin?.username || 'admin',
                 processedAt: new Date()
             });
@@ -2585,7 +2585,7 @@ async function syncSingleItem(order, itemIndex, item) {
             // Calculate overall status
             const allDelivered = items.every(i => i.deliveryStatus === 'Delivered');
             const anyFailed = items.some(i => i.deliveryStatus === 'Failed');
-            const overallStatus = allDelivered ? 'Delivered' : anyFailed ? 'Partial' : 'Processing';
+            const overallStatus = allDelivered ? 'Delivered' : anyFailed ? 'Partially Delivered' : 'Processing';
             
             await order.update({
                 items,
