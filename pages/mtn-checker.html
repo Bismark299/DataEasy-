@@ -757,12 +757,12 @@
     <div id="panel-bulk" class="hidden">
         <div class="card">
             <div class="card-title"><i class="fas fa-layer-group"></i> Phone Numbers</div>
-            <div class="info-msg"><i class="fas fa-lightbulb"></i> One number per line. Each number returns a delivered / not-delivered summary with total counts.</div>
+            <div class="info-msg"><i class="fas fa-lightbulb"></i> Format: <strong>PHONE AMOUNT</strong> — one per line. AMOUNT is the number of data bundles (e.g. <code style="background:#1a1a1a;padding:1px 5px;border-radius:3px">0555546229 1</code>). Optionally add date: <code style="background:#1a1a1a;padding:1px 5px;border-radius:3px">0555546229 1 15/05/2026</code></div>
             <div class="form-row" style="margin-bottom:14px;align-items:flex-start;">
                 <div class="form-group" style="flex:1;">
                     <label>Numbers <span class="count-badge" id="line-count">0 numbers</span></label>
-                    <textarea id="bulk-lines" rows="10" placeholder="0547744594&#10;0538806691&#10;0201234567&#10;0551234567"></textarea>
-                    <span class="input-hint">One number per line &nbsp;·&nbsp; Up to 200 numbers</span>
+                    <textarea id="bulk-lines" rows="10" placeholder="0547744594 2&#10;0538806691 1&#10;0555546229 1 15/05/2026"></textarea>
+                    <span class="input-hint">PHONE AMOUNT [DD/MM/YYYY] &nbsp;·&nbsp; Up to 200 lines</span>
                 </div>
             </div>
             <div class="filter-strip" style="margin-bottom:16px;">
@@ -846,7 +846,7 @@ function badge(status) {
 /* ── Line count ── */
 document.getElementById('bulk-lines').addEventListener('input', function() {
     var n = this.value.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean).length;
-    document.getElementById('line-count').textContent = n + ' number' + (n !== 1 ? 's' : '');
+    document.getElementById('line-count').textContent = n + ' line' + (n !== 1 ? 's' : '');
 });
 
 /* ── Single Check ── */
@@ -937,40 +937,40 @@ document.getElementById('bulk-form').addEventListener('submit', async function(e
     var plabel      = document.getElementById('progress-label');
     if (!rawLines) return;
 
-    var phones = rawLines.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
-    if (!phones.length) return;
+    var lines = rawLines.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    if (!lines.length) return;
 
     btn.disabled = true;
     btn.innerHTML = '<div class="loader" style="width:15px;height:15px;border-width:2px;"></div> Checking...';
     ['export-delivered-btn','copy-delivered-btn','export-nd-btn','copy-nd-btn'].forEach(function(id){ document.getElementById(id).classList.add('hidden'); });
     progressBar.style.display = 'block';
     fill.style.width = '0%';
-    plabel.textContent = 'Checking ' + phones.length + ' number(s)...';
+    plabel.textContent = 'Checking ' + lines.length + ' line(s)...';
     container.innerHTML = '<div class="loading"><div class="loader"></div><div class="loading-text">Processing…</div></div>';
 
     try {
         var CHUNK = 20;
         var allResults = [];
         var done = 0;
-        for (var i = 0; i < phones.length; i += CHUNK) {
-            var chunk = phones.slice(i, i + CHUNK);
-            var payload = { phones: chunk };
+        for (var i = 0; i < lines.length; i += CHUNK) {
+            var chunk = lines.slice(i, i + CHUNK);
+            var payload = { lines: chunk };
             if (dateFrom) payload.dateFrom = dateFrom;
             if (dateTo)   payload.dateTo   = dateTo;
             var r = await fetch(API_BASE + '/bulk', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
             var j = await r.json();
             if (!j.success) {
-                chunk.forEach(function(p){ allResults.push({ phone: p, success: false, error: j.error || 'Request failed' }); });
+                chunk.forEach(function(l){ allResults.push({ phone: l.split(/\s+/)[0], success: false, error: j.error || 'Request failed' }); });
             } else {
                 allResults = allResults.concat(j.results);
             }
             done += chunk.length;
-            var pct = Math.round(done / phones.length * 100);
+            var pct = Math.round(done / lines.length * 100);
             fill.style.width = pct + '%';
-            plabel.textContent = 'Checked ' + done + ' / ' + phones.length + ' (' + pct + '%)';
+            plabel.textContent = 'Checked ' + done + ' / ' + lines.length + ' (' + pct + '%)';
         }
         fill.style.width = '100%';
-        plabel.textContent = 'Done — ' + phones.length + ' numbers checked';
+        plabel.textContent = 'Done — ' + lines.length + ' lines checked';
         lastBulkResults = allResults;
 
         var nWithDel = allResults.filter(function(r){ return r.success && r.delivered > 0; }).length;
@@ -978,7 +978,7 @@ document.getElementById('bulk-form').addEventListener('submit', async function(e
         var totalOrderCount = allResults.reduce(function(s, r){ return s + (r.total||0); }, 0);
 
         var html = '<div class="stats animate-in">';
-        html += '<div class="stat mtn"><div class="stat-icon"><i class="fas fa-list"></i></div><div class="stat-label">Numbers</div><div class="stat-value">' + allResults.length + '</div></div>';
+        html += '<div class="stat mtn"><div class="stat-icon"><i class="fas fa-list"></i></div><div class="stat-label">Lines</div><div class="stat-value">' + allResults.length + '</div></div>';
         html += '<div class="stat green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-label">With Deliveries</div><div class="stat-value">' + nWithDel + '</div></div>';
         html += '<div class="stat red"><div class="stat-icon"><i class="fas fa-times-circle"></i></div><div class="stat-label">No Deliveries</div><div class="stat-value">' + nNoDel + '</div></div>';
         html += '<div class="stat mtn" style="--mtn-glow-sm:rgba(255,203,5,0.08);"><div class="stat-icon"><i class="fas fa-layer-group"></i></div><div class="stat-label">Total Orders</div><div class="stat-value">' + totalOrderCount + '</div></div>';

@@ -66,10 +66,14 @@ async function getSession(force) {
     return _sessionCookie;
 }
 
-/** Convert "DD/MM/YYYY ..." to "YYYY-MM-DD" */
+/** Parse site date — handles both "YYYY-MM-DD" (ISO) and "DD/MM/YYYY" */
 function parseSiteDate(str) {
     if (!str) return null;
-    const m = str.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    const s = str.trim();
+    // ISO format returned by site: YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+    // Legacy DD/MM/YYYY
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (!m) return null;
     return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
 }
@@ -214,16 +218,17 @@ exports.check = async (req, res) => {
 /**
  * Bulk phone lookup
  * POST /api/checker/bulk
- * Body: { phones: ["0547744594", ...], dateFrom?, dateTo? }
+ * Body: { lines: ["0547744594 2", "0538806691 1", ...], dateFrom?, dateTo? }
+ * Each line: PHONE AMOUNT [DD/MM/YYYY]  — AMOUNT is the number of data bundles
  */
 exports.bulk = async (req, res) => {
     try {
-        const { phones, dateFrom, dateTo } = req.body;
-        if (!phones || !Array.isArray(phones) || phones.length === 0) {
-            return res.status(400).json({ success: false, error: 'phones array is required' });
+        const { lines, dateFrom, dateTo } = req.body;
+        if (!lines || !Array.isArray(lines) || lines.length === 0) {
+            return res.status(400).json({ success: false, error: 'lines array is required' });
         }
-        if (phones.length > 200) {
-            return res.status(400).json({ success: false, error: 'Maximum 200 phones per bulk request' });
+        if (lines.length > 200) {
+            return res.status(400).json({ success: false, error: 'Maximum 200 lines per bulk request' });
         }
 
         await getSession();
@@ -237,15 +242,16 @@ exports.bulk = async (req, res) => {
         })();
 
         const CONCURRENCY = 3;
-        const results = new Array(phones.length);
+        const results = new Array(lines.length);
         let nextIdx = 0;
 
         const worker = async () => {
-            while (nextIdx < phones.length) {
+            while (nextIdx < lines.length) {
                 const i = nextIdx++;
-                const rawPhone = String(phones[i]).trim();
+                const rawLine  = String(lines[i]).trim();
+                const rawPhone = rawLine.split(/\s+/)[0]; // first token is the phone
                 try {
-                    const data   = await checkBulkLine(rawPhone, defaultDate);
+                    const data   = await checkBulkLine(rawLine, defaultDate);
                     const status = (typeof data === 'object' && data.status ? data.status : '').toLowerCase().trim();
                     const ok     = status === 'delivered' || status === 'not delivered';
                     results[i] = {
@@ -264,7 +270,7 @@ exports.bulk = async (req, res) => {
             }
         };
 
-        await Promise.all(Array.from({ length: Math.min(CONCURRENCY, phones.length) }, worker));
+        await Promise.all(Array.from({ length: Math.min(CONCURRENCY, lines.length) }, worker));
 
         res.json({ success: true, results });
     } catch (error) {
