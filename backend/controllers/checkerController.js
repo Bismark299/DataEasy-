@@ -27,23 +27,41 @@ async function getSession(force) {
         throw new Error('CHECKER_USERNAME / CHECKER_PASSWORD env vars are not set');
     }
 
+    const browserUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+    // Step 1: GET login page to obtain the PHP session cookie before authenticating
+    const initRes = await axios.get(CHECKER_URL + '/index.php', {
+        headers: { 'User-Agent': browserUA },
+        timeout: 15000,
+        validateStatus: () => true,
+    });
+    const initCookies = initRes.headers['set-cookie'];
+    if (!initCookies || initCookies.length === 0) {
+        throw new Error('Checker login failed: no session cookie on initial GET.');
+    }
+    const initCookie = initCookies.map(c => c.split(';')[0]).join('; ');
+
+    // Step 2: POST credentials with the session cookie.
+    // Server responds 302 and authenticates the session — no new cookie is issued.
     const body = new URLSearchParams();
     body.append('username', CHECKER_USER);
     body.append('password', CHECKER_PASS);
 
-    const res = await axios.post(CHECKER_URL + '/index.php', body.toString(), {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        maxRedirects: 5,
+    await axios.post(CHECKER_URL + '/index.php', body.toString(), {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cookie': initCookie,
+            'User-Agent': browserUA,
+            'Referer': CHECKER_URL + '/index.php',
+            'Origin': CHECKER_URL,
+        },
+        maxRedirects: 0,
         timeout: 15000,
-        validateStatus: () => true,
+        validateStatus: (status) => status === 302 || (status >= 200 && status < 300),
     });
 
-    const setCookieHeader = res.headers['set-cookie'];
-    if (!setCookieHeader || setCookieHeader.length === 0) {
-        throw new Error('Checker login failed: no session cookie returned. Check credentials.');
-    }
-
-    _sessionCookie = setCookieHeader.map(c => c.split(';')[0]).join('; ');
+    // The initial session cookie is now authenticated server-side
+    _sessionCookie = initCookie;
     _sessionExpiry = Date.now() + 20 * 60 * 1000;
     return _sessionCookie;
 }
