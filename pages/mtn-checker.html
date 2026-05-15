@@ -11,28 +11,28 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { overflow-x: hidden; scroll-behavior: smooth; }
 
-        /* ── MTN Brand Palette ── */
+        /* ── MTN True Brand Palette — Yellow & Black ── */
         :root {
-            /* MTN Yellow */
+            /* MTN Yellow (official brand) */
             --mtn:          #FFCB05;
             --mtn-dark:     #e6b800;
             --mtn-light:    #FFD740;
-            --mtn-glow:     rgba(255, 203, 5, 0.18);
+            --mtn-glow:     rgba(255, 203, 5, 0.20);
             --mtn-glow-sm:  rgba(255, 203, 5, 0.10);
 
-            /* Dark surfaces */
-            --bg:           #0b0b0d;
-            --surface:      #141416;
-            --surface-2:    #1c1c1f;
-            --surface-3:    #242428;
-            --border:       #2a2a2f;
-            --border-hover: #3e3e46;
-            --border-mtn:   rgba(255, 203, 5, 0.25);
+            /* True MTN Black */
+            --bg:           #000000;
+            --surface:      #0f0f0f;
+            --surface-2:    #181818;
+            --surface-3:    #202020;
+            --border:       #2c2c2c;
+            --border-hover: #404040;
+            --border-mtn:   rgba(255, 203, 5, 0.30);
 
             /* Text */
-            --text:         #f0f0f2;
-            --text-muted:   #9090a0;
-            --text-dim:     #55555f;
+            --text:         #ffffff;
+            --text-muted:   #a0a0a0;
+            --text-dim:     #606060;
 
             /* Status */
             --green:        #22c55e;
@@ -47,28 +47,9 @@
             --radius:       14px;
             --radius-sm:    9px;
             --radius-xs:    6px;
-            --shadow:       0 8px 32px rgba(0,0,0,0.45);
-            --shadow-mtn:   0 4px 20px rgba(255,203,5,0.22);
+            --shadow:       0 8px 40px rgba(0,0,0,0.80);
+            --shadow-mtn:   0 4px 24px rgba(255,203,5,0.28);
             --transition:   0.2s cubic-bezier(0.4,0,0.2,1);
-        }
-
-        [data-theme="light"] {
-            --bg:           #f4f4f6;
-            --surface:      #ffffff;
-            --surface-2:    #f0f0f3;
-            --surface-3:    #e6e6ea;
-            --border:       #d8d8df;
-            --border-hover: #b8b8c4;
-            --border-mtn:   rgba(230,184,0,0.35);
-            --text:         #111113;
-            --text-muted:   #505060;
-            --text-dim:     #9090a0;
-            --mtn:          #e6b800;
-            --mtn-dark:     #c8a000;
-            --mtn-glow:     rgba(230,184,0,0.14);
-            --mtn-glow-sm:  rgba(230,184,0,0.08);
-            --shadow:       0 8px 32px rgba(0,0,0,0.10);
-            --shadow-mtn:   0 4px 20px rgba(230,184,0,0.18);
         }
 
         body {
@@ -349,8 +330,7 @@
             width: 100%;
         }
         .form-group input[type="date"] { cursor: pointer; }
-        .form-group input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
-        [data-theme="light"] .form-group input[type="date"]::-webkit-calendar-picker-indicator { filter: none; }
+        .form-group input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7) brightness(1.2); cursor: pointer; }
         .form-group input:focus,
         .form-group textarea:focus {
             border-color: var(--mtn);
@@ -518,8 +498,7 @@
             background: var(--surface-2);
         }
         thead th:first-child { color: var(--mtn); }
-        tbody tr { border-bottom: 1px solid rgba(42,42,47,0.6); transition: background var(--transition); }
-        [data-theme="light"] tbody tr { border-bottom: 1px solid rgba(200,200,210,0.5); }
+        tbody tr { border-bottom: 1px solid rgba(44,44,44,0.8); transition: background var(--transition); }
         tbody tr:last-child { border-bottom: none; }
         tbody tr:hover { background: var(--surface-2); }
         tbody td { padding: 11px 16px; vertical-align: middle; }
@@ -703,9 +682,7 @@
     </div>
     <div class="nav-right">
         <div class="pill-badge"><span class="dot"></span> HSTN Live</div>
-        <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
-            <i class="fas fa-moon"></i>
-        </button>
+
     </div>
 </nav>
 
@@ -828,26 +805,7 @@
 const API_BASE = window.location.origin + '/api/checker';
 let lastBulkResults = [];
 
-/* ── Theme ── */
-(function initTheme() {
-    var saved = localStorage.getItem('checker-theme');
-    if (saved) document.documentElement.setAttribute('data-theme', saved);
-    updateThemeIcon();
-})();
-function toggleTheme() {
-    var cur = document.documentElement.getAttribute('data-theme');
-    var next = cur === 'light' ? 'dark' : 'light';
-    if (next === 'dark') document.documentElement.removeAttribute('data-theme');
-    else document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('checker-theme', next);
-    updateThemeIcon();
-}
-function updateThemeIcon() {
-    var btn = document.getElementById('theme-toggle');
-    if (!btn) return;
-    var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-    btn.innerHTML = isLight ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-}
+
 
 function showToast(msg) {
     var t = document.getElementById('toast');

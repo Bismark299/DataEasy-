@@ -35,6 +35,12 @@ services:
         sync: false # Set manually - your MCBIS API URL
       - key: SMS_LISTENER_TOKEN
         sync: false # Secret token for MoMo SMS listener app authentication
+      - key: CHECKER_SITE_URL
+        value: https://checker.instantdatagh.com
+      - key: CHECKER_USERNAME
+        sync: false # Set manually in Render dashboard: instant
+      - key: CHECKER_PASSWORD
+        sync: false # Set manually in Render dashboard: checker
 
   # Frontend Static Site
   - type: web
