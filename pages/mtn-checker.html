@@ -989,8 +989,10 @@ document.getElementById('bulk-form').addEventListener('submit', async function(e
             var isErr  = !r.success;
             var orders = (r.success && r.orders) ? r.orders : [];
             var count  = orders.length;
-            var countCls   = isErr ? 'err' : (count > 0 ? 'ok' : 'none');
-            var countLabel = isErr ? 'Error' : count + ' order' + (count !== 1 ? 's' : '');
+            var status = (r.status || '').toLowerCase();
+            var hasStatus = status === 'delivered' || status === 'not delivered';
+            var countCls   = isErr ? 'err' : (hasStatus ? (status === 'delivered' ? 'ok' : 'none') : (count > 0 ? 'ok' : 'none'));
+            var countLabel = isErr ? 'Error' : (hasStatus && count === 0 ? (status === 'delivered' ? 'Delivered' : 'Not Delivered') : count + ' order' + (count !== 1 ? 's' : ''));
 
             html += '<div class="num-card' + (isErr ? ' has-error' : '') + '">';
             html += '<div class="num-title">';
@@ -1001,6 +1003,8 @@ document.getElementById('bulk-form').addEventListener('submit', async function(e
 
             if (isErr) {
                 html += '<div class="num-error"><i class="fas fa-exclamation-circle"></i> ' + esc(r.error || 'Request failed') + '</div>';
+            } else if (count === 0 && hasStatus) {
+                html += '<div style="padding:10px 14px">' + badge(status) + '</div>';
             } else if (count === 0) {
                 html += '<div class="num-empty">No orders found</div>';
             } else {
