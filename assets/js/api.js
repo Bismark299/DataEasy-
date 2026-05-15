@@ -86,11 +86,16 @@ const DataEasyAPI = (function() {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
         try {
             const response = await fetch(url, {
                 ...options,
-                headers
+                headers,
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             const data = await response.json();
 
@@ -112,6 +117,10 @@ const DataEasyAPI = (function() {
 
             return data;
         } catch (error) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                throw new Error('Request timed out. Please try again.');
+            }
             console.error(error);
             throw error;
         }

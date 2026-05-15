@@ -451,6 +451,12 @@
             loadTransactions();
             initFilters();
             initDealerFilters();
+
+            // Safety fallback: hide loading overlay after 30s in case API hangs
+            setTimeout(function() {
+                const overlay = document.getElementById('loadingOverlay');
+                if (overlay) overlay.classList.add('hidden');
+            }, 30000);
             
             // Initialize button listeners
             initButtonListeners();
