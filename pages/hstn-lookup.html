@@ -1028,7 +1028,8 @@
                 document.getElementById('copy-info-btn').classList.toggle('hidden', withRecords === 0);
                 document.getElementById('export-noinfo-btn').classList.toggle('hidden', noRecords === 0);
                 document.getElementById('copy-noinfo-btn').classList.toggle('hidden', noRecords === 0);
-                document.getElementById('copy-failed-btn').classList.toggle('hidden', errors === 0);
+                const failedOrders = jsonResults.filter(r => r.success && (r.records || []).some(rec => rec.status === 'failed'));
+                document.getElementById('copy-failed-btn').classList.toggle('hidden', failedOrders.length === 0);
                 if (totalRecords > 0) {
                     showToast('Found ' + totalRecords + ' records across ' + withRecords + ' numbers');
                 }
@@ -1205,12 +1206,17 @@
 
         function copyFailed() {
             if (!lastBulkData) return;
+            const dateFrom = document.getElementById('bulk-date-from').value;
+            const dateTo = document.getElementById('bulk-date-to').value;
             const lines = [];
             lastBulkData.forEach(r => {
-                if (!r.success) lines.push(r.phone + '\t' + (r.input_data_size || 0));
+                if (!r.success) return;
+                const filtered = filterByDate(r.records || [], dateFrom, dateTo);
+                const hasFailed = filtered.some(rec => rec.status === 'failed');
+                if (hasFailed) lines.push(r.phone + '\t' + (r.input_data_size || 0));
             });
-            if (lines.length === 0) { showToast('No failed orders'); return; }
-            navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' failed order(s)'));
+            if (lines.length === 0) { showToast('No numbers with failed status records'); return; }
+            navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with failed orders'));
         }
     </script>
 </body>
