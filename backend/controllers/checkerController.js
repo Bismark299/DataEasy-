@@ -223,9 +223,11 @@ exports.check = async (req, res) => {
  */
 exports.bulk = async (req, res) => {
     try {
-        const { lines, dateFrom, dateTo } = req.body;
+        // Accept `lines` (new format: "PHONE AMOUNT") or legacy `phones` array
+        const lines = req.body.lines || (req.body.phones ? req.body.phones.map(p => String(p).trim()) : null);
+        const { dateFrom, dateTo } = req.body;
         if (!lines || !Array.isArray(lines) || lines.length === 0) {
-            return res.status(400).json({ success: false, error: 'lines array is required' });
+            return res.status(400).json({ success: false, error: 'lines array is required (format: "PHONE AMOUNT" per entry)' });
         }
         if (lines.length > 200) {
             return res.status(400).json({ success: false, error: 'Maximum 200 lines per bulk request' });
