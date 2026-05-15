@@ -77,7 +77,10 @@ async function fetchSingleOrders(phone, dateFrom, dateTo, retry) {
 
     const html = typeof res.data === 'string' ? res.data : '';
 
-    if (html.includes('login-container') || (html.includes('Login') && html.includes('Username'))) {
+    // Detect the actual login page by the presence of the username input field.
+    // NOTE: do NOT match 'login-container' — that string appears in the <style>
+    // block on EVERY page (including results pages), causing false positives.
+    if (html.includes('name="username"') || html.includes("name='username'")) {
         if (retry) {
             await getSession(true);
             return fetchSingleOrders(phone, dateFrom, dateTo, false);
@@ -148,7 +151,7 @@ async function checkBulkLine(line, defaultDate, retry) {
         validateStatus: () => true,
     });
 
-    if (typeof res.data === 'string' && res.data.includes('login-container')) {
+    if (typeof res.data === 'string' && (res.data.includes('name="username"') || res.data.includes("name='username'"))) {
         if (retry) {
             await getSession(true);
             return checkBulkLine(line, defaultDate, false);
