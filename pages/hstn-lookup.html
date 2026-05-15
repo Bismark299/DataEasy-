@@ -661,6 +661,9 @@
                     <button type="button" id="copy-noinfo-btn" class="btn btn-danger hidden" onclick="copyNoInfo()" title="Copy numbers with no info" style="padding:11px 14px;">
                         <i class="fas fa-copy"></i>
                     </button>
+                    <button type="button" id="copy-failed-btn" class="btn btn-danger hidden" onclick="copyFailed()" title="Copy failed orders" style="padding:11px 14px; opacity:0.75;">
+                        <i class="fas fa-copy"></i><i class="fas fa-exclamation-circle" style="font-size:10px;margin-left:-4px;"></i>
+                    </button>
                     <button type="button" id="clear-btn" class="btn btn-danger" onclick="clearBulk()">
                         <i class="fas fa-times"></i> Clear
                     </button>
@@ -905,6 +908,7 @@
             document.getElementById('copy-info-btn').classList.add('hidden');
             document.getElementById('export-noinfo-btn').classList.add('hidden');
             document.getElementById('copy-noinfo-btn').classList.add('hidden');
+            document.getElementById('copy-failed-btn').classList.add('hidden');
             progressBar.style.display = 'block';
             progressFill.style.width = '0%';
             progressLabel.textContent = 'Searching ' + entries.length + ' number(s)...';
@@ -1024,6 +1028,7 @@
                 document.getElementById('copy-info-btn').classList.toggle('hidden', withRecords === 0);
                 document.getElementById('export-noinfo-btn').classList.toggle('hidden', noRecords === 0);
                 document.getElementById('copy-noinfo-btn').classList.toggle('hidden', noRecords === 0);
+                document.getElementById('copy-failed-btn').classList.toggle('hidden', errors === 0);
                 if (totalRecords > 0) {
                     showToast('Found ' + totalRecords + ' records across ' + withRecords + ' numbers');
                 }
@@ -1046,6 +1051,7 @@
             document.getElementById('copy-info-btn').classList.add('hidden');
             document.getElementById('export-noinfo-btn').classList.add('hidden');
             document.getElementById('copy-noinfo-btn').classList.add('hidden');
+            document.getElementById('copy-failed-btn').classList.add('hidden');
             document.getElementById('phone-count').textContent = '0 numbers';
             lastBulkData = null;
         }
@@ -1188,12 +1194,23 @@
             const dateTo = document.getElementById('bulk-date-to').value;
             const lines = [];
             lastBulkData.forEach(r => {
-                const hasRecords = r.success && filterByDate(r.records || [], dateFrom, dateTo).length > 0;
-                if (hasRecords) return;
+                if (!r.success) return;
+                const filtered = filterByDate(r.records || [], dateFrom, dateTo);
+                if (filtered.length > 0) return;
                 lines.push(r.phone + '\t' + (r.input_data_size || 0));
             });
             if (lines.length === 0) { showToast('All numbers have records'); return; }
             navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with no info'));
+        }
+
+        function copyFailed() {
+            if (!lastBulkData) return;
+            const lines = [];
+            lastBulkData.forEach(r => {
+                if (!r.success) lines.push(r.phone + '\t' + (r.input_data_size || 0));
+            });
+            if (lines.length === 0) { showToast('No failed orders'); return; }
+            navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' failed order(s)'));
         }
     </script>
 </body>

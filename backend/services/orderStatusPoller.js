@@ -186,13 +186,35 @@ async function pollLoop(pollKey) {
         setTimeout(() => pollLoop(pollKey), pollInterval);
 
     } catch (error) {
+        const httpStatus = error.response?.status || error.httpStatus;
+        const isNotFound = httpStatus === 404 || error.notFound === true;
+
         logger.error('Error in status poll', {
             pollKey,
             error: error.message,
-            attempt: pollState.attempts
+            attempt: pollState.attempts,
+            httpStatus
         });
 
-        // Continue polling on error (network issues, etc.) - NEVER STOP
+        // Stop polling if MCBIS says the reference doesn't exist (404)
+        if (isNotFound) {
+            logger.warn('MCBIS reference not found (404), marking order as Failed and stopping poll', {
+                pollKey,
+                reference: pollState.reference,
+                orderId: pollState.orderId
+            });
+            await updateOrderItemStatus(
+                pollState.orderId,
+                pollState.itemIndex,
+                'Failed',
+                pollState.reference,
+                'Order reference not found on provider (404)'
+            ).catch(e => logger.error('Failed to mark 404 order as failed', { error: e.message }));
+            activePolls.delete(pollKey);
+            return;
+        }
+
+        // Continue polling on transient errors (network issues, etc.)
         const elapsedTime = Date.now() - pollState.startTime;
         const pollInterval = elapsedTime < FAST_POLL_DURATION ? FAST_POLL_INTERVAL : SLOW_POLL_INTERVAL;
         setTimeout(() => pollLoop(pollKey), pollInterval);
@@ -498,9 +520,19 @@ async function recoverPendingOrders() {
                         });
                     }
                 } catch (err) {
-                    logger.error('Recovery: status check failed', {
-                        orderId: order.orderId, itemIndex: i, error: err.message
-                    });
+                    const httpStatus = err.response?.status || err.httpStatus;
+                    if (httpStatus === 404 || err.notFound === true) {
+                        // MCBIS doesn't know this reference — mark as Failed and stop
+                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, 'Order reference not found on provider (404)')
+                            .catch(e => logger.error('Recovery: failed to mark 404 item as failed', { error: e.message }));
+                        logger.warn('Recovery: 404 from MCBIS, marked as Failed', {
+                            orderId: order.orderId, itemIndex: i, reference: item.providerReference
+                        });
+                    } else {
+                        logger.error('Recovery: status check failed', {
+                            orderId: order.orderId, itemIndex: i, error: err.message
+                        });
+                    }
                 }
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
