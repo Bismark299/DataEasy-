@@ -597,7 +597,7 @@
 
                 // Load today's orders only and calculate stats (server filters by date)
                 const today = getGhanaDateString();
-                const response = await DataEasyAPI.admin.getOrders({ limit: 100, dateFrom: today, dateTo: today });
+                const response = await DataEasyAPI.admin.getOrders({ limit: 9999, dateFrom: today, dateTo: today });
                 const orders = response.orders || [];
                 
                 let totalSold = 0;
@@ -767,7 +767,7 @@
             const serverFilters = getServerFilters();
             lastServerFilters = { ...serverFilters };
             try {
-                const params = { limit: 100 };
+                const params = { limit: 9999 };
                 if (serverFilters.search) params.search = serverFilters.search;
                 if (serverFilters.dateFrom) params.dateFrom = serverFilters.dateFrom;
                 if (serverFilters.dateTo) params.dateTo = serverFilters.dateTo;
