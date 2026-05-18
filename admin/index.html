@@ -899,7 +899,7 @@
             const serverFilters = getDashServerFilters();
             lastDashServerFilters = { ...serverFilters };
             try {
-                const params = { limit: 100 };
+                const params = { limit: 9999 };
                 if (serverFilters.dateFrom) params.dateFrom = serverFilters.dateFrom;
                 if (serverFilters.dateTo) params.dateTo = serverFilters.dateTo;
                 if (serverFilters.network) params.network = serverFilters.network;
