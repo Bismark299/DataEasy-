@@ -932,6 +932,10 @@ exports.adjustWallet = async (req, res) => {
         // Commit transaction
         await t.commit();
 
+        // Invalidate cached users list so balance reflects immediately
+        invalidateCache('/admin/users');
+        invalidateCache('/admin/transactions');
+
         res.json({
             success: true,
             message: `Wallet ${type}ed with GH₵${amount.toFixed(2)}`,
