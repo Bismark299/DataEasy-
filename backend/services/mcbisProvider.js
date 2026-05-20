@@ -304,7 +304,7 @@ async function placeOrder({ network, receiver, amount, reference }) {
  * @param {string} reference - Order reference
  * @returns {Promise<Object>} Order status
  */
-async function checkOrderStatus(reference) {
+async function doCheckOrderStatus(reference) {
     try {
         const response = await mcbisApi.get(`/checkOrderStatus/${reference}`);
         
@@ -393,7 +393,7 @@ async function deliverBundle(orderItem, options = {}) {
         });
         
         // Check the status of existing order instead
-        const statusCheck = await checkOrderStatus(existingReference);
+        const statusCheck = await enqueueStatusCheck(existingReference);
         return {
             success: false,
             status: 'Duplicate',
@@ -501,7 +501,7 @@ async function deliverBundle(orderItem, options = {}) {
     // Wait a moment and check status
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const statusCheck = await checkOrderStatus(reference);
+    const statusCheck = await enqueueStatusCheck(reference);
     
     // Map MCBIS status to our status (expanded for API update compatibility)
     const statusMap = {
