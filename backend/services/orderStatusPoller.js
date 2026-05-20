@@ -18,10 +18,10 @@ const { Op } = require('sequelize');
 const activePolls = new Map();
 
 // Configuration
-const FAST_POLL_INTERVAL = 5000;     // Check every 5 seconds initially
-const SLOW_POLL_INTERVAL = 30000;    // Check every 30 seconds after fast phase
-const FAST_POLL_DURATION = 2 * 60 * 1000;  // Fast polling for first 2 minutes
-const INITIAL_DELAY = 3000;          // Wait 3 seconds before first check
+const FAST_POLL_INTERVAL = 20000;    // Check every 20 seconds initially
+const SLOW_POLL_INTERVAL = 60000;    // Check every 60 seconds after fast phase
+const FAST_POLL_DURATION = 5 * 60 * 1000;  // Fast polling for first 5 minutes
+const INITIAL_DELAY = 5000;          // Wait 5 seconds before first check
 // NO MAX ATTEMPTS - poll until final status received
 
 /**
@@ -332,9 +332,9 @@ function isPolling(orderId, itemIndex) {
  */
 let backgroundSyncInterval = null;
 let recoveryInterval = null;
-const BACKGROUND_SYNC_INTERVAL = 2 * 60 * 1000; // Every 2 minutes
-const RECOVERY_INTERVAL = 1 * 60 * 1000; // Every 1 minute — retry pending orders quickly
-const MIN_ORDER_AGE = 30 * 1000; // Don't retry orders less than 30 seconds old (let initial attempt finish)
+const BACKGROUND_SYNC_INTERVAL = 5 * 60 * 1000; // Every 5 minutes
+const RECOVERY_INTERVAL = 3 * 60 * 1000; // Every 3 minutes — retry pending orders
+const MIN_ORDER_AGE = 60 * 1000; // Don't retry orders less than 60 seconds old (let initial attempt finish)
 const MAX_RECOVERY_AGE = 7 * 24 * 60 * 60 * 1000; // Stop retrying orders older than 7 days
 
 async function startBackgroundSync() {
@@ -418,8 +418,8 @@ async function syncProcessingOrders() {
                         logger.info('Background sync: order marked failed', { orderId: order.orderId, itemIndex: i, reason });
                     }
 
-                    // Small delay between API calls
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Delay between API calls — queue already throttles but add extra gap
+                    await new Promise(resolve => setTimeout(resolve, 1500));
                 } catch (error) {
                     logger.error('Background sync error for item', {
                         orderId: order.orderId,
@@ -534,7 +534,7 @@ async function recoverPendingOrders() {
                         });
                     }
                 }
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, 1500));
             }
         }
 

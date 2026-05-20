@@ -43,6 +43,37 @@ mcbisApi.interceptors.request.use((config) => {
     return config;
 });
 
+// ── Rate-limiting queue for checkOrderStatus ──
+// Serialises all status-check calls so we never fire more than 1 per second.
+const statusCheckQueue = [];
+let statusCheckRunning = false;
+
+async function enqueueStatusCheck(reference) {
+    return new Promise((resolve, reject) => {
+        statusCheckQueue.push({ reference, resolve, reject });
+        if (!statusCheckRunning) processStatusCheckQueue();
+    });
+}
+
+async function processStatusCheckQueue() {
+    if (statusCheckRunning || statusCheckQueue.length === 0) return;
+    statusCheckRunning = true;
+    while (statusCheckQueue.length > 0) {
+        const { reference, resolve, reject } = statusCheckQueue.shift();
+        try {
+            const result = await doCheckOrderStatus(reference);
+            resolve(result);
+        } catch (err) {
+            reject(err);
+        }
+        if (statusCheckQueue.length > 0) {
+            // Wait 1.2 seconds between calls to stay under MCBIS rate limit
+            await new Promise(r => setTimeout(r, 1200));
+        }
+    }
+    statusCheckRunning = false;
+}
+
 // Response interceptor with Cloudflare detection
 mcbisApi.interceptors.response.use(
     (response) => {
@@ -582,7 +613,7 @@ module.exports = {
     getProducts,
     getWalletBalance,
     placeOrder,
-    checkOrderStatus,
+    checkOrderStatus: enqueueStatusCheck,
     deliverBundle,
     canProcessOrder,
     NETWORK_MAP
