@@ -1067,11 +1067,21 @@
             lastBulkData = null;
         }
 
+        function formatLocalDate(value) {
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return '';
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        }
+
         function filterByDate(records, fromDate, toDate) {
             if (!fromDate && !toDate) return records;
             return records.filter(r => {
                 if (!r.created_at) return false;
-                const d = new Date(r.created_at).toISOString().slice(0, 10);
+                const d = formatLocalDate(r.created_at);
+                if (!d) return false;
                 if (fromDate && d < fromDate) return false;
                 if (toDate && d > toDate) return false;
                 return true;
