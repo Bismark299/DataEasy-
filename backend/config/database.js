@@ -191,7 +191,6 @@ const seedPackagesIfEmpty = async () => {
                 for (let i = 0; i < packages.length; i++) {
                     const pkg = packages[i];
                     await Package.create({
-                        id: pkg.id,
                         network: network,
                         name: pkg.name,
                         data: pkg.data,

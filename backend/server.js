@@ -256,6 +256,10 @@ app.use(cors({
         if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
             return callback(null, true);
         }
+        // Allow Replit proxy domains in development
+        if (origin.includes('.replit.dev') || origin.includes('.repl.co')) {
+            return callback(null, true);
+        }
         return callback(null, false);
     },
     credentials: true
