@@ -66,12 +66,13 @@ async function verifyAndProcessPendingDeposits() {
                     logger.debug(`Deposit ${transaction.reference} still pending in Paystack, waiting...`);
                 }
             } catch (verifyError) {
-                // Paystack API error - don't expire yet, might be temporary
-                if (transaction.createdAt < expiryTime) {
-                    // But if it's old enough, expire it
-                    await expireDeposit(transaction, `Verification failed: ${verifyError.message}`);
+                // Paystack API is down / unreachable — never expire based on an API failure.
+                // Use a 4-hour grace window so we don't lose valid payments during outages.
+                const apiErrorGrace = new Date(Date.now() - 4 * 60 * 60 * 1000);
+                if (transaction.createdAt < apiErrorGrace) {
+                    await expireDeposit(transaction, `Verification failed after extended grace period: ${verifyError.message}`);
                 } else {
-                    logger.warn(`Could not verify ${transaction.reference}: ${verifyError.message}`);
+                    logger.warn(`Could not verify ${transaction.reference} (API error, will retry): ${verifyError.message}`);
                 }
             }
         }

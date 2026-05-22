@@ -88,13 +88,27 @@ const requireIdempotency = async (req, res, next) => {
         }
 
         // Create new idempotency record
-        const keyRecord = await IdempotencyKey.createKey(
-            idempotencyKey,
-            userId,
-            endpoint,
-            method,
-            requestHash
-        );
+        // Wrap in its own try-catch: if two simultaneous requests race past the
+        // findValidKey check above, the DB unique constraint will fire on the
+        // second insert — return 409 instead of letting it bubble to a 503.
+        let keyRecord;
+        try {
+            keyRecord = await IdempotencyKey.createKey(
+                idempotencyKey,
+                userId,
+                endpoint,
+                method,
+                requestHash
+            );
+        } catch (createError) {
+            if (createError.name === 'SequelizeUniqueConstraintError') {
+                return res.status(409).json({
+                    error: 'Request in progress',
+                    message: 'A request with this idempotency key is already being processed'
+                });
+            }
+            throw createError; // Re-throw unexpected errors to outer catch
+        }
 
         // Attach to request for later use
         req.idempotencyKey = keyRecord;

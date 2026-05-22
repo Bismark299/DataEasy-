@@ -24,7 +24,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Critical env vars that MUST be set in production
 const criticalEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
-const recommendedEnvVars = ['ADMIN_USERNAME', 'ADMIN_PASSWORD', 'PAYSTACK_SECRET_KEY'];
+const recommendedEnvVars = ['ADMIN_USERNAME', 'ADMIN_PASSWORD', 'PAYSTACK_SECRET_KEY', 'SMS_LISTENER_TOKEN'];
 
 for (const env of criticalEnvVars) {
     if (!process.env[env]) {

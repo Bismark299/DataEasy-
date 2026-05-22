@@ -332,6 +332,17 @@ exports.updateOrderStatus = async (req, res) => {
 
         const previousStatus = order.deliveryStatus;
 
+        // Prevent downgrading a terminal order (Delivered/Partially Delivered → Pending/Processing)
+        // This stops admins from accidentally un-delivering a completed order.
+        // 'Failed' can be reset to allow re-processing.
+        const TERMINAL_STATUSES = ['Delivered', 'Partially Delivered'];
+        if (TERMINAL_STATUSES.includes(previousStatus) && !TERMINAL_STATUSES.includes(status)) {
+            return res.status(400).json({
+                error: 'Cannot reverse a completed delivery',
+                message: `Order ${order.orderId} is already ${previousStatus}. Adjust wallet manually if a refund is needed.`
+            });
+        }
+
         // Update all items status
         const items = order.items.map(item => ({
             ...item,
@@ -431,16 +442,17 @@ exports.matchAndCompleteOrders = async (req, res) => {
             return res.status(400).json({ error: 'No entries provided' });
         }
 
-        // Get all non-terminal orders (Pending or Processing)
+        // Get all non-terminal orders oldest-first (FIFO — fairest for customers)
         const orders = await Order.findAll({
             where: {
                 deliveryStatus: { [Op.in]: ['Pending', 'Processing'] }
             },
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'ASC']]
         });
 
         let matched = 0;
         const updatedOrders = new Set();
+        const auditEntries = [];
 
         for (const entry of entries) {
             const phone = (entry.phone || '').replace(/\s+/g, '').replace(/^\+233/, '0');
@@ -472,12 +484,12 @@ exports.matchAndCompleteOrders = async (req, res) => {
                         matched++;
                         found = true;
                         updatedOrders.add(order);
-                        break; // One match per entry
+                        auditEntries.push({ orderId: order.orderId, itemIndex: i, phone, dataSize });
+                        break; // One match per entry — oldest order wins
                     }
                 }
                 if (found) break;
             }
-
         }
 
         // Save all updated orders
@@ -485,6 +497,17 @@ exports.matchAndCompleteOrders = async (req, res) => {
             order.items = order.items.map(item => ({ ...item }));
             order.changed('items', true);
             await order.updateDeliveryStatus();
+        }
+
+        // Audit log for each matched delivery
+        if (auditEntries.length > 0) {
+            await AdminAuditLog.logAction(req, {
+                action: 'MATCH_COMPLETE_ORDERS',
+                targetType: 'order',
+                targetId: 'bulk',
+                newValue: { matched, entries: auditEntries },
+                description: `Bulk match-and-complete: ${matched} item(s) marked Delivered`
+            });
         }
 
         res.json({ success: true, matched });
@@ -847,6 +870,9 @@ exports.updateUserStatus = async (req, res) => {
  * Adjust user wallet (admin) with limits and audit logging
  * POST /api/admin/users/:userId/wallet
  */
+// Maximum allowed single manual wallet adjustment (loss-prevention cap)
+const MAX_MANUAL_ADJUSTMENT_GHS = 5000;
+
 exports.adjustWallet = async (req, res) => {
     const t = await sequelize.transaction();
     
@@ -859,6 +885,15 @@ exports.adjustWallet = async (req, res) => {
         if (!amount || amount <= 0 || isNaN(amount)) {
             await t.rollback();
             return res.status(400).json({ error: 'Invalid amount' });
+        }
+
+        // Hard cap: no single manual adjustment above GHS 5,000
+        if (amount > MAX_MANUAL_ADJUSTMENT_GHS) {
+            await t.rollback();
+            return res.status(400).json({
+                error: 'Amount exceeds adjustment limit',
+                message: `Single manual adjustments cannot exceed GH₵${MAX_MANUAL_ADJUSTMENT_GHS.toLocaleString('en-GH', { minimumFractionDigits: 2 })}. Use multiple adjustments for larger amounts.`
+            });
         }
 
         const user = await User.findByPk(req.params.userId, { transaction: t });
