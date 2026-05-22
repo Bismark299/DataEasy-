@@ -17,9 +17,9 @@ const { cacheResponse } = require('../middleware/cache');
 // All routes require admin authentication
 router.use(adminAuth);
 
-// Dashboard (read operations - no rate limit)
-router.get('/stats', adminController.getStats);
-router.get('/dashboard', adminController.getDashboard);
+// Dashboard (read operations - cached)
+router.get('/stats', cacheResponse(30), adminController.getStats);
+router.get('/dashboard', cacheResponse(15), adminController.getDashboard);
 
 // Orders management
 router.get('/orders', cacheResponse(30), adminController.getAllOrders);

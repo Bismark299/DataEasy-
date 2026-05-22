@@ -580,7 +580,5 @@ const startServer = async () => {
 // Start the server
 startServer();
 
-// Keep alive - prevent idle exit
-setInterval(() => {}, 1000 * 60 * 60); // Keep event loop active
 
 module.exports = app;

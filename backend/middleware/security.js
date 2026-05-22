@@ -182,11 +182,13 @@ const sanitizeErrors = (err, req, res, next) => {
  * Security headers for API responses
  */
 const securityHeaders = (req, res, next) => {
-    // Prevent caching of sensitive data
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    
+    // Only prevent caching on API routes — static assets should be browser-cached
+    if (req.path.startsWith('/api/')) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+
     // Additional security headers (helmet covers most, but these are extras)
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');

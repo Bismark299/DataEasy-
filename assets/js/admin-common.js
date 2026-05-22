@@ -234,39 +234,18 @@ const AdminCommon = (function() {
      */
     async function loadHeaderStats() {
         try {
-            // Fetch orders to calculate stats
-            const ordersResponse = await DataEasyAPI.admin.getOrders();
-            const orders = ordersResponse?.orders || [];
-            
-            // Calculate today's stats
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const todayOrders = orders.filter(order => {
-                const orderDate = new Date(order.createdAt);
-                return orderDate >= today;
-            });
+            // Use the dedicated stats endpoint — much lighter than fetching all orders
+            const statsResponse = await DataEasyAPI.admin.getStats();
+            const stats = statsResponse?.stats || {};
 
-            const completedTodayOrders = todayOrders.filter(o => o.status === 'completed');
-            const todayRevenue = completedTodayOrders.reduce((sum, o) => sum + parseFloat(o.totalPrice || 0), 0);
-            
-            // Calculate profit
-            let todayProfit = 0;
-            for (const order of completedTodayOrders) {
-                const items = order.items || order.orderItems || [];
-                for (const item of items) {
-                    const sellingPrice = parseFloat(item.price || item.priceAtPurchase || 0);
-                    const costPrice = parseFloat(item.costPrice || sellingPrice * 0.9);
-                    const qty = parseInt(item.quantity || 1);
-                    todayProfit += (sellingPrice - costPrice) * qty;
-                }
-            }
+            const todayOrders      = stats.itemsToday          || 0;
+            const todayRevenue     = stats.completedAmountToday || 0;
+            const todayProfit      = stats.profitToday          || 0;
 
-            // Update UI elements
             const statsElements = {
-                'headerTodayOrders': todayOrders.length,
-                'headerTodayRevenue': `₵${todayRevenue.toFixed(2)}`,
-                'headerTodayProfit': `₵${todayProfit.toFixed(2)}`
+                'headerTodayOrders':  todayOrders,
+                'headerTodayRevenue': `₵${parseFloat(todayRevenue).toFixed(2)}`,
+                'headerTodayProfit':  `₵${parseFloat(todayProfit).toFixed(2)}`
             };
 
             for (const [id, value] of Object.entries(statsElements)) {
@@ -274,7 +253,6 @@ const AdminCommon = (function() {
                 if (el) el.textContent = value;
             }
 
-            // Update profit color based on value
             const profitEl = document.getElementById('headerTodayProfit');
             if (profitEl) {
                 if (todayProfit < 0) {
@@ -285,10 +263,8 @@ const AdminCommon = (function() {
                     profitEl.classList.add('text-green-600');
                 }
             }
-
         } catch (error) {
-            console.error(error);
-            // Stats load failed silently
+            console.error('Header stats load failed:', error);
         }
     }
 

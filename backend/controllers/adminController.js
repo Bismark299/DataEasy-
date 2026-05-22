@@ -31,124 +31,110 @@ function getClientIp(req) {
  */
 exports.getStats = async (req, res) => {
     try {
-        // Use Ghana time (GMT/UTC+0) for "today" calculation
         const now = new Date();
-        // Ghana is GMT+0, so we use UTC directly
         const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
         const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
 
-        // Get total wallet balance across all users
-        const totalWalletBalance = await Wallet.sum('balance') || 0;
-
-        // Get today's orders (all statuses)
-        const todayAllOrders = await Order.findAll({
-            where: { 
-                createdAt: { 
-                    [Op.gte]: todayStart,
-                    [Op.lte]: todayEnd
-                }
-            }
-        });
-
-        // Calculate today's stats
-        let itemsToday = 0;
-        let amountToday = 0;
-        let bundleToday = 0;
-        let profitToday = 0;
-        let completedItemsToday = 0;
-        let completedAmountToday = 0;
-        let completedBundleToday = 0;
-        
-        // Per-network stats for today
-        let networkStatsToday = {
-            MTN: { items: 0, amount: 0, bundle: 0, pending: 0, completed: 0 },
-            Telecel: { items: 0, amount: 0, bundle: 0, pending: 0, completed: 0 },
-            AirtelTigo: { items: 0, amount: 0, bundle: 0, pending: 0, completed: 0 }
-        };
-
-        todayAllOrders.forEach(order => {
-            const items = order.items || [];
-            const network = order.network || 'MTN';
-            
-            items.forEach(item => {
-                const itemPrice = parseFloat(item.price) || 0;
-                const itemCost = parseFloat(item.costPrice) || 0;
-                const itemStatus = (item.deliveryStatus || order.deliveryStatus || 'Pending').toLowerCase();
-                
-                // Parse bundle capacity
-                let itemBundle = 0;
-                const match = (item.packageName || item.data || '').match(/(\d+)\s*(GB|MB)/i);
-                if (match) {
-                    itemBundle = match[2].toUpperCase() === 'GB' 
-                        ? parseFloat(match[1]) 
-                        : parseFloat(match[1]) / 1024;
-                }
-                
-                // Count all items for today
-                itemsToday++;
-                amountToday += itemPrice;
-                bundleToday += itemBundle;
-                
-                // Network-specific counts
-                if (networkStatsToday[network]) {
-                    networkStatsToday[network].items++;
-                    networkStatsToday[network].amount += itemPrice;
-                    networkStatsToday[network].bundle += itemBundle;
-                    
-                    if (itemStatus === 'pending') {
-                        networkStatsToday[network].pending++;
-                    } else if (itemStatus === 'delivered' || itemStatus === 'completed') {
-                        networkStatsToday[network].completed++;
-                    }
-                }
-                
-                // Completed items stats
-                if (itemStatus === 'delivered' || itemStatus === 'completed') {
-                    completedItemsToday++;
-                    completedAmountToday += itemPrice;
-                    completedBundleToday += itemBundle;
-                    profitToday += (itemPrice - itemCost);
-                }
-            });
-        });
-
+        // Run all queries in parallel using SQL aggregates — no in-memory looping
         const [
+            totalWalletBalance,
             totalUsers,
             totalOrders,
             pendingOrders,
-            processingOrders
+            processingOrders,
+            itemStatsRows
         ] = await Promise.all([
+            Wallet.sum('balance'),
             User.count(),
             Order.count(),
             Order.count({ where: { deliveryStatus: 'Pending' } }),
-            Order.count({ where: { deliveryStatus: 'Processing' } })
+            Order.count({ where: { deliveryStatus: 'Processing' } }),
+            // Aggregate item-level stats directly in PostgreSQL via JSONB expansion
+            sequelize.query(`
+                SELECT
+                    o.network,
+                    COUNT(item)::int                                                      AS "itemsTotal",
+                    COALESCE(SUM((item->>'price')::numeric), 0)                          AS "amountTotal",
+                    COALESCE(SUM(
+                        CASE WHEN lower(COALESCE(item->>'deliveryStatus', o."deliveryStatus"::text)) IN ('delivered','completed')
+                             THEN (item->>'price')::numeric ELSE 0 END
+                    ), 0)                                                                 AS "completedAmount",
+                    COALESCE(SUM(
+                        CASE WHEN lower(COALESCE(item->>'deliveryStatus', o."deliveryStatus"::text)) IN ('delivered','completed')
+                             THEN COALESCE((item->>'price')::numeric, 0)
+                                - COALESCE((item->>'costPrice')::numeric, 0) ELSE 0 END
+                    ), 0)                                                                 AS "profit",
+                    COALESCE(SUM(
+                        CASE WHEN lower(COALESCE(item->>'deliveryStatus', o."deliveryStatus"::text)) IN ('delivered','completed')
+                             THEN 1 ELSE 0 END
+                    ), 0)::int                                                            AS "completedItems",
+                    COALESCE(SUM(
+                        CASE WHEN lower(COALESCE(item->>'deliveryStatus', o."deliveryStatus"::text)) = 'pending'
+                             THEN 1 ELSE 0 END
+                    ), 0)::int                                                            AS "pendingItems",
+                    COALESCE(SUM(
+                        REGEXP_REPLACE(COALESCE(item->>'data', item->>'packageName', ''), '[^0-9.]', '', 'g')::numeric *
+                        CASE WHEN item->>'data' ILIKE '%MB' THEN 1.0/1024 ELSE 1 END
+                    ), 0)                                                                 AS "bundleTotal"
+                FROM orders o
+                CROSS JOIN jsonb_array_elements(o.items) AS item
+                WHERE o."createdAt" >= :todayStart AND o."createdAt" <= :todayEnd
+                GROUP BY o.network
+            `, {
+                replacements: { todayStart, todayEnd },
+                type: sequelize.QueryTypes.SELECT
+            })
         ]);
+
+        // Aggregate across networks
+        const networkStatsToday = {
+            MTN:        { items: 0, amount: 0, bundle: 0, pending: 0, completed: 0 },
+            Telecel:    { items: 0, amount: 0, bundle: 0, pending: 0, completed: 0 },
+            AirtelTigo: { items: 0, amount: 0, bundle: 0, pending: 0, completed: 0 }
+        };
+        let itemsToday = 0, amountToday = 0, bundleToday = 0;
+        let profitToday = 0, completedItemsToday = 0, completedAmountToday = 0;
+
+        for (const row of itemStatsRows) {
+            const items    = row.itemsTotal      || 0;
+            const amount   = parseFloat(row.amountTotal)    || 0;
+            const bundle   = parseFloat(row.bundleTotal)    || 0;
+            const profit   = parseFloat(row.profit)         || 0;
+            const compAmt  = parseFloat(row.completedAmount)|| 0;
+            const compItems= row.completedItems  || 0;
+
+            itemsToday          += items;
+            amountToday         += amount;
+            bundleToday         += bundle;
+            profitToday         += profit;
+            completedItemsToday += compItems;
+            completedAmountToday+= compAmt;
+
+            if (networkStatsToday[row.network]) {
+                networkStatsToday[row.network].items     = items;
+                networkStatsToday[row.network].amount    = Math.round(amount  * 100) / 100;
+                networkStatsToday[row.network].bundle    = Math.round(bundle  * 100) / 100;
+                networkStatsToday[row.network].pending   = row.pendingItems   || 0;
+                networkStatsToday[row.network].completed = compItems;
+            }
+        }
 
         res.json({
             success: true,
             stats: {
-                // Totals
                 totalUsers,
                 totalOrders,
-                totalWalletBalance: Math.round(parseFloat(totalWalletBalance) * 100) / 100,
+                totalWalletBalance:   Math.round(parseFloat(totalWalletBalance || 0) * 100) / 100,
                 pendingOrders,
                 processingOrders,
-                
-                // Today's stats (all orders placed today)
                 itemsToday,
-                amountToday: Math.round(amountToday * 100) / 100,
-                bundleToday: Math.round(bundleToday * 100) / 100,
-                
-                // Today's completed only
+                amountToday:          Math.round(amountToday          * 100) / 100,
+                bundleToday:          Math.round(bundleToday          * 100) / 100,
                 completedItemsToday,
                 completedAmountToday: Math.round(completedAmountToday * 100) / 100,
-                completedBundleToday: Math.round(completedBundleToday * 100) / 100,
-                profitToday: Math.round(profitToday * 100) / 100,
-                
-                // Per-network today
+                completedBundleToday: 0,
+                profitToday:          Math.round(profitToday          * 100) / 100,
                 networkStatsToday,
-                
-                // Ghana date for display
                 ghanaDate: todayStart.toISOString().split('T')[0]
             }
         });

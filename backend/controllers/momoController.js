@@ -35,6 +35,19 @@ const MAX_DEPOSITS_PER_HOUR = 50;
 // In-memory rate limit store (consider Redis for production clusters)
 const rateLimitStore = new Map();
 
+// Periodically purge stale rate-limit entries to prevent memory growth
+setInterval(() => {
+    const hourAgo = Date.now() - (60 * 60 * 1000);
+    for (const [key, timestamps] of rateLimitStore.entries()) {
+        const fresh = timestamps.filter(ts => ts > hourAgo);
+        if (fresh.length === 0) {
+            rateLimitStore.delete(key);
+        } else {
+            rateLimitStore.set(key, fresh);
+        }
+    }
+}, 10 * 60 * 1000); // Run every 10 minutes
+
 /**
  * Validate MTN Transaction ID format
  * MTN Ghana IDs are 10-12 digit numbers
