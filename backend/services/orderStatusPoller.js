@@ -11,8 +11,9 @@
 
 const logger = require('../utils/logger');
 const mcbisProvider = require('./mcbisProvider');
-const { Order, Setting } = require('../models');
+const { Order, Setting, Wallet, Transaction } = require('../models');
 const { Op } = require('sequelize');
+const { sequelize } = require('../config/database');
 
 // Track active polling jobs
 const activePolls = new Map();
@@ -222,52 +223,119 @@ async function pollLoop(pollKey) {
 }
 
 /**
- * Update order item delivery status in database
+ * Update order item delivery status in database.
+ * Uses a row-level lock to prevent concurrent JSONB overwrites when multiple
+ * items in the same order resolve at the same time.
+ * Automatically refunds the wallet when an item is permanently marked Failed.
  */
-async function updateOrderItemStatus(orderId, itemIndex, status, reference, error = null) {
+async function updateOrderItemStatus(orderId, itemIndex, status, reference, errorMsg = null) {
+    const t = await sequelize.transaction();
     try {
-        const order = await Order.findByPk(orderId);
+        // Lock the order row so concurrent calls for the same order serialize
+        const order = await Order.findByPk(orderId, {
+            transaction: t,
+            lock: t.LOCK.UPDATE
+        });
+
         if (!order) {
+            await t.rollback();
             logger.error('Order not found for status update', { orderId });
             return false;
         }
 
         const items = [...(order.items || [])];
         if (!items[itemIndex]) {
+            await t.rollback();
             logger.error('Order item not found', { orderId, itemIndex });
             return false;
         }
+
+        const previousStatus = items[itemIndex].deliveryStatus;
 
         // Update specific item
         items[itemIndex] = {
             ...items[itemIndex],
             deliveryStatus: status,
             providerReference: reference,
-            deliveredAt: status === 'Delivered' ? new Date().toISOString() : null,
-            deliveryError: error
+            deliveredAt: status === 'Delivered' ? new Date().toISOString() : items[itemIndex].deliveredAt,
+            deliveryError: errorMsg
         };
 
         // Calculate overall order status
         const allDelivered = items.every(item => item.deliveryStatus === 'Delivered');
-        const anyFailed = items.some(item => item.deliveryStatus === 'Failed');
-        const allPending = items.every(item => 
+        const anyFailed    = items.some(item => item.deliveryStatus === 'Failed');
+        const allTerminal  = items.every(item =>
+            item.deliveryStatus === 'Delivered' || item.deliveryStatus === 'Failed'
+        );
+        const allPending   = items.every(item =>
             item.deliveryStatus === 'Pending' || item.deliveryStatus === 'Processing'
         );
 
         let overallStatus = 'Processing';
         if (allDelivered) {
             overallStatus = 'Delivered';
-        } else if (anyFailed && !allPending) {
-            overallStatus = 'Partially Delivered'; // Some delivered, some failed
-        } else if (anyFailed && allPending) {
+        } else if (anyFailed && allTerminal) {
             overallStatus = 'Failed';
+        } else if (anyFailed) {
+            overallStatus = 'Partially Delivered';
         }
 
         await order.update({
             items,
             deliveryStatus: overallStatus,
             processedAt: allDelivered ? new Date() : order.processedAt
-        });
+        }, { transaction: t });
+
+        // ── Automatic refund on permanent failure ──────────────────────────
+        // Only refund if this item is newly transitioning to Failed
+        // (not already Failed — prevents double-refund on duplicate calls)
+        if (status === 'Failed' && previousStatus !== 'Failed') {
+            const refundAmount = Math.round(parseFloat(items[itemIndex].price || 0) * 100) / 100;
+
+            if (refundAmount > 0) {
+                try {
+                    // Lock user's wallet row before crediting
+                    const wallet = await Wallet.findOne({
+                        where: { userId: order.userId },
+                        transaction: t,
+                        lock: t.LOCK.UPDATE
+                    });
+
+                    if (wallet) {
+                        await wallet.credit(refundAmount, { transaction: t });
+
+                        await Transaction.create({
+                            userId: order.userId,
+                            type: 'credit',
+                            amount: refundAmount,
+                            balanceBefore: wallet.balance - refundAmount,
+                            balanceAfter: wallet.balance,
+                            description: `Refund for failed delivery — Order #${order.orderId} item ${itemIndex + 1}`,
+                            reference: `REFUND-${order.orderId}-${itemIndex}`,
+                            paymentMethod: 'wallet',
+                            status: 'completed',
+                            orderId: order.id
+                        }, { transaction: t });
+
+                        logger.info('Wallet refund issued for failed delivery', {
+                            orderId: order.orderId,
+                            itemIndex,
+                            refundAmount,
+                            userId: order.userId
+                        });
+                    } else {
+                        logger.error('Wallet not found for refund', { userId: order.userId, orderId: order.orderId });
+                    }
+                } catch (refundErr) {
+                    // Log but don't block the status update commit
+                    logger.error('Refund failed — status will still be marked Failed', {
+                        orderId: order.orderId, itemIndex, error: refundErr.message
+                    });
+                }
+            }
+        }
+
+        await t.commit();
 
         logger.info('Order status updated', {
             orderId: order.orderId,
@@ -278,11 +346,12 @@ async function updateOrderItemStatus(orderId, itemIndex, status, reference, erro
 
         return true;
 
-    } catch (error) {
+    } catch (err) {
+        await t.rollback();
         logger.error('Failed to update order status', {
             orderId,
             itemIndex,
-            error: error.message
+            error: err.message
         });
         return false;
     }
