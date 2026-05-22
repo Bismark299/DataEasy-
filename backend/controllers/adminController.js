@@ -953,9 +953,10 @@ exports.adjustWallet = async (req, res) => {
         // Commit transaction
         await t.commit();
 
-        // Invalidate cached users list so balance reflects immediately
+        // Invalidate all caches that show wallet/balance data
         invalidateCache('/admin/users');
         invalidateCache('/admin/transactions');
+        invalidateCache('/admin/stats');  // clears total wallet balance in header
 
         res.json({
             success: true,

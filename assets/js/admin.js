@@ -242,13 +242,13 @@
             try {
                 const response = await DataEasyAPI.Admin.adjustWallet(userId, Math.abs(amount), type, description);
                 if (response.success) {
-                    Toast.success(response.message);
-                    return true;
+                    // Return the server-confirmed balance, not a locally computed guess
+                    return { success: true, newBalance: response.newBalance };
                 }
             } catch (e) {
                 console.error(e);
                 Toast.error(e.message || 'Failed to adjust wallet');
-                return false;
+                return { success: false };
             }
         }
 
@@ -260,7 +260,7 @@
             wallet.balance = Math.max(0, (wallet.balance || 0) - Math.abs(amount));
         }
         Storage.set('wallet', wallet);
-        return true;
+        return { success: true, newBalance: wallet.balance };
     }
 
     async function updateOrderStatus(orderId, newStatus, userEmail = null) {
@@ -916,19 +916,27 @@
     }
 
     async function adjustWallet(userIdOrEmail, email) {
-        // Support both userId (for API) and email (for localStorage)
         const userId = userIdOrEmail;
-        const userEmail = email || userIdOrEmail;
-        
-        const wallet = getUserWallet(userEmail);
-        const currentBalance = (wallet.balance || 0).toFixed(2);
-        
-        // Create modal dialog instead of prompt
+
+        // Fetch live balance from the API so the modal always shows the real current value
+        let currentBalance = '...';
+        try {
+            const userResp = await DataEasyAPI.Admin.getUser(userId);
+            const liveBalance = userResp?.user?.wallet?.balance ?? userResp?.user?.walletBalance;
+            if (liveBalance !== undefined && liveBalance !== null) {
+                currentBalance = parseFloat(liveBalance).toFixed(2);
+            }
+        } catch (_) {
+            // Fall back to whatever was rendered on the card
+            const wallet = getUserWallet(email || userIdOrEmail);
+            currentBalance = (wallet.balance || 0).toFixed(2);
+        }
+
         const modalHtml = `
             <div id="wallet-adjust-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                 <div class="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
                     <h3 class="text-lg font-semibold text-white mb-4">Adjust Wallet Balance</h3>
-                    <p class="text-gray-400 mb-4">Current balance: <span class="text-white font-bold">GH₵${currentBalance}</span></p>
+                    <p class="text-gray-400 mb-4">Current balance: <span id="wallet-current-bal" class="text-white font-bold">GH₵${currentBalance}</span></p>
                     <div class="mb-4">
                         <label class="block text-gray-400 text-sm mb-2">Amount (positive to add, negative to subtract)</label>
                         <input type="number" id="wallet-adjust-amount" step="0.01" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500" placeholder="e.g. 50 or -20">
@@ -940,58 +948,43 @@
                 </div>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         const modal = document.getElementById('wallet-adjust-modal');
         const input = document.getElementById('wallet-adjust-amount');
         input.focus();
-        
+
         return new Promise((resolve) => {
             const cleanup = () => modal.remove();
-            
-            document.getElementById('wallet-adjust-cancel').onclick = () => {
-                cleanup();
-                resolve();
-            };
-            
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    cleanup();
-                    resolve();
-                }
-            };
-            
+
+            document.getElementById('wallet-adjust-cancel').onclick = () => { cleanup(); resolve(); };
+            modal.onclick = (e) => { if (e.target === modal) { cleanup(); resolve(); } };
+
             const processAdjustment = async () => {
                 const amount = input.value;
-                if (!amount) {
-                    cleanup();
-                    resolve();
-                    return;
-                }
-                
+                if (!amount) { cleanup(); resolve(); return; }
+
                 const numAmount = parseFloat(amount);
-                if (isNaN(numAmount)) {
-                    Toast.error('Invalid amount');
-                    return;
-                }
-                
+                if (isNaN(numAmount)) { Toast.error('Invalid amount'); return; }
+
                 cleanup();
-                
+
                 const type = numAmount >= 0 ? 'credit' : 'debit';
                 const description = numAmount >= 0 ? 'Admin credit' : 'Admin debit';
-                
-                const success = await updateUserWallet(userId, numAmount, type, description);
-                
-                if (success) {
-                    const newBalance = type === 'credit' 
-                        ? (wallet.balance || 0) + Math.abs(numAmount) 
-                        : Math.max(0, (wallet.balance || 0) - Math.abs(numAmount));
-                    Toast.success(`Wallet updated! New balance: GH₵${newBalance.toFixed(2)}`);
-                    initUsersPage();
+
+                const result = await updateUserWallet(userId, numAmount, type, description);
+
+                if (result.success) {
+                    // Use the server-confirmed balance, not a locally computed guess
+                    const confirmedBalance = result.newBalance !== undefined
+                        ? parseFloat(result.newBalance).toFixed(2)
+                        : 'updated';
+                    Toast.success(`Wallet updated! New balance: GH₵${confirmedBalance}`);
+                    initUsersPage(); // Reload the user list so the card reflects the new balance
                 }
                 resolve();
             };
-            
+
             document.getElementById('wallet-adjust-confirm').onclick = processAdjustment;
             input.onkeydown = (e) => {
                 if (e.key === 'Enter') processAdjustment();
