@@ -501,19 +501,6 @@ const startServer = async () => {
                 AND (description LIKE 'MoMo%' OR reference LIKE 'MOMO-%');
             `).catch(() => {});
             
-            // Rebuild lookup_users if it still has the old 'username' column
-            await sequelize.query(`
-                DO $$
-                BEGIN
-                    IF EXISTS (
-                        SELECT 1 FROM information_schema.columns
-                        WHERE table_name = 'lookup_users' AND column_name = 'username'
-                    ) THEN
-                        DROP TABLE lookup_users;
-                    END IF;
-                END $$;
-            `).catch(() => {});
-
             console.log('✅ Startup migrations completed');
         } catch (error) {
             console.log('⚠️ Startup migrations skipped:', error.message);
