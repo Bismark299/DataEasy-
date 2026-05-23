@@ -22,6 +22,7 @@ const SettlementAccount = require('./SettlementAccount');
 const Payout = require('./Payout');
 const ReconciliationRecord = require('./ReconciliationRecord');
 const ApiKey = require('./ApiKey');
+const LookupUser = require('./LookupUser');
 
 // Define associations
 
@@ -220,5 +221,6 @@ module.exports = {
     SettlementAccount,
     Payout,
     ReconciliationRecord,
-    ApiKey
+    ApiKey,
+    LookupUser
 };

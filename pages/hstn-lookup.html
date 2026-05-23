@@ -550,6 +550,10 @@
     </div>
     <div class="nav-right">
         <div class="live-pill"><span class="dot"></span> Secure Proxy</div>
+        <span id="nav-username" style="font-size:12px;color:var(--text-muted);padding:0 4px;"></span>
+        <button class="icon-btn" onclick="doLogout()" title="Sign out" style="color:var(--text-muted);">
+            <i class="fas fa-arrow-right-from-bracket"></i>
+        </button>
         <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
             <i class="fas fa-moon"></i>
         </button>
@@ -684,14 +688,61 @@
 <div class="toast" id="toast"><i class="fas fa-check-circle"></i> <span id="toast-msg"></span></div>
 
     <script>
+        // ── Auth guard ────────────────────────────────────────────────────────
+        const LOOKUP_LOGIN_URL = '/hstn-lookup-login';
+        const _rawToken = localStorage.getItem('lookup_token');
+        (function guardAuth() {
+            if (!_rawToken) { window.location.replace(LOOKUP_LOGIN_URL); return; }
+            try {
+                const payload = JSON.parse(atob(_rawToken.split('.')[1]));
+                if (payload.type !== 'lookup' || payload.exp * 1000 <= Date.now()) {
+                    localStorage.removeItem('lookup_token');
+                    localStorage.removeItem('lookup_username');
+                    window.location.replace(LOOKUP_LOGIN_URL);
+                }
+            } catch (_) {
+                localStorage.removeItem('lookup_token');
+                window.location.replace(LOOKUP_LOGIN_URL);
+            }
+        })();
+
+        function authHeaders(extra) {
+            return Object.assign({ 'Authorization': 'Bearer ' + _rawToken }, extra || {});
+        }
+
+        function handleUnauthorized(json) {
+            if (json && json.error && (json.error.toLowerCase().includes('session') || json.error.toLowerCase().includes('login'))) {
+                localStorage.removeItem('lookup_token');
+                localStorage.removeItem('lookup_username');
+                window.location.replace(LOOKUP_LOGIN_URL);
+                return true;
+            }
+            return false;
+        }
+
+        function doLogout() {
+            localStorage.removeItem('lookup_token');
+            localStorage.removeItem('lookup_username');
+            window.location.replace(LOOKUP_LOGIN_URL);
+        }
+
+        // Show logged-in username in nav
+        const _navUsername = localStorage.getItem('lookup_username');
+        if (_navUsername) {
+            const el = document.getElementById('nav-username');
+            if (el) el.textContent = _navUsername;
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         const API_BASE = window.location.origin + '/api/lookup';
         let lastBulkData = null;
 
         /* ---- Load health on page open ---- */
         (async function loadHealth() {
             try {
-                const res = await fetch(API_BASE + '/health');
+                const res = await fetch(API_BASE + '/health', { headers: authHeaders() });
                 const json = await res.json();
+                if (!res.ok && handleUnauthorized(json)) return;
                 if (!json.success || !json.health) return;
                 const h = json.health;
                 var statusCls = h.status === 'ok' ? 'ok' : 'bad';
@@ -864,10 +915,11 @@
             try {
                 const res = await fetch(API_BASE + '/search', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ phone })
                 });
                 const json = await res.json();
+                if (!res.ok && handleUnauthorized(json)) return;
 
                 if (!json.success) {
                     container.innerHTML = '<div class="error-msg"><i class="fas fa-exclamation-circle"></i> ' + json.error + '</div>';
@@ -937,10 +989,11 @@
                 for (const chunk of chunks) {
                     const res = await fetch(API_BASE + '/bulk-search', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: authHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify({ phones: chunk })
                     });
                     const json = await res.json();
+                    if (!res.ok && handleUnauthorized(json)) return;
 
                     if (!json.success) {
                         // Mark all in this chunk as errors

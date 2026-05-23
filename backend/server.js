@@ -379,6 +379,11 @@ app.get('/ad', (req, res) => {
     res.sendFile(path.join(frontendPath, 'ad.html'));
 });
 
+// HSTN Lookup dedicated login / register page
+app.get('/hstn-lookup-login', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'pages', 'hstn-lookup-login.html'));
+});
+
 // Secret standalone lookup page - accessible only via direct URL
 app.get('/hstn-lookup', (req, res) => {
     res.sendFile(path.join(frontendPath, 'pages', 'hstn-lookup.html'));

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>HSTN Lookup — Sign In</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { overflow-x: hidden; }
+
+        :root {
+            --mtn:         #FFCB05;
+            --mtn-dark:    #e6b800;
+            --mtn-light:   #FFD740;
+            --mtn-glow:    rgba(255,203,5,0.18);
+            --mtn-glow-sm: rgba(255,203,5,0.10);
+            --bg:          #0b0b0d;
+            --surface:     #141416;
+            --surface-2:   #1c1c1f;
+            --surface-3:   #242428;
+            --border:      #2a2a2f;
+            --border-hover:#3e3e46;
+            --border-mtn:  rgba(255,203,5,0.25);
+            --text:        #f0f0f2;
+            --text-muted:  #9090a0;
+            --text-dim:    #55555f;
+            --green:       #22c55e;
+            --red:         #ef4444;
+            --red-bg:      rgba(239,68,68,0.12);
+            --radius:      14px;
+            --radius-sm:   9px;
+            --shadow:      0 8px 32px rgba(0,0,0,0.45);
+            --shadow-mtn:  0 4px 20px rgba(255,203,5,0.22);
+            --transition:  0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── TOP STRIPE ── */
+        .top-stripe {
+            height: 3px;
+            background: linear-gradient(90deg, #FFCB05 0%, #FFD740 40%, #e6b800 100%);
+            flex-shrink: 0;
+        }
+
+        /* ── NAVBAR ── */
+        .navbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 28px;
+            display: flex;
+            align-items: center;
+            height: 64px;
+            flex-shrink: 0;
+        }
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .brand-badge {
+            width: 42px; height: 42px;
+            background: var(--mtn);
+            border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow-mtn);
+            flex-shrink: 0;
+            position: relative; overflow: hidden;
+        }
+        .brand-badge::after {
+            content: ''; position: absolute;
+            top: -6px; right: -6px;
+            width: 22px; height: 22px;
+            background: rgba(255,255,255,0.22); border-radius: 50%;
+        }
+        .brand-badge i { font-size: 17px; color: #000; z-index: 1; }
+        .brand-text .name { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; }
+        .brand-text .tagline { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+
+        /* ── CENTER STAGE ── */
+        .stage {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        /* ── CARD HEADER ── */
+        .card-header {
+            padding: 28px 28px 0;
+            text-align: center;
+        }
+        .lock-icon {
+            width: 56px; height: 56px;
+            background: var(--mtn-glow);
+            border: 1px solid var(--border-mtn);
+            border-radius: 14px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 22px; color: var(--mtn);
+            margin-bottom: 16px;
+        }
+        .card-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+        .card-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+
+        /* ── TABS ── */
+        .tab-bar {
+            display: flex;
+            margin: 24px 28px 0;
+            background: var(--surface-2);
+            border-radius: 10px;
+            padding: 4px;
+            gap: 4px;
+        }
+        .tab {
+            flex: 1; padding: 9px 0;
+            border-radius: 7px; border: none; cursor: pointer;
+            font-size: 13px; font-weight: 600; font-family: inherit;
+            background: transparent; color: var(--text-muted);
+            transition: var(--transition);
+        }
+        .tab.active { background: var(--mtn); color: #000; box-shadow: var(--shadow-mtn); }
+        .tab:not(.active):hover { color: var(--text); background: var(--surface-3); }
+
+        /* ── FORMS ── */
+        .panels { padding: 24px 28px 28px; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        .field { margin-bottom: 16px; }
+        .field label {
+            display: block; font-size: 11px; font-weight: 600;
+            color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px;
+            margin-bottom: 7px;
+        }
+        .input-wrap { position: relative; }
+        .input-wrap i {
+            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+            font-size: 13px; color: var(--text-dim); pointer-events: none;
+        }
+        .field input {
+            width: 100%;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 11px 14px 11px 38px;
+            color: var(--text); font-size: 14px; font-family: inherit;
+            transition: var(--transition); outline: none;
+        }
+        .field input:focus {
+            border-color: var(--mtn);
+            box-shadow: 0 0 0 3px var(--mtn-glow);
+        }
+        .field input::placeholder { color: var(--text-dim); }
+
+        .toggle-pw {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            color: var(--text-dim); font-size: 13px; padding: 2px 4px;
+            transition: color var(--transition);
+        }
+        .toggle-pw:hover { color: var(--text-muted); }
+
+        .hint { font-size: 11px; color: var(--text-dim); margin-top: 5px; }
+
+        .btn {
+            width: 100%; padding: 13px;
+            border-radius: var(--radius-sm); border: none;
+            font-size: 14px; font-weight: 700; font-family: inherit;
+            cursor: pointer; transition: var(--transition);
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin-top: 4px;
+        }
+        .btn-primary { background: var(--mtn); color: #000; box-shadow: var(--shadow-mtn); }
+        .btn-primary:hover:not(:disabled) { background: var(--mtn-light); box-shadow: 0 6px 24px rgba(255,203,5,0.40); transform: translateY(-1px); }
+        .btn-primary:active:not(:disabled) { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .error-box {
+            background: var(--red-bg); border: 1px solid rgba(239,68,68,0.22);
+            border-radius: var(--radius-sm); padding: 11px 14px;
+            font-size: 13px; color: var(--red);
+            display: flex; align-items: center; gap: 9px;
+            margin-bottom: 16px; display: none;
+        }
+        .error-box.show { display: flex; }
+
+        /* ── FOOTER ── */
+        footer {
+            text-align: center; padding: 20px;
+            font-size: 11px; color: var(--text-dim);
+            border-top: 1px solid var(--border); flex-shrink: 0;
+        }
+        footer span { color: var(--mtn); font-weight: 600; }
+
+        /* ── SPINNER ── */
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(0,0,0,0.25);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.65s linear infinite;
+            display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── SUCCESS FLASH ── */
+        .success-box {
+            background: rgba(34,197,94,0.10); border: 1px solid rgba(34,197,94,0.22);
+            border-radius: var(--radius-sm); padding: 11px 14px;
+            font-size: 13px; color: var(--green);
+            display: flex; align-items: center; gap: 9px;
+            margin-bottom: 16px; display: none;
+        }
+        .success-box.show { display: flex; }
+    </style>
+</head>
+<body>
+    <div class="top-stripe"></div>
+
+    <nav class="navbar">
+        <div class="brand">
+            <div class="brand-badge"><i class="fas fa-bolt"></i></div>
+            <div class="brand-text">
+                <div class="name">HSTN Lookup</div>
+                <div class="tagline">Allocation Intelligence</div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="stage">
+        <div class="card">
+            <div class="card-header">
+                <div class="lock-icon"><i class="fas fa-shield-halved"></i></div>
+                <div class="card-title">Access Required</div>
+                <div class="card-sub">Sign in or create an account to use the HSTN Allocation Lookup.</div>
+            </div>
+
+            <div class="tab-bar">
+                <button class="tab active" onclick="switchTab('login')">Sign In</button>
+                <button class="tab" onclick="switchTab('register')">Create Account</button>
+            </div>
+
+            <div class="panels">
+
+                <!-- ── LOGIN ── -->
+                <div class="panel active" id="panel-login">
+                    <div class="error-box" id="login-error"><i class="fas fa-circle-exclamation"></i> <span id="login-error-msg"></span></div>
+                    <form onsubmit="doLogin(); return false;" autocomplete="on">
+                        <div class="field">
+                            <label>Username</label>
+                            <div class="input-wrap">
+                                <i class="fas fa-user"></i>
+                                <input type="text" id="login-username" name="username" placeholder="your username" autocomplete="username" autocapitalize="none">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>Password</label>
+                            <div class="input-wrap">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password">
+                                <button class="toggle-pw" onclick="togglePw('login-password', this)" tabindex="-1" type="button"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="login-btn" type="submit">
+                            <span class="spinner" id="login-spinner"></span>
+                            <span id="login-label"><i class="fas fa-arrow-right-to-bracket"></i> Sign In</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- ── REGISTER ── -->
+                <div class="panel" id="panel-register">
+                    <div class="error-box" id="reg-error"><i class="fas fa-circle-exclamation"></i> <span id="reg-error-msg"></span></div>
+                    <div class="success-box" id="reg-success"><i class="fas fa-circle-check"></i> <span id="reg-success-msg"></span></div>
+                    <form onsubmit="doRegister(); return false;" autocomplete="on">
+                        <div class="field">
+                            <label>Username</label>
+                            <div class="input-wrap">
+                                <i class="fas fa-user"></i>
+                                <input type="text" id="reg-username" name="username" placeholder="choose a username" autocomplete="username" autocapitalize="none">
+                            </div>
+                            <div class="hint">Letters, numbers, _ . - only. Min 3 characters.</div>
+                        </div>
+                        <div class="field">
+                            <label>Password</label>
+                            <div class="input-wrap">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="reg-password" name="password" placeholder="min 6 characters" autocomplete="new-password">
+                                <button class="toggle-pw" onclick="togglePw('reg-password', this)" tabindex="-1" type="button"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label>Confirm Password</label>
+                            <div class="input-wrap">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="reg-confirm" name="confirm" placeholder="repeat password" autocomplete="new-password">
+                                <button class="toggle-pw" onclick="togglePw('reg-confirm', this)" tabindex="-1" type="button"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="reg-btn" type="submit">
+                            <span class="spinner" id="reg-spinner"></span>
+                            <span id="reg-label"><i class="fas fa-user-plus"></i> Create Account</span>
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <footer>Powered by <span>DataEasy+</span></footer>
+
+    <script>
+        // If already logged in, go straight to the lookup page
+        (function() {
+            const token = localStorage.getItem('lookup_token');
+            if (token) {
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    if (payload.exp * 1000 > Date.now() && payload.type === 'lookup') {
+                        window.location.replace('/hstn-lookup');
+                    }
+                } catch (_) {}
+            }
+        })();
+
+        const API = window.location.origin + '/api/lookup';
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach((t, i) => {
+                t.classList.toggle('active', (i === 0) === (tab === 'login'));
+            });
+            document.getElementById('panel-login').classList.toggle('active', tab === 'login');
+            document.getElementById('panel-register').classList.toggle('active', tab === 'register');
+        }
+
+        function togglePw(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const isText = input.type === 'text';
+            input.type = isText ? 'password' : 'text';
+            btn.querySelector('i').className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
+        }
+
+        function setLoading(prefix, loading) {
+            const btn = document.getElementById(prefix + '-btn');
+            const spinner = document.getElementById(prefix + '-spinner');
+            const label = document.getElementById(prefix + '-label');
+            btn.disabled = loading;
+            spinner.style.display = loading ? 'block' : 'none';
+            label.style.opacity = loading ? '0' : '1';
+        }
+
+        function showError(prefix, msg) {
+            const box = document.getElementById(prefix + '-error');
+            document.getElementById(prefix + '-error-msg').textContent = msg;
+            box.classList.add('show');
+        }
+
+        function clearError(prefix) {
+            document.getElementById(prefix + '-error').classList.remove('show');
+        }
+
+        async function doLogin() {
+            clearError('login');
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            if (!username || !password) { showError('login', 'Please enter your username and password.'); return; }
+
+            setLoading('login', true);
+            try {
+                const resp = await fetch(API + '/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await resp.json();
+                if (!data.success) { showError('login', data.error || 'Login failed'); return; }
+                localStorage.setItem('lookup_token', data.token);
+                localStorage.setItem('lookup_username', data.username);
+                window.location.replace('/hstn-lookup');
+            } catch (e) {
+                showError('login', 'Network error — please try again.');
+            } finally {
+                setLoading('login', false);
+            }
+        }
+
+        async function doRegister() {
+            clearError('reg');
+            document.getElementById('reg-success').classList.remove('show');
+            const username = document.getElementById('reg-username').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const confirm  = document.getElementById('reg-confirm').value;
+
+            if (!username || !password || !confirm) { showError('reg', 'All fields are required.'); return; }
+            if (password !== confirm) { showError('reg', 'Passwords do not match.'); return; }
+            if (password.length < 6)  { showError('reg', 'Password must be at least 6 characters.'); return; }
+
+            setLoading('reg', true);
+            try {
+                const resp = await fetch(API + '/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await resp.json();
+                if (!data.success) { showError('reg', data.error || 'Registration failed'); return; }
+                localStorage.setItem('lookup_token', data.token);
+                localStorage.setItem('lookup_username', data.username);
+                window.location.replace('/hstn-lookup');
+            } catch (e) {
+                showError('reg', 'Network error — please try again.');
+            } finally {
+                setLoading('reg', false);
+            }
+        }
+
+    </script>
+</body>
+</html>

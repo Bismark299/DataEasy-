@@ -1,13 +1,117 @@
 /**
  * Lookup Controller
  * Proxies requests to the HST LOOKUP API
+ * Includes dedicated auth (register / login) for the HSTN Lookup page.
  */
 
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
+const { LookupUser } = require('../models');
 
 const LOOKUP_BASE_URL = process.env.LOOKUP_BASE_URL || 'https://4e9af2d5e8c2.hstonline.tech';
 const LOOKUP_API_KEY = process.env.LOOKUP_API_KEY;
+
+// ── Auth helpers ─────────────────────────────────────────────────────────────
+
+const LOOKUP_TOKEN_EXPIRY = '12h';
+
+function signLookupToken(user) {
+    return jwt.sign(
+        { type: 'lookup', userId: user.id, username: user.username },
+        process.env.JWT_SECRET,
+        { expiresIn: LOOKUP_TOKEN_EXPIRY }
+    );
+}
+
+/**
+ * Middleware — protect lookup API routes
+ */
+exports.verifyLookupToken = (req, res, next) => {
+    try {
+        const auth = req.headers.authorization;
+        if (!auth || !auth.startsWith('Bearer ')) {
+            return res.status(401).json({ success: false, error: 'Login required' });
+        }
+        const token = auth.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.type !== 'lookup') {
+            return res.status(403).json({ success: false, error: 'Invalid token type' });
+        }
+        req.lookupUser = decoded;
+        next();
+    } catch (err) {
+        return res.status(401).json({ success: false, error: 'Session expired — please log in again' });
+    }
+};
+
+/**
+ * Register a new lookup account
+ * POST /api/lookup/register
+ */
+exports.register = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({ success: false, error: 'Username and password are required' });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+        }
+
+        const existing = await LookupUser.findOne({ where: { username: username.trim().toLowerCase() } });
+        if (existing) {
+            return res.status(409).json({ success: false, error: 'Username already taken' });
+        }
+
+        const user = await LookupUser.create({
+            username: username.trim().toLowerCase(),
+            password
+        });
+
+        const token = signLookupToken(user);
+        res.status(201).json({ success: true, token, username: user.username });
+    } catch (error) {
+        logger.error('Lookup register error', { error: error.message });
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({ success: false, error: error.errors[0].message });
+        }
+        res.status(500).json({ success: false, error: 'Registration failed' });
+    }
+};
+
+/**
+ * Login to lookup
+ * POST /api/lookup/login
+ */
+exports.login = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({ success: false, error: 'Username and password are required' });
+        }
+
+        const user = await LookupUser.findOne({ where: { username: username.trim().toLowerCase() } });
+        if (!user || !user.isActive) {
+            return res.status(401).json({ success: false, error: 'Invalid username or password' });
+        }
+
+        const match = await user.comparePassword(password);
+        if (!match) {
+            return res.status(401).json({ success: false, error: 'Invalid username or password' });
+        }
+
+        const token = signLookupToken(user);
+        res.json({ success: true, token, username: user.username });
+    } catch (error) {
+        logger.error('Lookup login error', { error: error.message });
+        res.status(500).json({ success: false, error: 'Login failed' });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Convert phone number to 233 format
