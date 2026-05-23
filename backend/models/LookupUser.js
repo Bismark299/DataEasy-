@@ -14,13 +14,19 @@ const LookupUser = sequelize.define('LookupUser', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
-    username: {
-        type: DataTypes.STRING(60),
+    name: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        validate: {
+            len: { args: [6, 100], msg: 'Name must be at least 6 characters' }
+        }
+    },
+    email: {
+        type: DataTypes.STRING,
         allowNull: false,
         unique: true,
         validate: {
-            len: { args: [3, 60], msg: 'Username must be 3–60 characters' },
-            is: { args: /^[a-zA-Z0-9_.-]+$/, msg: 'Username may only contain letters, numbers, _ . -' }
+            isEmail: { msg: 'Please enter a valid email address' }
         }
     },
     password: {

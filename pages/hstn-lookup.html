@@ -722,15 +722,16 @@
 
         function doLogout() {
             localStorage.removeItem('lookup_token');
-            localStorage.removeItem('lookup_username');
+            localStorage.removeItem('lookup_name');
+            localStorage.removeItem('lookup_email');
             window.location.replace(LOOKUP_LOGIN_URL);
         }
 
-        // Show logged-in username in nav
-        const _navUsername = localStorage.getItem('lookup_username');
-        if (_navUsername) {
+        // Show logged-in name in nav
+        const _navName = localStorage.getItem('lookup_name');
+        if (_navName) {
             const el = document.getElementById('nav-username');
-            if (el) el.textContent = _navUsername;
+            if (el) el.textContent = _navName;
         }
         // ─────────────────────────────────────────────────────────────────────
 

@@ -14,11 +14,11 @@ const LOOKUP_API_KEY = process.env.LOOKUP_API_KEY;
 
 // ── Auth helpers ─────────────────────────────────────────────────────────────
 
-const LOOKUP_TOKEN_EXPIRY = '12h';
+const LOOKUP_TOKEN_EXPIRY = '30d';
 
 function signLookupToken(user) {
     return jwt.sign(
-        { type: 'lookup', userId: user.id, username: user.username },
+        { type: 'lookup', userId: user.id, name: user.name, email: user.email },
         process.env.JWT_SECRET,
         { expiresIn: LOOKUP_TOKEN_EXPIRY }
     );
@@ -51,27 +51,31 @@ exports.verifyLookupToken = (req, res, next) => {
  */
 exports.register = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { name, email, password } = req.body;
 
-        if (!username || !password) {
-            return res.status(400).json({ success: false, error: 'Username and password are required' });
+        if (!name || !email || !password) {
+            return res.status(400).json({ success: false, error: 'Name, email and password are required' });
+        }
+        if (name.trim().length < 6) {
+            return res.status(400).json({ success: false, error: 'Name must be at least 6 characters' });
         }
         if (password.length < 6) {
             return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
         }
 
-        const existing = await LookupUser.findOne({ where: { username: username.trim().toLowerCase() } });
+        const existing = await LookupUser.findOne({ where: { email: email.trim().toLowerCase() } });
         if (existing) {
-            return res.status(409).json({ success: false, error: 'Username already taken' });
+            return res.status(409).json({ success: false, error: 'An account with that email already exists' });
         }
 
         const user = await LookupUser.create({
-            username: username.trim().toLowerCase(),
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
             password
         });
 
         const token = signLookupToken(user);
-        res.status(201).json({ success: true, token, username: user.username });
+        res.status(201).json({ success: true, token, name: user.name, email: user.email });
     } catch (error) {
         logger.error('Lookup register error', { error: error.message });
         if (error.name === 'SequelizeValidationError') {
@@ -87,24 +91,24 @@ exports.register = async (req, res) => {
  */
 exports.login = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { email, password } = req.body;
 
-        if (!username || !password) {
-            return res.status(400).json({ success: false, error: 'Username and password are required' });
+        if (!email || !password) {
+            return res.status(400).json({ success: false, error: 'Email and password are required' });
         }
 
-        const user = await LookupUser.findOne({ where: { username: username.trim().toLowerCase() } });
+        const user = await LookupUser.findOne({ where: { email: email.trim().toLowerCase() } });
         if (!user || !user.isActive) {
-            return res.status(401).json({ success: false, error: 'Invalid username or password' });
+            return res.status(401).json({ success: false, error: 'Invalid email or password' });
         }
 
         const match = await user.comparePassword(password);
         if (!match) {
-            return res.status(401).json({ success: false, error: 'Invalid username or password' });
+            return res.status(401).json({ success: false, error: 'Invalid email or password' });
         }
 
         const token = signLookupToken(user);
-        res.json({ success: true, token, username: user.username });
+        res.json({ success: true, token, name: user.name, email: user.email });
     } catch (error) {
         logger.error('Lookup login error', { error: error.message });
         res.status(500).json({ success: false, error: 'Login failed' });
