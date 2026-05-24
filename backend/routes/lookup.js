@@ -1,19 +1,16 @@
 /**
  * Lookup Proxy Routes
- * Proxies allocation lookup requests to HST LOOKUP service.
- * register / login are public; everything else requires a lookup token.
+ * POST /api/lookup/login  — public (password check against LOOKUP_PASSWORD env var)
+ * All other routes require a valid lookup JWT.
  */
 
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 const lookupController = require('../controllers/lookupController');
-const { requestTimeout } = require('../middleware/security');
+const { requestTimeout }  = require('../middleware/security');
 
-// ── Public auth routes (no token needed) ────────────────────────────────────
-router.post('/register', lookupController.register);
-router.post('/login',    lookupController.login);
+router.post('/login', lookupController.login);
 
-// ── Protected routes (lookup JWT required) ───────────────────────────────────
 router.use(lookupController.verifyLookupToken);
 
 router.post('/search',          lookupController.search);

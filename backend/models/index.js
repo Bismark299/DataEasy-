@@ -22,8 +22,6 @@ const SettlementAccount = require('./SettlementAccount');
 const Payout = require('./Payout');
 const ReconciliationRecord = require('./ReconciliationRecord');
 const ApiKey = require('./ApiKey');
-const LookupUser = require('./LookupUser');
-
 // Define associations
 
 // User has one Wallet
@@ -221,6 +219,5 @@ module.exports = {
     SettlementAccount,
     Payout,
     ReconciliationRecord,
-    ApiKey,
-    LookupUser
+    ApiKey
 };

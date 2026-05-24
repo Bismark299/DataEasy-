@@ -697,7 +697,6 @@
                 const payload = JSON.parse(atob(_rawToken.split('.')[1]));
                 if (payload.type !== 'lookup' || payload.exp * 1000 <= Date.now()) {
                     localStorage.removeItem('lookup_token');
-                    localStorage.removeItem('lookup_username');
                     window.location.replace(LOOKUP_LOGIN_URL);
                 }
             } catch (_) {
@@ -713,7 +712,6 @@
         function handleUnauthorized(json) {
             if (json && json.error && (json.error.toLowerCase().includes('session') || json.error.toLowerCase().includes('login'))) {
                 localStorage.removeItem('lookup_token');
-                localStorage.removeItem('lookup_username');
                 window.location.replace(LOOKUP_LOGIN_URL);
                 return true;
             }
@@ -722,16 +720,7 @@
 
         function doLogout() {
             localStorage.removeItem('lookup_token');
-            localStorage.removeItem('lookup_name');
-            localStorage.removeItem('lookup_email');
             window.location.replace(LOOKUP_LOGIN_URL);
-        }
-
-        // Show logged-in name in nav
-        const _navName = localStorage.getItem('lookup_name');
-        if (_navName) {
-            const el = document.getElementById('nav-username');
-            if (el) el.textContent = _navName;
         }
         // ─────────────────────────────────────────────────────────────────────
 

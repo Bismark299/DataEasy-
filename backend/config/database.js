@@ -347,6 +347,9 @@ const fixMissingColumns = async () => {
         `ALTER TABLE stores ADD COLUMN IF NOT EXISTS pricing JSONB DEFAULT '{}'::jsonb`,
     ];
     
+    // lookup_users is no longer used — auth moved to LOOKUP_PASSWORD env var.
+    try { await sequelize.query(`DROP TABLE IF EXISTS lookup_users`); } catch (_) {}
+
     let fixed = 0;
     for (const sql of alterStatements) {
         try {

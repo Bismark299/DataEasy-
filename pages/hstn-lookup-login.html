@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>HSTN Lookup — Sign In</title>
+    <title>HSTN Lookup — Access</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -22,12 +22,10 @@
             --surface-2:   #1c1c1f;
             --surface-3:   #242428;
             --border:      #2a2a2f;
-            --border-hover:#3e3e46;
             --border-mtn:  rgba(255,203,5,0.25);
             --text:        #f0f0f2;
             --text-muted:  #9090a0;
             --text-dim:    #55555f;
-            --green:       #22c55e;
             --red:         #ef4444;
             --red-bg:      rgba(239,68,68,0.12);
             --radius:      14px;
@@ -79,7 +77,7 @@
             background: rgba(255,255,255,0.22); border-radius: 50%;
         }
         .brand-badge i { font-size: 17px; color: #000; z-index: 1; }
-        .brand-text .name { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; }
+        .brand-text .name    { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.2; }
         .brand-text .tagline { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
 
         .stage {
@@ -95,15 +93,12 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             width: 100%;
-            max-width: 420px;
-            overflow: hidden;
+            max-width: 380px;
+            padding: 36px 32px 32px;
             box-shadow: var(--shadow);
         }
 
-        .card-header {
-            padding: 28px 28px 0;
-            text-align: center;
-        }
+        .card-header { text-align: center; margin-bottom: 28px; }
         .lock-icon {
             width: 56px; height: 56px;
             background: var(--mtn-glow);
@@ -114,31 +109,9 @@
             margin-bottom: 16px;
         }
         .card-title { font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
-        .card-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+        .card-sub   { font-size: 13px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
 
-        .tab-bar {
-            display: flex;
-            margin: 24px 28px 0;
-            background: var(--surface-2);
-            border-radius: 10px;
-            padding: 4px;
-            gap: 4px;
-        }
-        .tab {
-            flex: 1; padding: 9px 0;
-            border-radius: 7px; border: none; cursor: pointer;
-            font-size: 13px; font-weight: 600; font-family: inherit;
-            background: transparent; color: var(--text-muted);
-            transition: var(--transition);
-        }
-        .tab.active { background: var(--mtn); color: #000; box-shadow: var(--shadow-mtn); }
-        .tab:not(.active):hover { color: var(--text); background: var(--surface-3); }
-
-        .panels { padding: 24px 28px 28px; }
-        .panel { display: none; }
-        .panel.active { display: block; }
-
-        .field { margin-bottom: 16px; }
+        .field { margin-bottom: 20px; }
         .field label {
             display: block; font-size: 11px; font-weight: 600;
             color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px;
@@ -154,7 +127,7 @@
             background: var(--surface-2);
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            padding: 11px 14px 11px 38px;
+            padding: 12px 42px 12px 38px;
             color: var(--text); font-size: 14px; font-family: inherit;
             transition: var(--transition); outline: none;
         }
@@ -172,7 +145,14 @@
         }
         .toggle-pw:hover { color: var(--text-muted); }
 
-        .hint { font-size: 11px; color: var(--text-dim); margin-top: 5px; }
+        .error-box {
+            background: var(--red-bg); border: 1px solid rgba(239,68,68,0.22);
+            border-radius: var(--radius-sm); padding: 11px 14px;
+            font-size: 13px; color: var(--red);
+            display: none; align-items: center; gap: 9px;
+            margin-bottom: 16px;
+        }
+        .error-box.show { display: flex; }
 
         .btn {
             width: 100%; padding: 13px;
@@ -180,21 +160,12 @@
             font-size: 14px; font-weight: 700; font-family: inherit;
             cursor: pointer; transition: var(--transition);
             display: flex; align-items: center; justify-content: center; gap: 8px;
-            margin-top: 4px;
+            background: var(--mtn); color: #000;
+            box-shadow: var(--shadow-mtn);
         }
-        .btn-primary { background: var(--mtn); color: #000; box-shadow: var(--shadow-mtn); }
-        .btn-primary:hover:not(:disabled) { background: var(--mtn-light); box-shadow: 0 6px 24px rgba(255,203,5,0.40); transform: translateY(-1px); }
-        .btn-primary:active:not(:disabled) { transform: translateY(0); }
-        .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
-
-        .error-box {
-            background: var(--red-bg); border: 1px solid rgba(239,68,68,0.22);
-            border-radius: var(--radius-sm); padding: 11px 14px;
-            font-size: 13px; color: var(--red);
-            align-items: center; gap: 9px;
-            margin-bottom: 16px; display: none;
-        }
-        .error-box.show { display: flex; }
+        .btn:hover:not(:disabled) { background: var(--mtn-light); box-shadow: 0 6px 24px rgba(255,203,5,0.40); transform: translateY(-1px); }
+        .btn:active:not(:disabled) { transform: translateY(0); }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
 
         .spinner {
             width: 16px; height: 16px;
@@ -232,92 +203,31 @@
             <div class="card-header">
                 <div class="lock-icon"><i class="fas fa-shield-halved"></i></div>
                 <div class="card-title">Access Required</div>
-                <div class="card-sub">Sign in or create an account to use the HSTN Allocation Lookup.</div>
+                <div class="card-sub">Enter the access password to continue.</div>
             </div>
 
-            <div class="tab-bar">
-                <button class="tab active" onclick="switchTab('login')">Sign In</button>
-                <button class="tab" onclick="switchTab('register')">Create Account</button>
-            </div>
+            <div class="error-box" id="err-box"><i class="fas fa-circle-exclamation"></i> <span id="err-msg"></span></div>
 
-            <div class="panels">
-
-                <!-- ── LOGIN ── -->
-                <div class="panel active" id="panel-login">
-                    <div class="error-box" id="login-error"><i class="fas fa-circle-exclamation"></i> <span id="login-error-msg"></span></div>
-                    <form onsubmit="doLogin(); return false;" autocomplete="on">
-                        <div class="field">
-                            <label>Email</label>
-                            <div class="input-wrap">
-                                <i class="fas fa-envelope"></i>
-                                <input type="email" id="login-email" name="email" placeholder="your@email.com" autocomplete="email">
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label>Password</label>
-                            <div class="input-wrap">
-                                <i class="fas fa-lock"></i>
-                                <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password">
-                                <button class="toggle-pw" onclick="togglePw('login-password', this)" tabindex="-1" type="button"><i class="fas fa-eye"></i></button>
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" id="login-btn" type="submit">
-                            <span class="spinner" id="login-spinner"></span>
-                            <span id="login-label"><i class="fas fa-arrow-right-to-bracket"></i> Sign In</span>
-                        </button>
-                    </form>
+            <form onsubmit="doLogin(); return false;" autocomplete="on">
+                <div class="field">
+                    <label>Password</label>
+                    <div class="input-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" autofocus>
+                        <button class="toggle-pw" type="button" onclick="togglePw()" tabindex="-1"><i class="fas fa-eye" id="eye-icon"></i></button>
+                    </div>
                 </div>
-
-                <!-- ── REGISTER ── -->
-                <div class="panel" id="panel-register">
-                    <div class="error-box" id="reg-error"><i class="fas fa-circle-exclamation"></i> <span id="reg-error-msg"></span></div>
-                    <form onsubmit="doRegister(); return false;" autocomplete="on">
-                        <div class="field">
-                            <label>Full Name</label>
-                            <div class="input-wrap">
-                                <i class="fas fa-user"></i>
-                                <input type="text" id="reg-name" name="name" placeholder="e.g. Kwame Mensah" autocomplete="name">
-                            </div>
-                            <div class="hint">At least 6 characters — first and last name preferred.</div>
-                        </div>
-                        <div class="field">
-                            <label>Email</label>
-                            <div class="input-wrap">
-                                <i class="fas fa-envelope"></i>
-                                <input type="email" id="reg-email" name="email" placeholder="your@email.com" autocomplete="email">
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label>Password</label>
-                            <div class="input-wrap">
-                                <i class="fas fa-lock"></i>
-                                <input type="password" id="reg-password" name="password" placeholder="min 6 characters" autocomplete="new-password">
-                                <button class="toggle-pw" onclick="togglePw('reg-password', this)" tabindex="-1" type="button"><i class="fas fa-eye"></i></button>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label>Confirm Password</label>
-                            <div class="input-wrap">
-                                <i class="fas fa-lock"></i>
-                                <input type="password" id="reg-confirm" name="confirm" placeholder="repeat password" autocomplete="new-password">
-                                <button class="toggle-pw" onclick="togglePw('reg-confirm', this)" tabindex="-1" type="button"><i class="fas fa-eye"></i></button>
-                            </div>
-                        </div>
-                        <button class="btn btn-primary" id="reg-btn" type="submit">
-                            <span class="spinner" id="reg-spinner"></span>
-                            <span id="reg-label"><i class="fas fa-user-plus"></i> Create Account</span>
-                        </button>
-                    </form>
-                </div>
-
-            </div>
+                <button class="btn" id="submit-btn" type="submit">
+                    <span class="spinner" id="spinner"></span>
+                    <span id="btn-label"><i class="fas fa-arrow-right-to-bracket"></i> Enter</span>
+                </button>
+            </form>
         </div>
     </div>
 
     <footer>Powered by <span>DataEasy+</span></footer>
 
     <script>
-        // Already logged in? Skip straight to the lookup page
         (function() {
             const token = localStorage.getItem('lookup_token');
             if (!token) return;
@@ -329,99 +239,46 @@
             } catch (_) {}
         })();
 
-        const API = window.location.origin + '/api/lookup';
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab').forEach((t, i) => {
-                t.classList.toggle('active', (i === 0) === (tab === 'login'));
-            });
-            document.getElementById('panel-login').classList.toggle('active', tab === 'login');
-            document.getElementById('panel-register').classList.toggle('active', tab === 'register');
-        }
-
-        function togglePw(inputId, btn) {
-            const input = document.getElementById(inputId);
+        function togglePw() {
+            const input = document.getElementById('password');
+            const icon  = document.getElementById('eye-icon');
             const isText = input.type === 'text';
-            input.type = isText ? 'password' : 'text';
-            btn.querySelector('i').className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
+            input.type  = isText ? 'password' : 'text';
+            icon.className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
         }
 
-        function setLoading(prefix, loading) {
-            const btn     = document.getElementById(prefix + '-btn');
-            const spinner = document.getElementById(prefix + '-spinner');
-            const label   = document.getElementById(prefix + '-label');
-            btn.disabled = loading;
-            spinner.style.display = loading ? 'block' : 'none';
-            label.style.opacity   = loading ? '0' : '1';
+        function setLoading(on) {
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = on;
+            document.getElementById('spinner').style.display   = on ? 'block' : 'none';
+            document.getElementById('btn-label').style.opacity = on ? '0'     : '1';
         }
 
-        function showError(prefix, msg) {
-            const box = document.getElementById(prefix + '-error');
-            document.getElementById(prefix + '-error-msg').textContent = msg;
-            box.classList.add('show');
-        }
-
-        function clearError(prefix) {
-            document.getElementById(prefix + '-error').classList.remove('show');
-        }
-
-        function saveSession(data) {
-            localStorage.setItem('lookup_token', data.token);
-            localStorage.setItem('lookup_name',  data.name);
-            localStorage.setItem('lookup_email', data.email);
+        function showError(msg) {
+            document.getElementById('err-msg').textContent = msg;
+            document.getElementById('err-box').classList.add('show');
         }
 
         async function doLogin() {
-            clearError('login');
-            const email    = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-            if (!email || !password) { showError('login', 'Please enter your email and password.'); return; }
+            document.getElementById('err-box').classList.remove('show');
+            const password = document.getElementById('password').value;
+            if (!password) { showError('Please enter the password.'); return; }
 
-            setLoading('login', true);
+            setLoading(true);
             try {
-                const resp = await fetch(API + '/login', {
+                const resp = await fetch('/api/lookup/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ password })
                 });
                 const data = await resp.json();
-                if (!data.success) { showError('login', data.error || 'Login failed'); return; }
-                saveSession(data);
+                if (!data.success) { showError(data.error || 'Incorrect password.'); return; }
+                localStorage.setItem('lookup_token', data.token);
                 window.location.replace('/hstn-lookup');
             } catch (e) {
-                showError('login', 'Network error — please try again.');
+                showError('Network error — please try again.');
             } finally {
-                setLoading('login', false);
-            }
-        }
-
-        async function doRegister() {
-            clearError('reg');
-            const name     = document.getElementById('reg-name').value.trim();
-            const email    = document.getElementById('reg-email').value.trim();
-            const password = document.getElementById('reg-password').value;
-            const confirm  = document.getElementById('reg-confirm').value;
-
-            if (!name || !email || !password || !confirm) { showError('reg', 'All fields are required.'); return; }
-            if (name.length < 6)          { showError('reg', 'Name must be at least 6 characters.'); return; }
-            if (password !== confirm)      { showError('reg', 'Passwords do not match.'); return; }
-            if (password.length < 6)       { showError('reg', 'Password must be at least 6 characters.'); return; }
-
-            setLoading('reg', true);
-            try {
-                const resp = await fetch(API + '/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
-                });
-                const data = await resp.json();
-                if (!data.success) { showError('reg', data.error || 'Registration failed'); return; }
-                saveSession(data);
-                window.location.replace('/hstn-lookup');
-            } catch (e) {
-                showError('reg', 'Network error — please try again.');
-            } finally {
-                setLoading('reg', false);
+                setLoading(false);
             }
         }
     </script>
