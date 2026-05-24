@@ -30,7 +30,7 @@ exports.login = (req, res) => {
     }
 
     const token = jwt.sign(
-        { type: 'lookup' },
+        { type: 'lookup', v: 2 },
         process.env.JWT_SECRET,
         { expiresIn: '30d' }
     );
@@ -47,8 +47,8 @@ exports.verifyLookupToken = (req, res, next) => {
             return res.status(401).json({ success: false, error: 'Login required' });
         }
         const decoded = jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET);
-        if (decoded.type !== 'lookup') {
-            return res.status(403).json({ success: false, error: 'Invalid token type' });
+        if (decoded.type !== 'lookup' || decoded.v !== 2) {
+            return res.status(401).json({ success: false, error: 'Session expired — please log in again' });
         }
         next();
     } catch (err) {

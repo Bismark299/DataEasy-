@@ -695,7 +695,7 @@
             if (!_rawToken) { window.location.replace(LOOKUP_LOGIN_URL); return; }
             try {
                 const payload = JSON.parse(atob(_rawToken.split('.')[1]));
-                if (payload.type !== 'lookup' || payload.exp * 1000 <= Date.now()) {
+                if (payload.type !== 'lookup' || payload.v !== 2 || payload.exp * 1000 <= Date.now()) {
                     localStorage.removeItem('lookup_token');
                     window.location.replace(LOOKUP_LOGIN_URL);
                 }
