@@ -20,7 +20,6 @@ ALLOWED_ORIGINS = "https://94d525b7-2de9-45c2-9346-8142e766acf0-00-5caxkjjcldcb.
 LOOKUP_BASE_URL = "https://4e9af2d5e8c2.hstonline.tech"
 
 [userenv.development]
-LOOKUP_PASSWORD = "dev_test_123"
 
 [workflows]
 runButton = "Project"
