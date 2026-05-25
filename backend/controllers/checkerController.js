@@ -235,14 +235,6 @@ exports.bulk = async (req, res) => {
 
         await getSession();
 
-        const defaultDate = (() => {
-            if (dateTo) {
-                const parts = dateTo.split('-');
-                return parts[2] + '/' + parts[1] + '/' + parts[0];
-            }
-            return todayDMY();
-        })();
-
         const CONCURRENCY = 3;
         const results = new Array(lines.length);
         let nextIdx = 0;
@@ -253,21 +245,17 @@ exports.bulk = async (req, res) => {
                 const rawLine  = String(lines[i]).trim();
                 const rawPhone = rawLine.split(/\s+/)[0]; // first token is the phone
                 try {
-                    const data   = await checkBulkLine(rawLine, defaultDate);
-                    const status = (typeof data === 'object' && data.status ? data.status : '').toLowerCase().trim();
-                    const ok     = status === 'delivered' || status === 'not delivered';
+                    const orders = await fetchSingleOrders(rawPhone, dateFrom || null, dateTo || null);
                     results[i] = {
                         phone:         rawPhone,
-                        success:       ok,
-                        status,
-                        delivered:     status === 'delivered' ? 1 : 0,
-                        not_delivered: status === 'not delivered' ? 1 : 0,
-                        total:         ok ? 1 : 0,
-                        orders:        [],
-                        error:         !ok ? (data.message || data.error || 'Unknown status: ' + status) : undefined,
+                        success:       true,
+                        delivered:     orders.filter(r => r.status === 'delivered').length,
+                        not_delivered: orders.filter(r => r.status === 'not delivered').length,
+                        total:         orders.length,
+                        orders,
                     };
                 } catch (err) {
-                    results[i] = { phone: rawPhone, success: false, error: err.message };
+                    results[i] = { phone: rawPhone, success: false, error: err.message, orders: [] };
                 }
             }
         };
