@@ -218,22 +218,19 @@ exports.check = async (req, res) => {
 /**
  * Bulk phone lookup
  * POST /api/checker/bulk
- * Body: { lines: ["0547744594 2", "0538806691 1", ...], dateFrom?, dateTo? }
- * Each line: PHONE AMOUNT [DD/MM/YYYY]  — AMOUNT is the number of data bundles
+ * Body: { lines: ["0547744594", "0538806691", ...], dateFrom?, dateTo? }
+ * Each line: PHONE — one phone number per line, same style as single lookup
  */
 exports.bulk = async (req, res) => {
     try {
-        // Accept `lines` (new format: "PHONE AMOUNT") or legacy `phones` array
         const lines = req.body.lines || (req.body.phones ? req.body.phones.map(p => String(p).trim()) : null);
         const { dateFrom, dateTo } = req.body;
         if (!lines || !Array.isArray(lines) || lines.length === 0) {
-            return res.status(400).json({ success: false, error: 'lines array is required (format: "PHONE AMOUNT" per entry)' });
+            return res.status(400).json({ success: false, error: 'lines array is required (format: "PHONE" per entry)' });
         }
         if (lines.length > 200) {
             return res.status(400).json({ success: false, error: 'Maximum 200 lines per bulk request' });
         }
-
-        await getSession();
 
         const CONCURRENCY = 3;
         const results = new Array(lines.length);
@@ -242,16 +239,28 @@ exports.bulk = async (req, res) => {
         const worker = async () => {
             while (nextIdx < lines.length) {
                 const i = nextIdx++;
-                const rawLine  = String(lines[i]).trim();
-                const rawPhone = rawLine.split(/\s+/)[0]; // first token is the phone
+                const rawLine = String(lines[i]).trim();
+                const rawPhone = rawLine.split(/\s+/)[0];
+
+                if (!rawPhone) {
+                    results[i] = { phone: '', success: false, error: 'Invalid phone line' };
+                    continue;
+                }
+
                 try {
                     const orders = await fetchSingleOrders(rawPhone, dateFrom || null, dateTo || null);
+                    const delivered = orders.filter(r => r.status === 'delivered').length;
+                    const notDelivered = orders.filter(r => r.status === 'not delivered').length;
+                    const total = orders.length;
+                    const status = total === 0 ? 'no orders' : (delivered > 0 ? 'delivered' : 'not delivered');
+
                     results[i] = {
                         phone:         rawPhone,
                         success:       true,
-                        delivered:     orders.filter(r => r.status === 'delivered').length,
-                        not_delivered: orders.filter(r => r.status === 'not delivered').length,
-                        total:         orders.length,
+                        status,
+                        delivered,
+                        not_delivered: notDelivered,
+                        total,
                         orders,
                     };
                 } catch (err) {
