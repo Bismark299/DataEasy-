@@ -773,10 +773,11 @@
 
         function initDefaultDateFilters() {
             const today = new Date().toISOString().slice(0, 10);
+            const from30 = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
             const fromField = document.getElementById('bulk-date-from');
             const toField = document.getElementById('bulk-date-to');
-            if (fromField) fromField.value = today;
-            if (toField) toField.value = today;
+            if (fromField && !fromField.value) fromField.value = from30;
+            if (toField && !toField.value) toField.value = today;
         }
 
         function updateThemeIcon() {
@@ -1108,8 +1109,9 @@
 
         function clearBulk() {
             const today = new Date().toISOString().slice(0, 10);
+            const from30 = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
             document.getElementById('bulk-phones').value = '';
-            document.getElementById('bulk-date-from').value = today;
+            document.getElementById('bulk-date-from').value = from30;
             document.getElementById('bulk-date-to').value = today;
             document.getElementById('bulk-results').innerHTML = '';
             document.getElementById('export-btn').classList.add('hidden');
