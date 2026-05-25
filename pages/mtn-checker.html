@@ -805,6 +805,14 @@
 const API_BASE = window.location.origin + '/api/checker';
 let lastBulkResults = [];
 
+// Default date filters to today
+(function() {
+    var today = new Date().toISOString().slice(0, 10);
+    ['single-date-from','single-date-to','bulk-date-from','bulk-date-to'].forEach(function(id) {
+        document.getElementById(id).value = today;
+    });
+})();
+
 
 
 function showToast(msg) {
@@ -1010,13 +1018,14 @@ document.getElementById('bulk-form').addEventListener('submit', async function(e
             } else {
                 html += '<div class="num-records">';
                 html += '<table class="num-table"><thead><tr>';
-                html += '<th>Date &amp; Time</th><th>Data (GB)</th><th>Airtime</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
+                html += '<th>Date &amp; Time</th><th>Phone</th><th>Name</th><th>Data (GB)</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
                 html += '</tr></thead><tbody>';
                 orders.forEach(function(o) {
                     html += '<tr>';
-                    html += '<td class="cell-date">' + esc(fmtDate(o.date)) + '</td>';
-                    html += '<td class="cell-gb">' + (o.gb != null ? o.gb + ' GB' : '-') + '</td>';
-                    html += '<td>' + esc(o.airtime   || '-') + '</td>';
+                    html += '<td class="cell-date">'  + esc(fmtDate(o.date)) + '</td>';
+                    html += '<td class="cell-phone">' + esc(o.phone || r.phone || '-') + '</td>';
+                    html += '<td style="font-size:12px;color:var(--text-muted)">' + esc(o.name || '-') + '</td>';
+                    html += '<td class="cell-gb">'    + (o.gb != null ? o.gb + ' GB' : '-') + '</td>';
                     html += '<td>' + esc(o.sms_units || '-') + '</td>';
                     html += '<td>' + badge(o.status) + '</td>';
                     html += '<td class="cell-reason" title="' + esc(o.failed_reason || '') + '">' + esc(o.failed_reason || '-') + '</td>';
