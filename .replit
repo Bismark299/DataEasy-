@@ -17,6 +17,7 @@ RATE_LIMIT_WINDOW_MS = "900000"
 RATE_LIMIT_MAX_REQUESTS = "1200"
 FRONTEND_URL = "https://94d525b7-2de9-45c2-9346-8142e766acf0-00-5caxkjjcldcb.spock.replit.dev"
 ALLOWED_ORIGINS = "https://94d525b7-2de9-45c2-9346-8142e766acf0-00-5caxkjjcldcb.spock.replit.dev"
+LOOKUP_BASE_URL = "https://lookup.hstonline.tech"
 
 [workflows]
 runButton = "Project"
