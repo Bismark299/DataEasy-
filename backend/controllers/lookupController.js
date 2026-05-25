@@ -99,7 +99,12 @@ exports.search = async (req, res) => {
         const totalAlloc = allocRes.status === 'fulfilled' ? (allocRes.value.data.pagination?.total || allocations.length) : 0;
         const totalFail  = failRes.status  === 'fulfilled' ? (failRes.value.data.pagination?.total  || failures.length)    : 0;
 
-        res.json({ success: true, data: [...taggedAlloc, ...taggedFail], pagination: { total: totalAlloc + totalFail } });
+        res.json({
+            success: true,
+            msisdn,
+            data: [...taggedAlloc, ...taggedFail],
+            pagination: { total: totalAlloc + totalFail, allocations: totalAlloc, failures: totalFail }
+        });
     } catch (error) {
         logger.error('Lookup search error', { error: error.message });
         const msg = error.response?.data?.error || error.response?.data?.message || error.message;
