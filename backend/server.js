@@ -505,7 +505,20 @@ const startServer = async () => {
         } catch (error) {
             console.log('⚠️ Startup migrations skipped:', error.message);
         }
-        
+
+        // Auto-clear expired account lockouts on every startup
+        try {
+            const { sequelize } = require('./config/database');
+            const [result] = await sequelize.query(`
+                UPDATE users
+                SET "failedLoginAttempts" = 0, "lockedUntil" = NULL
+                WHERE "lockedUntil" IS NOT NULL AND "lockedUntil" <= NOW()
+            `);
+            console.log('✅ Expired account lockouts cleared');
+        } catch (error) {
+            console.warn('⚠️ Could not clear lockouts on startup:', error.message);
+        }
+
         // Run price integrity validation on startup
         try {
             const { runStartupValidation } = require('./utils/priceIntegrity');

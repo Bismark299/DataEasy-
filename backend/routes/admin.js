@@ -31,6 +31,7 @@ router.put('/orders/match-complete', adminController.matchAndCompleteOrders);
 
 // Users management
 router.get('/users', cacheResponse(15), adminController.getAllUsers);
+router.post('/users/unlock-all', sensitiveAdminLimiter, adminController.unlockAllUsers);
 router.get('/users/:userId', adminController.getUser);
 router.put('/users/:userId', sensitiveAdminLimiter, adminController.updateUser);
 

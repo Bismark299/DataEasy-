@@ -779,6 +779,26 @@ exports.getUser = async (req, res) => {
  * Update user details (admin) with audit logging
  * PUT /api/admin/users/:userId
  */
+/**
+ * Unlock all locked user accounts
+ * POST /api/admin/users/unlock-all
+ */
+exports.unlockAllUsers = async (req, res) => {
+    try {
+        const [, meta] = await sequelize.query(`
+            UPDATE users
+            SET "failedLoginAttempts" = 0, "lockedUntil" = NULL
+            WHERE "lockedUntil" IS NOT NULL OR "failedLoginAttempts" > 0
+        `);
+        const count = meta?.rowCount ?? 0;
+        logger.info('Admin unlocked all users', { admin: req.admin?.username, count });
+        res.json({ success: true, message: `Unlocked ${count} account(s)` });
+    } catch (error) {
+        logger.error('Unlock all users error', { error: error.message });
+        res.status(500).json({ error: 'Failed to unlock accounts' });
+    }
+};
+
 exports.updateUser = async (req, res) => {
     try {
         const { fullName, email, phone, role, isActive, password } = req.body;
