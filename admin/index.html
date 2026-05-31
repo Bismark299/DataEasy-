@@ -1091,13 +1091,12 @@
         async function copyPendingOrdersForNetwork(network) {
             // Get pending items for this network from filtered orders (today by default)
             let pendingItems = [];
-            let itemsToUpdate = []; // Track items to update status
             
             filteredOrders.forEach(order => {
                 if (order.network !== network) return;
                 
                 const items = order.items || [];
-                items.forEach((item, itemIndex) => {
+                items.forEach((item) => {
                     const itemStatus = (item.deliveryStatus || order.deliveryStatus || 'Pending').toLowerCase();
                     if (itemStatus === 'pending') {
                         const phone = item.phoneNumber || item.phone || '';
@@ -1107,9 +1106,8 @@
                             dataSize = dataMatch[2].toUpperCase() === 'GB' ? dataMatch[1] : (parseFloat(dataMatch[1]) / 1024).toFixed(1);
                         }
                         if (phone && dataSize) {
-                            // Use tab separator for Excel column format
+                            // Tab separator for Excel/portal column format
                             pendingItems.push(`${phone}\t${dataSize}`);
-                            itemsToUpdate.push({ orderId: order.id, itemIndex: itemIndex });
                         }
                     }
                 });
@@ -1123,24 +1121,9 @@
             const text = pendingItems.join('\n');
             try {
                 await navigator.clipboard.writeText(text);
+                // Only copy to clipboard — do NOT change any order statuses or send to any API.
+                // Admin manually processes via external portal, then uses "Add To Complete" to mark delivered.
                 showToast('success', 'Copied!', `${pendingItems.length} pending ${network} orders copied to clipboard`);
-                
-                // Update all copied items to Processing status in one request
-                showToast('info', 'Updating...', 'Changing status to Processing...');
-                
-                try {
-                    const result = await DataEasyAPI.admin.bulkUpdateItemStatus(itemsToUpdate, 'Processing');
-                    if (result.updated > 0) {
-                        showToast('success', 'Updated', `${result.updated} items changed to Processing`);
-                        await loadOrders();
-                    }
-                    if (result.failed > 0) {
-                        showToast('warning', 'Partial', `${result.failed} items failed to update`);
-                    }
-                } catch (err) {
-                    console.error(err);
-                    showToast('error', 'Error', 'Failed to update item statuses');
-                }
             } catch (err) {
                 console.error(err);
                 showToast('error', 'Error', 'Failed to copy to clipboard');
