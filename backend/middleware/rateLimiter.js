@@ -87,7 +87,7 @@ const topupLimiter = rateLimit({
  */
 const registrationLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3, // 3 registrations per hour per IP
+    max: 30, // 30 registrations per hour per IP (admin-managed platform)
     message: { 
         error: 'Registration unavailable',
         message: 'Please try again later'
