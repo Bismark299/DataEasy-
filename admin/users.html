@@ -958,7 +958,8 @@
             if (password && password !== passwordConfirm) { showToast('error', 'Error', 'Passwords do not match'); return; }
 
             try {
-                const userData = { fullName: name, email, phone, role, status };
+                const isActive = status === 'active';
+                const userData = { fullName: name, email, phone, role, status, isActive };
                 if (password) userData.password = password;
 
                 if (userId) {

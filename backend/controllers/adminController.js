@@ -780,6 +780,59 @@ exports.getUser = async (req, res) => {
  * PUT /api/admin/users/:userId
  */
 /**
+ * Create a new user (admin)
+ * POST /api/admin/users
+ */
+exports.createUser = async (req, res) => {
+    try {
+        const { fullName, email, phone, role, password, status } = req.body;
+        const validRoles = ['super-dealer', 'dealer', 'super-agent', 'agent'];
+
+        if (!fullName || !email || !phone || !password) {
+            return res.status(400).json({ error: 'fullName, email, phone, and password are required' });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        }
+
+        const existing = await User.findOne({
+            where: { [require('sequelize').Op.or]: [{ email: email.toLowerCase() }, { phone }] }
+        });
+        if (existing) {
+            return res.status(400).json({ error: 'An account with this email or phone already exists' });
+        }
+
+        const isActive = status ? status === 'active' : true;
+        const user = await User.create({
+            fullName,
+            email: email.toLowerCase(),
+            phone,
+            password,
+            role: role && validRoles.includes(role) ? role : 'agent',
+            isActive
+        });
+
+        await Wallet.create({ userId: user.id });
+
+        await AdminAuditLog.logAction(req, {
+            action: 'CREATE_USER',
+            targetType: 'user',
+            targetId: user.id,
+            newValue: { fullName: user.fullName, email: user.email, phone: user.phone, role: user.role },
+            description: `Created user ${user.email}`
+        });
+
+        res.status(201).json({ success: true, message: 'User created successfully', user: user.toSafeObject() });
+    } catch (error) {
+        logger.error('Create user error', { error: error.message });
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(400).json({ error: 'Email or phone already exists' });
+        }
+        res.status(500).json({ error: 'Failed to create user' });
+    }
+};
+
+/**
  * Unlock all locked user accounts
  * POST /api/admin/users/unlock-all
  */
