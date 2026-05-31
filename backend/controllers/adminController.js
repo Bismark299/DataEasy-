@@ -856,10 +856,28 @@ exports.updateUser = async (req, res) => {
     try {
         const { fullName, email, phone, role, isActive, password } = req.body;
         const validRoles = ['super-dealer', 'dealer', 'super-agent', 'agent'];
+        const { Op } = require('sequelize');
 
         const user = await User.findByPk(req.params.userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Check for duplicate email / phone on a *different* user before saving
+        const normalizedEmail = email ? email.toLowerCase().trim() : null;
+        const normalizedPhone = phone ? phone.trim() : null;
+        const conflictConditions = [];
+        if (normalizedEmail && normalizedEmail !== user.email) conflictConditions.push({ email: normalizedEmail });
+        if (normalizedPhone && normalizedPhone !== user.phone) conflictConditions.push({ phone: normalizedPhone });
+
+        if (conflictConditions.length > 0) {
+            const conflict = await User.findOne({
+                where: { id: { [Op.ne]: user.id }, [Op.or]: conflictConditions }
+            });
+            if (conflict) {
+                const field = conflict.email === normalizedEmail ? 'email' : 'phone number';
+                return res.status(400).json({ error: `That ${field} is already in use by another account` });
+            }
         }
 
         const previousValues = {
@@ -897,6 +915,9 @@ exports.updateUser = async (req, res) => {
         });
     } catch (error) {
         console.error('Update user error:', error);
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(400).json({ error: 'Email or phone number is already in use by another account' });
+        }
         res.status(500).json({ error: 'Failed to update user' });
     }
 };
