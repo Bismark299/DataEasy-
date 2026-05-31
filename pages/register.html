@@ -91,6 +91,12 @@
                                 <div id="password-strength-bar" class="h-full rounded-full transition-all bg-gray-600" style="width: 0%"></div>
                             </div>
                             <p id="password-strength-text" class="text-xs text-gray-500 mt-1">Password strength</p>
+                            <ul class="mt-2 space-y-1">
+                                <li id="req-length" class="flex items-center gap-1.5 text-xs text-gray-500"><i class="fas fa-circle text-[6px]"></i> At least 8 characters</li>
+                                <li id="req-upper" class="flex items-center gap-1.5 text-xs text-gray-500"><i class="fas fa-circle text-[6px]"></i> One uppercase letter</li>
+                                <li id="req-lower" class="flex items-center gap-1.5 text-xs text-gray-500"><i class="fas fa-circle text-[6px]"></i> One lowercase letter</li>
+                                <li id="req-number" class="flex items-center gap-1.5 text-xs text-gray-500"><i class="fas fa-circle text-[6px]"></i> One number</li>
+                            </ul>
                         </div>
                     </div>
 
@@ -169,6 +175,27 @@
             var toggle2 = document.getElementById('toggle-password-2');
             if (toggle1) toggle1.addEventListener('click', function() { togglePassword('password', 'toggleIcon1'); });
             if (toggle2) toggle2.addEventListener('click', function() { togglePassword('confirmPassword', 'toggleIcon2'); });
+
+            // Live password requirement indicators
+            var pwInput = document.getElementById('password');
+            var reqMap = {
+                'req-length': function(v) { return v.length >= 8; },
+                'req-upper':  function(v) { return /[A-Z]/.test(v); },
+                'req-lower':  function(v) { return /[a-z]/.test(v); },
+                'req-number': function(v) { return /[0-9]/.test(v); }
+            };
+            if (pwInput) {
+                pwInput.addEventListener('input', function() {
+                    var val = this.value;
+                    Object.keys(reqMap).forEach(function(id) {
+                        var el = document.getElementById(id);
+                        if (!el) return;
+                        var met = reqMap[id](val);
+                        el.className = 'flex items-center gap-1.5 text-xs ' + (met ? 'text-green-400' : 'text-gray-500');
+                        el.querySelector('i').className = met ? 'fas fa-check-circle text-[10px]' : 'fas fa-circle text-[6px]';
+                    });
+                });
+            }
         });
     </script>
     
