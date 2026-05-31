@@ -1091,12 +1091,13 @@
         async function copyPendingOrdersForNetwork(network) {
             // Get pending items for this network from filtered orders (today by default)
             let pendingItems = [];
-            
+            let itemsToUpdate = [];
+
             filteredOrders.forEach(order => {
                 if (order.network !== network) return;
-                
+
                 const items = order.items || [];
-                items.forEach((item) => {
+                items.forEach((item, itemIndex) => {
                     const itemStatus = (item.deliveryStatus || order.deliveryStatus || 'Pending').toLowerCase();
                     if (itemStatus === 'pending') {
                         const phone = item.phoneNumber || item.phone || '';
@@ -1108,6 +1109,7 @@
                         if (phone && dataSize) {
                             // Tab separator for Excel/portal column format
                             pendingItems.push(`${phone}\t${dataSize}`);
+                            itemsToUpdate.push({ orderId: order.id, itemIndex });
                         }
                     }
                 });
@@ -1121,9 +1123,16 @@
             const text = pendingItems.join('\n');
             try {
                 await navigator.clipboard.writeText(text);
-                // Only copy to clipboard — do NOT change any order statuses or send to any API.
-                // Admin manually processes via external portal, then uses "Add To Complete" to mark delivered.
                 showToast('success', 'Copied!', `${pendingItems.length} pending ${network} orders copied to clipboard`);
+
+                // Fire-and-forget: update statuses to Processing in the background.
+                // The recovery service will NOT auto-send these to any API — Processing items
+                // with no providerReference are treated as manually handled by the admin.
+                DataEasyAPI.admin.bulkUpdateItemStatus(itemsToUpdate, 'Processing')
+                    .then(result => {
+                        if (result.updated > 0) loadOrders();
+                    })
+                    .catch(err => console.error('Status update after copy failed:', err));
             } catch (err) {
                 console.error(err);
                 showToast('error', 'Error', 'Failed to copy to clipboard');

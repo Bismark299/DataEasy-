@@ -620,6 +620,11 @@ async function recoverPendingOrders() {
                 if (item.deliveryStatus === 'Delivered' || item.deliveryStatus === 'Failed') continue;
                 if (item.providerReference) continue; // Already sent — handled in Phase 1
                 if (isPolling(order.id, i)) continue;
+                // Skip items that are already Processing with no providerReference —
+                // these were manually set to Processing by the admin (e.g. copy-to-clipboard
+                // for manual portal entry). They must NOT be auto-dispatched to MCBIS.
+                // Only truly Pending items (never touched) get auto-sent.
+                if (item.deliveryStatus === 'Processing') continue;
                 unsentItems.push({ order, itemIndex: i, item });
             }
         }
