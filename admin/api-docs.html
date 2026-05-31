@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Documentation - DataEasy+ Admin</title>
+    <title>API Documentation — DataEasy+ Admin</title>
     <link rel="stylesheet" href="../assets/css/tailwind.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="../assets/js/config.js"></script>
@@ -18,145 +18,234 @@
         .sidebar-collapsed .logout-btn { justify-content: center; padding-left: 0; padding-right: 0; }
         .sidebar-collapsed .logout-btn span { display: none; }
         .main-collapsed { margin-left: 80px !important; }
-        pre { background: #1e293b; color: #e2e8f0; border-radius: 0.75rem; padding: 1.25rem; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; }
-        code { font-family: 'Courier New', monospace; }
-        .endpoint-badge { display: inline-block; font-weight: 700; border-radius: 0.375rem; padding: 2px 10px; font-size: 0.75rem; }
-        .badge-get { background-color: #dbeafe; color: #1d4ed8; }
-        .badge-post { background-color: #dcfce7; color: #15803d; }
-        .badge-delete { background-color: #fee2e2; color: #b91c1c; }
-        .badge-put { background-color: #fef9c3; color: #a16207; }
+
+        /* Code blocks */
+        .code-block { position: relative; background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; }
+        .code-block pre { margin: 0; padding: 16px 20px; overflow-x: auto; font-size: 12px; line-height: 1.75; color: #cbd5e1; font-family: 'Courier New', monospace; }
+        .code-block .copy-btn { position: absolute; top: 8px; right: 8px; background: #1e293b; border: 1px solid #334155; color: #94a3b8; padding: 4px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+        .code-block .copy-btn:hover { background: #334155; color: #fff; }
+        .code-block .lang-label { position: absolute; top: 10px; left: 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #475569; }
+
+        /* Method badges */
+        .badge-get    { display: inline-block; font-weight: 700; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-family: monospace; background: #dbeafe; color: #1d4ed8; }
+        .badge-post   { display: inline-block; font-weight: 700; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-family: monospace; background: #dcfce7; color: #15803d; }
+        .badge-put    { display: inline-block; font-weight: 700; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-family: monospace; background: #fef9c3; color: #a16207; }
+        .badge-delete { display: inline-block; font-weight: 700; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-family: monospace; background: #fee2e2; color: #b91c1c; }
+
+        /* Scope badge */
+        .scope-badge { display: inline-flex; align-items: center; gap: 4px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-family: monospace; }
+        .scope-badge i { font-size: 9px; color: #94a3b8; }
+
+        /* Param/response tables */
+        .param-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .param-table th { text-align: left; padding: 9px 14px; background: #f8fafc; color: #64748b; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e2e8f0; }
+        .param-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #374151; vertical-align: top; font-size: 13px; }
+        .param-table tr:last-child td { border-bottom: none; }
+        .param-name { font-family: monospace; color: #2563eb; font-size: 12px !important; }
+        .param-type { font-family: monospace; color: #64748b; font-size: 12px !important; }
+        .param-req  { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 4px; background: #fee2e2; color: #b91c1c; }
+        .param-opt  { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 4px; background: #f1f5f9; color: #64748b; }
+
+        /* Endpoint cards */
+        .endpoint-card { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 28px; }
+        .endpoint-card-header { padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .endpoint-card-body { padding: 20px; background: #fff; }
+
+        /* Tab nav for code examples */
+        .tab-btn { padding: 8px 16px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; background: transparent; color: #94a3b8; border-bottom: 2px solid transparent; transition: all 0.15s; }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #3b82f6; }
+        .tab-btn:hover { color: #374151; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
         .doc-section { scroll-margin-top: 80px; }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
-    <div class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" id="sidebarOverlay"></div>
+    <div class="fixed inset-0 bg-black/50 z-40 hidden" id="sidebarOverlay"></div>
 
     <aside class="fixed top-0 left-0 w-64 h-screen bg-sidebar z-50 flex flex-col transform -translate-x-full md:translate-x-0 transition-all duration-300" id="sidebar">
         <button class="absolute top-4 right-4 text-white/70 hover:text-white md:hidden" id="sidebarCloseBtn"><i class="fas fa-times text-xl"></i></button>
         <div class="flex items-center gap-3 p-5 border-b border-white/10">
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">BT</div>
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">DE</div>
             <span class="text-white font-bold text-lg logo-text sidebar-text">DataEasy+</span>
         </div>
         <div class="menu-label px-5 pt-5 pb-2 text-xs text-white/40 uppercase tracking-wider font-semibold">Menu</div>
         <nav class="flex-1 px-3 overflow-y-auto">
-            <a href="index" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-th-large w-5"></i><span class="sidebar-text">Dashboard</span></a>
-            <a href="users" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-users w-5"></i><span class="sidebar-text">Users</span></a>
-            <a href="orders" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-shopping-cart w-5"></i><span class="sidebar-text">Orders</span></a>
-            <a href="wallet" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-wallet w-5"></i><span class="sidebar-text">Wallet</span></a>
+            <a href="index"         class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-th-large w-5"></i><span class="sidebar-text">Dashboard</span></a>
+            <a href="users"         class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-users w-5"></i><span class="sidebar-text">Users</span></a>
+            <a href="orders"        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-shopping-cart w-5"></i><span class="sidebar-text">Orders</span></a>
+            <a href="wallet"        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-wallet w-5"></i><span class="sidebar-text">Wallet</span></a>
             <a href="momo-deposits" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-mobile-alt w-5"></i><span class="sidebar-text">MoMo Deposits</span></a>
-            <a href="packages" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-cube w-5"></i><span class="sidebar-text">Packages</span></a>
-            <a href="stores" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-store w-5"></i><span class="sidebar-text">Stores</span></a>
-            <a href="api-keys" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-key w-5"></i><span class="sidebar-text">API Keys</span></a>
-            <a href="api-docs" class="sidebar-link active flex items-center gap-3 px-4 py-3 text-white rounded-lg mb-1 transition"><i class="fas fa-book w-5"></i><span class="sidebar-text">API Docs</span></a>
-            <a href="settings" class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-cog w-5"></i><span class="sidebar-text">Settings</span></a>
+            <a href="packages"      class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-cube w-5"></i><span class="sidebar-text">Packages</span></a>
+            <a href="stores"        class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-store w-5"></i><span class="sidebar-text">Stores</span></a>
+            <a href="api-keys"      class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-key w-5"></i><span class="sidebar-text">API Keys</span></a>
+            <a href="api-docs"      class="sidebar-link active flex items-center gap-3 px-4 py-3 text-white rounded-lg mb-1 transition"><i class="fas fa-book w-5"></i><span class="sidebar-text">API Docs</span></a>
+            <a href="settings"      class="sidebar-link flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg mb-1 transition"><i class="fas fa-cog w-5"></i><span class="sidebar-text">Settings</span></a>
         </nav>
         <div class="p-4 border-t border-white/10">
-            <button class="logout-btn w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition" id="logoutBtn"><i class="fas fa-sign-out-alt w-5"></i><span class="sidebar-text">Logout</span></button>
+            <button class="logout-btn w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition" id="logoutBtn">
+                <i class="fas fa-sign-out-alt w-5"></i><span class="sidebar-text">Logout</span>
+            </button>
         </div>
     </aside>
 
     <main class="md:ml-64 min-h-screen transition-all duration-300" id="mainContent">
+        <!-- Header -->
         <header class="bg-white shadow-sm sticky top-0 z-30">
             <div class="flex items-center justify-between px-4 md:px-6 py-4">
                 <div class="flex items-center gap-4">
-                    <button class="text-gray-600 hover:text-gray-900" id="sidebarToggleBtn"><i class="fas fa-bars text-xl"></i></button>
+                    <button class="text-gray-500 hover:text-gray-900" id="sidebarToggleBtn"><i class="fas fa-bars text-xl"></i></button>
                     <div>
                         <h1 class="text-lg md:text-xl font-bold text-gray-800"><i class="fas fa-book mr-2 text-blue-500"></i>Developer API Documentation</h1>
-                        <p class="text-sm text-gray-500">Everything developers need to integrate with DataEasy+</p>
+                        <p class="text-xs text-gray-400 mt-0.5">Everything developers need to integrate with DataEasy+ &bull; v1 &bull; REST / JSON</p>
                     </div>
                 </div>
-                <a href="api-keys" class="text-blue-600 hover:text-blue-800 text-sm font-medium"><i class="fas fa-key mr-1"></i> Manage Keys</a>
+                <a href="api-keys" class="hidden sm:flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-sm font-medium border border-blue-200 hover:border-blue-400 px-3 py-1.5 rounded-lg transition">
+                    <i class="fas fa-key text-xs"></i> Manage Keys
+                </a>
             </div>
         </header>
 
-        <div class="p-4 md:p-6 max-w-5xl">
+        <div class="p-4 md:p-6 max-w-4xl">
 
             <!-- Quick Nav -->
-            <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
-                <h3 class="font-semibold text-gray-800 mb-3">Quick Navigation</h3>
-                <div class="flex flex-wrap gap-2 text-sm">
-                    <a href="#auth" class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">Authentication</a>
-                    <a href="#packages" class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">Packages</a>
-                    <a href="#orders" class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">Orders</a>
-                    <a href="#balance" class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">Balance</a>
-                    <a href="#account" class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">Account</a>
-                    <a href="#errors" class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">Errors</a>
-                    <a href="#examples" class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition">Examples</a>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Jump to Section</p>
+                <div class="flex flex-wrap gap-2">
+                    <a href="#overview"  class="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Overview</a>
+                    <a href="#auth"      class="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Authentication</a>
+                    <a href="#packages"  class="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Packages</a>
+                    <a href="#orders"    class="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Orders</a>
+                    <a href="#balance"   class="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Balance</a>
+                    <a href="#account"   class="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Account</a>
+                    <a href="#errors"    class="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Errors</a>
+                    <a href="#rate-limits" class="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Rate Limits</a>
+                    <a href="#examples"  class="bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">Code Examples</a>
                 </div>
             </div>
 
-            <!-- Getting Started -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-2">Getting Started</h2>
-                <p class="text-gray-600 mb-4">The DataEasy+ API allows you to integrate data bundle purchases into your own website or application. Orders are charged against your DataEasy+ wallet balance.</p>
+            <!-- ===================== OVERVIEW ===================== -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 doc-section" id="overview">
+                <div class="flex items-center gap-3 mb-1">
+                    <h2 class="text-xl font-bold text-gray-800">DataEasy+ API</h2>
+                    <span class="bg-blue-100 text-blue-600 text-xs font-bold px-2 py-0.5 rounded">v1</span>
+                </div>
+                <p class="text-gray-500 text-sm leading-relaxed mb-5">Integrate Ghana data bundle purchases directly into your website or application. Orders debit the DataEasy+ wallet balance and are delivered automatically to the recipient's phone number.</p>
 
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <p class="text-blue-800 text-sm"><strong>Base URL:</strong></p>
-                    <code class="text-blue-900 font-bold" id="baseUrlDisplay">Loading...</code>
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5">
+                    <p class="text-blue-600 text-xs font-semibold uppercase tracking-wider mb-1">Base URL</p>
+                    <div class="flex items-center gap-3">
+                        <code class="text-blue-800 font-bold text-sm flex-1" id="baseUrlDisplay">Loading...</code>
+                        <button onclick="copyText(document.getElementById('baseUrlDisplay').textContent)" class="text-blue-500 hover:text-blue-700 text-sm" title="Copy"><i class="fas fa-copy"></i></button>
+                    </div>
                 </div>
 
-                <h3 class="font-semibold text-gray-800 mb-2">How it works</h3>
-                <ol class="list-decimal list-inside text-sm text-gray-600 space-y-1 ml-2">
-                    <li>Create an API key from your dashboard (Account &gt; API Keys)</li>
-                    <li>Fund your DataEasy+ wallet</li>
-                    <li>Make API calls with your key to list packages and place orders</li>
-                    <li>Orders debit your wallet and are automatically delivered</li>
-                </ol>
+                <h3 class="font-semibold text-gray-700 text-sm mb-3">How it works</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <span class="text-blue-600 font-bold text-lg">1</span>
+                        <p class="text-gray-700 text-sm font-semibold mt-1">Create an API Key</p>
+                        <p class="text-gray-400 text-xs mt-0.5">Generate a key from <a href="api-keys" class="text-blue-500 hover:underline">API Keys</a> and assign the scopes you need.</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <span class="text-green-600 font-bold text-lg">2</span>
+                        <p class="text-gray-700 text-sm font-semibold mt-1">Fund Your Wallet</p>
+                        <p class="text-gray-400 text-xs mt-0.5">Top up your wallet. Every order is debited from this balance.</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <span class="text-purple-600 font-bold text-lg">3</span>
+                        <p class="text-gray-700 text-sm font-semibold mt-1">Make API Calls</p>
+                        <p class="text-gray-400 text-xs mt-0.5">Call from your server only — never expose your key in client-side code.</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <span class="text-yellow-600 font-bold text-lg">4</span>
+                        <p class="text-gray-700 text-sm font-semibold mt-1">Automatic Delivery</p>
+                        <p class="text-gray-400 text-xs mt-0.5">Bundles are dispatched automatically to the phone number in the order.</p>
+                    </div>
+                </div>
             </div>
 
-            <!-- Authentication -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6 doc-section" id="auth">
-                <h2 class="text-xl font-bold text-gray-800 mb-3"><i class="fas fa-lock mr-2 text-gray-400"></i>Authentication</h2>
-                <p class="text-gray-600 text-sm mb-4">All API requests require an <code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm">X-API-Key</code> header with your secret API key.</p>
-<pre>
-GET /api/v1/packages
+            <!-- ===================== AUTHENTICATION ===================== -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 doc-section" id="auth">
+                <h2 class="text-xl font-bold text-gray-800 mb-1"><i class="fas fa-lock mr-2 text-gray-400"></i>Authentication</h2>
+                <p class="text-gray-500 text-sm mb-4">All API requests require an <code class="bg-slate-100 text-blue-600 px-1.5 py-0.5 rounded text-xs font-mono">X-API-Key</code> header containing your secret key.</p>
+
+                <div class="code-block mb-5">
+                    <span class="lang-label">HTTP</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre style="padding-top:28px"><code>GET /api/v1/packages HTTP/1.1
 Host: your-domain.com
-X-API-Key: de_live_abcdef1234567890...</pre>
+X-API-Key: de_live_abcdef1234567890...</code></pre>
+                </div>
 
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
-                    <p class="text-yellow-800 text-sm"><strong><i class="fas fa-shield-alt mr-1"></i> Security Tips:</strong></p>
-                    <ul class="list-disc list-inside text-yellow-700 text-sm mt-1 space-y-1">
-                        <li>Never expose your API key in client-side JavaScript</li>
-                        <li>Make API calls from your server (backend) only</li>
-                        <li>Use IP whitelisting for extra security</li>
-                        <li>Rotate keys regularly</li>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-5">
+                    <p class="text-yellow-800 text-sm font-semibold mb-2"><i class="fas fa-shield-alt mr-1"></i> Security Best Practices</p>
+                    <ul class="text-yellow-700 text-xs space-y-1.5">
+                        <li><i class="fas fa-check mr-2 text-yellow-500"></i>Never expose your API key in client-side JavaScript or mobile apps</li>
+                        <li><i class="fas fa-check mr-2 text-yellow-500"></i>Make all API calls from your server (backend) only</li>
+                        <li><i class="fas fa-check mr-2 text-yellow-500"></i>Use domain whitelisting on your key for extra protection</li>
+                        <li><i class="fas fa-check mr-2 text-yellow-500"></i>Rotate keys immediately if you suspect they have been compromised</li>
                     </ul>
                 </div>
 
-                <h3 class="font-semibold text-gray-800 mt-5 mb-2">Permissions</h3>
-                <table class="w-full text-sm border-collapse">
-                    <thead><tr class="bg-gray-50"><th class="text-left px-3 py-2 border">Scope</th><th class="text-left px-3 py-2 border">Description</th></tr></thead>
-                    <tbody>
-                        <tr><td class="px-3 py-2 border font-mono text-xs">packages:read</td><td class="px-3 py-2 border text-gray-600">List available packages and prices</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono text-xs">orders:create</td><td class="px-3 py-2 border text-gray-600">Place new data bundle orders</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono text-xs">orders:read</td><td class="px-3 py-2 border text-gray-600">View order history and delivery status</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono text-xs">account:read</td><td class="px-3 py-2 border text-gray-600">View wallet balance and account info</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Packages -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6 doc-section" id="packages">
-                <h2 class="text-xl font-bold text-gray-800 mb-3"><i class="fas fa-cube mr-2 text-gray-400"></i>Packages</h2>
-
-                <div class="mb-6">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="endpoint-badge badge-get">GET</span>
-                        <code class="text-gray-800 font-semibold">/api/v1/packages</code>
-                    </div>
-                    <p class="text-gray-600 text-sm mb-3">List all available data packages grouped by network. Prices are based on your account role.</p>
-
-                    <p class="text-xs font-semibold text-gray-500 mb-1">Query Parameters</p>
-                    <table class="w-full text-sm border-collapse mb-3">
-                        <thead><tr class="bg-gray-50"><th class="text-left px-3 py-2 border">Parameter</th><th class="text-left px-3 py-2 border">Type</th><th class="text-left px-3 py-2 border">Description</th></tr></thead>
+                <h3 class="font-semibold text-gray-700 text-sm mb-3">Permission Scopes</h3>
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <table class="param-table">
+                        <thead><tr><th>Scope</th><th>Default</th><th>Description</th></tr></thead>
                         <tbody>
-                            <tr><td class="px-3 py-2 border font-mono text-xs">network</td><td class="px-3 py-2 border text-gray-500">string</td><td class="px-3 py-2 border text-gray-600">Optional. Filter by network: MTN, AirtelTigo, Telecel</td></tr>
+                            <tr><td class="param-name">packages:read</td><td><span class="param-req" style="background:#dcfce7;color:#15803d;">Always included</span></td><td>List packages and role-based prices</td></tr>
+                            <tr><td class="param-name">orders:create</td><td><span class="param-opt">Optional</span></td><td>Place new data bundle orders and debit wallet</td></tr>
+                            <tr><td class="param-name">orders:read</td><td><span class="param-opt">Optional</span></td><td>View order history and delivery status</td></tr>
+                            <tr><td class="param-name">account:read</td><td><span class="param-opt">Optional</span></td><td>Read wallet balance and account details</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
 
-                    <p class="text-xs font-semibold text-gray-500 mb-1">Response</p>
-<pre>
-{
+            <!-- ===================== PACKAGES ===================== -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 doc-section" id="packages">
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-cube mr-2 text-gray-400"></i>Packages</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-card-header">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="badge-get">GET</span>
+                                <code class="text-gray-700 font-semibold">/api/v1/packages</code>
+                            </div>
+                            <p class="text-gray-500 text-sm">List all available data packages grouped by network. Prices reflect the account's pricing tier.</p>
+                        </div>
+                        <span class="scope-badge"><i class="fas fa-lock"></i>packages:read</span>
+                    </div>
+                    <div class="endpoint-card-body">
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Query Parameters</h4>
+                        <div class="border border-gray-200 rounded-xl overflow-hidden mb-5">
+                            <table class="param-table">
+                                <thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="param-name">network</td>
+                                        <td class="param-type">string</td>
+                                        <td><span class="param-opt">Optional</span></td>
+                                        <td>Filter by network: <code class="text-xs text-blue-600">MTN</code>, <code class="text-xs text-blue-600">AirtelTigo</code>, <code class="text-xs text-blue-600">Telecel</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Example Request</h4>
+                        <div class="code-block mb-5">
+                            <span class="lang-label">cURL</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre style="padding-top:28px"><code>curl https://your-domain.com/api/v1/packages \
+  -H "X-API-Key: de_live_your_key_here"</code></pre>
+                        </div>
+
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-600">200 OK</span></h4>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre><code>{
   "success": true,
   "packages": {
     "MTN": [
@@ -166,33 +255,41 @@ X-API-Key: de_live_abcdef1234567890...</pre>
         "data": "1GB",
         "price": 4.50,
         "validity": "Non-Expiry",
-        "network": "MTN",
-        "isActive": true
+        "network": "MTN"
       }
     ],
-    "AirtelTigo": [...],
-    "Telecel": [...]
+    "AirtelTigo": [ ... ],
+    "Telecel":    [ ... ]
   },
   "pricingRole": "agent"
-}</pre>
+}</code></pre>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Orders -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6 doc-section" id="orders">
-                <h2 class="text-xl font-bold text-gray-800 mb-3"><i class="fas fa-shopping-cart mr-2 text-gray-400"></i>Orders</h2>
+            <!-- ===================== ORDERS ===================== -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 doc-section" id="orders">
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-shopping-cart mr-2 text-gray-400"></i>Orders</h2>
 
-                <!-- Create Order -->
-                <div class="mb-8">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="endpoint-badge badge-post">POST</span>
-                        <code class="text-gray-800 font-semibold">/api/v1/orders</code>
+                <!-- POST /orders -->
+                <div class="endpoint-card mb-6">
+                    <div class="endpoint-card-header">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="badge-post">POST</span>
+                                <code class="text-gray-700 font-semibold">/api/v1/orders</code>
+                            </div>
+                            <p class="text-gray-500 text-sm">Place a new data bundle order. Debits the wallet and begins automatic delivery.</p>
+                        </div>
+                        <span class="scope-badge"><i class="fas fa-lock"></i>orders:create</span>
                     </div>
-                    <p class="text-gray-600 text-sm mb-3">Place a new data bundle order. Debits your wallet and auto-delivers the bundle.</p>
-
-                    <p class="text-xs font-semibold text-gray-500 mb-1">Request Body</p>
-<pre>
-{
+                    <div class="endpoint-card-body">
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Request Body</h4>
+                        <div class="code-block mb-5">
+                            <span class="lang-label">JSON</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre style="padding-top:28px"><code>{
   "network": "MTN",
   "items": [
     {
@@ -200,268 +297,438 @@ X-API-Key: de_live_abcdef1234567890...</pre>
       "phoneNumber": "0241234567"
     }
   ]
-}</pre>
+}</code></pre>
+                        </div>
 
-                    <p class="text-xs font-semibold text-gray-500 mt-3 mb-1">Parameters</p>
-                    <table class="w-full text-sm border-collapse mb-3">
-                        <thead><tr class="bg-gray-50"><th class="text-left px-3 py-2 border">Field</th><th class="text-left px-3 py-2 border">Type</th><th class="text-left px-3 py-2 border">Description</th></tr></thead>
-                        <tbody>
-                            <tr><td class="px-3 py-2 border font-mono text-xs">network</td><td class="px-3 py-2 border text-gray-500">string</td><td class="px-3 py-2 border text-gray-600">Required. MTN, AirtelTigo, or Telecel</td></tr>
-                            <tr><td class="px-3 py-2 border font-mono text-xs">items</td><td class="px-3 py-2 border text-gray-500">array</td><td class="px-3 py-2 border text-gray-600">Required. Up to 10 items per order</td></tr>
-                            <tr><td class="px-3 py-2 border font-mono text-xs">items[].packageId</td><td class="px-3 py-2 border text-gray-500">string</td><td class="px-3 py-2 border text-gray-600">Required. Package ID from /packages</td></tr>
-                            <tr><td class="px-3 py-2 border font-mono text-xs">items[].phoneNumber</td><td class="px-3 py-2 border text-gray-500">string</td><td class="px-3 py-2 border text-gray-600">Required. Ghana number (e.g. 0241234567)</td></tr>
-                        </tbody>
-                    </table>
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Body Parameters</h4>
+                        <div class="border border-gray-200 rounded-xl overflow-hidden mb-5">
+                            <table class="param-table">
+                                <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="param-name">network</td>
+                                        <td class="param-type">string</td>
+                                        <td><span class="param-req">Required</span></td>
+                                        <td><code class="text-xs text-blue-600">MTN</code>, <code class="text-xs text-blue-600">AirtelTigo</code>, or <code class="text-xs text-blue-600">Telecel</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="param-name">items</td>
+                                        <td class="param-type">array</td>
+                                        <td><span class="param-req">Required</span></td>
+                                        <td>Array of bundle items. Maximum 10 items per request.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="param-name">items[].packageId</td>
+                                        <td class="param-type">string</td>
+                                        <td><span class="param-req">Required</span></td>
+                                        <td>Package ID from <code class="text-xs text-blue-600">GET /packages</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="param-name">items[].phoneNumber</td>
+                                        <td class="param-type">string</td>
+                                        <td><span class="param-req">Required</span></td>
+                                        <td>Ghana mobile number — e.g. <code class="text-xs text-blue-600">0241234567</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                    <p class="text-xs font-semibold text-gray-500 mb-1">Response (201)</p>
-<pre>
-{
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-600">201 Created</span></h4>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre><code>{
   "success": true,
   "order": {
-    "id": "uuid",
+    "id": "9f2e1d3a-...",
     "orderId": "0042",
     "network": "MTN",
-    "items": [{
-      "packageId": "mtn-5gb",
-      "packageName": "5GB",
-      "data": "5GB",
-      "price": 18.00,
-      "phoneNumber": "0241234567",
-      "deliveryStatus": "Pending"
-    }],
+    "items": [
+      {
+        "packageId": "mtn-5gb",
+        "packageName": "5GB",
+        "data": "5GB",
+        "price": 18.00,
+        "phoneNumber": "0241234567",
+        "deliveryStatus": "Pending"
+      }
+    ],
+    "subtotal": 18.00,
     "total": 18.00,
     "paymentStatus": "Completed",
     "deliveryStatus": "Processing",
-    "createdAt": "2026-03-23T10:00:00.000Z"
+    "createdAt": "2026-05-31T10:00:00.000Z"
   },
   "walletBalance": 482.00
-}</pre>
+}</code></pre>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- List Orders -->
-                <div class="mb-8">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="endpoint-badge badge-get">GET</span>
-                        <code class="text-gray-800 font-semibold">/api/v1/orders</code>
+                <!-- GET /orders -->
+                <div class="endpoint-card mb-6">
+                    <div class="endpoint-card-header">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="badge-get">GET</span>
+                                <code class="text-gray-700 font-semibold">/api/v1/orders</code>
+                            </div>
+                            <p class="text-gray-500 text-sm">List order history with filtering and pagination.</p>
+                        </div>
+                        <span class="scope-badge"><i class="fas fa-lock"></i>orders:read</span>
                     </div>
-                    <p class="text-gray-600 text-sm mb-3">List your previous orders with pagination.</p>
+                    <div class="endpoint-card-body">
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Query Parameters</h4>
+                        <div class="border border-gray-200 rounded-xl overflow-hidden mb-5">
+                            <table class="param-table">
+                                <thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="param-name">page</td>
+                                        <td class="param-type">integer</td>
+                                        <td><span class="param-opt">Optional</span></td>
+                                        <td>Page number. Default: <code class="text-xs text-blue-600">1</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="param-name">limit</td>
+                                        <td class="param-type">integer</td>
+                                        <td><span class="param-opt">Optional</span></td>
+                                        <td>Results per page. Default: <code class="text-xs text-blue-600">20</code>, max: <code class="text-xs text-blue-600">100</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="param-name">status</td>
+                                        <td class="param-type">string</td>
+                                        <td><span class="param-opt">Optional</span></td>
+                                        <td>Filter by delivery status: <code class="text-xs text-blue-600">Pending</code>, <code class="text-xs text-blue-600">Processing</code>, <code class="text-xs text-blue-600">Delivered</code>, <code class="text-xs text-blue-600">Failed</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                    <table class="w-full text-sm border-collapse mb-3">
-                        <thead><tr class="bg-gray-50"><th class="text-left px-3 py-2 border">Parameter</th><th class="text-left px-3 py-2 border">Type</th><th class="text-left px-3 py-2 border">Description</th></tr></thead>
-                        <tbody>
-                            <tr><td class="px-3 py-2 border font-mono text-xs">page</td><td class="px-3 py-2 border text-gray-500">number</td><td class="px-3 py-2 border text-gray-600">Page number (default: 1)</td></tr>
-                            <tr><td class="px-3 py-2 border font-mono text-xs">limit</td><td class="px-3 py-2 border text-gray-500">number</td><td class="px-3 py-2 border text-gray-600">Results per page (default: 20, max: 100)</td></tr>
-                            <tr><td class="px-3 py-2 border font-mono text-xs">status</td><td class="px-3 py-2 border text-gray-500">string</td><td class="px-3 py-2 border text-gray-600">Filter by delivery status</td></tr>
-                        </tbody>
-                    </table>
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-600">200 OK</span></h4>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre><code>{
+  "success": true,
+  "orders": [
+    {
+      "id": "9f2e1d3a-...",
+      "orderId": "0042",
+      "network": "MTN",
+      "total": 18.00,
+      "paymentStatus": "Completed",
+      "deliveryStatus": "Delivered",
+      "createdAt": "2026-05-31T10:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 87,
+    "pages": 5
+  }
+}</code></pre>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Get Order -->
-                <div class="mb-4">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="endpoint-badge badge-get">GET</span>
-                        <code class="text-gray-800 font-semibold">/api/v1/orders/:orderId</code>
+                <!-- GET /orders/:id -->
+                <div class="endpoint-card">
+                    <div class="endpoint-card-header">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="badge-get">GET</span>
+                                <code class="text-gray-700 font-semibold">/api/v1/orders/:orderId</code>
+                            </div>
+                            <p class="text-gray-500 text-sm">Retrieve a single order with full item detail and per-item delivery status.</p>
+                        </div>
+                        <span class="scope-badge"><i class="fas fa-lock"></i>orders:read</span>
                     </div>
-                    <p class="text-gray-600 text-sm">Get details of a specific order by its UUID or sequential orderId.</p>
+                    <div class="endpoint-card-body">
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Path Parameters</h4>
+                        <div class="border border-gray-200 rounded-xl overflow-hidden mb-5">
+                            <table class="param-table">
+                                <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="param-name">orderId</td>
+                                        <td class="param-type">string</td>
+                                        <td>Order UUID or sequential ID (e.g. <code class="text-xs text-blue-600">0042</code>)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-600">200 OK</span></h4>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre><code>{
+  "success": true,
+  "order": {
+    "id": "9f2e1d3a-...",
+    "orderId": "0042",
+    "network": "MTN",
+    "items": [
+      {
+        "packageId": "mtn-5gb",
+        "packageName": "5GB",
+        "data": "5GB",
+        "price": 18.00,
+        "phoneNumber": "0241234567",
+        "deliveryStatus": "Delivered"
+      }
+    ],
+    "subtotal": 18.00,
+    "total": 18.00,
+    "paymentStatus": "Completed",
+    "deliveryStatus": "Delivered",
+    "createdAt": "2026-05-31T10:00:00.000Z"
+  }
+}</code></pre>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Balance -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6 doc-section" id="balance">
-                <h2 class="text-xl font-bold text-gray-800 mb-3"><i class="fas fa-wallet mr-2 text-gray-400"></i>Balance</h2>
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="endpoint-badge badge-get">GET</span>
-                    <code class="text-gray-800 font-semibold">/api/v1/balance</code>
-                </div>
-                <p class="text-gray-600 text-sm mb-3">Check your current wallet balance.</p>
-<pre>
-{
+            <!-- ===================== BALANCE ===================== -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 doc-section" id="balance">
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-wallet mr-2 text-gray-400"></i>Balance</h2>
+                <div class="endpoint-card">
+                    <div class="endpoint-card-header">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="badge-get">GET</span>
+                                <code class="text-gray-700 font-semibold">/api/v1/balance</code>
+                            </div>
+                            <p class="text-gray-500 text-sm">Return the current wallet balance for the API key's account.</p>
+                        </div>
+                        <span class="scope-badge"><i class="fas fa-lock"></i>account:read</span>
+                    </div>
+                    <div class="endpoint-card-body">
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-600">200 OK</span></h4>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre><code>{
   "success": true,
   "balance": 500.00,
   "currency": "GHS"
-}</pre>
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Account -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6 doc-section" id="account">
-                <h2 class="text-xl font-bold text-gray-800 mb-3"><i class="fas fa-user mr-2 text-gray-400"></i>Account</h2>
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="endpoint-badge badge-get">GET</span>
-                    <code class="text-gray-800 font-semibold">/api/v1/account</code>
-                </div>
-                <p class="text-gray-600 text-sm mb-3">Get basic account info and wallet balance.</p>
-<pre>
-{
+            <!-- ===================== ACCOUNT ===================== -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 doc-section" id="account">
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-user mr-2 text-gray-400"></i>Account</h2>
+                <div class="endpoint-card">
+                    <div class="endpoint-card-header">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="badge-get">GET</span>
+                                <code class="text-gray-700 font-semibold">/api/v1/account</code>
+                            </div>
+                            <p class="text-gray-500 text-sm">Return account details and current wallet balance.</p>
+                        </div>
+                        <span class="scope-badge"><i class="fas fa-lock"></i>account:read</span>
+                    </div>
+                    <div class="endpoint-card-body">
+                        <h4 class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Response <span class="text-green-600">200 OK</span></h4>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre><code>{
   "success": true,
   "account": {
     "id": "uuid",
     "name": "John Doe",
     "email": "john@example.com",
     "role": "agent",
-    "agentCode": "BT-0001",
+    "agentCode": "DE-0001",
     "walletBalance": 500.00,
     "currency": "GHS"
   }
-}</pre>
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Errors -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6 doc-section" id="errors">
-                <h2 class="text-xl font-bold text-gray-800 mb-3"><i class="fas fa-exclamation-circle mr-2 text-gray-400"></i>Error Handling</h2>
-                <p class="text-gray-600 text-sm mb-4">All errors return a JSON object with <code class="bg-gray-100 px-1 rounded text-sm">success: false</code> and an <code class="bg-gray-100 px-1 rounded text-sm">error</code> message.</p>
+            <!-- ===================== ERRORS ===================== -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 doc-section" id="errors">
+                <h2 class="text-xl font-bold text-gray-800 mb-1"><i class="fas fa-exclamation-circle mr-2 text-gray-400"></i>Error Handling</h2>
+                <p class="text-gray-500 text-sm mb-4">All error responses follow the same shape:</p>
 
-                <table class="w-full text-sm border-collapse">
-                    <thead><tr class="bg-gray-50"><th class="text-left px-3 py-2 border">Status</th><th class="text-left px-3 py-2 border">Meaning</th></tr></thead>
-                    <tbody>
-                        <tr><td class="px-3 py-2 border font-mono">400</td><td class="px-3 py-2 border text-gray-600">Bad request — invalid parameters or insufficient balance</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono">401</td><td class="px-3 py-2 border text-gray-600">Unauthorized — missing or invalid API key</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono">403</td><td class="px-3 py-2 border text-gray-600">Forbidden — insufficient permissions or blocked IP/domain</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono">404</td><td class="px-3 py-2 border text-gray-600">Not found — resource doesn't exist</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono">429</td><td class="px-3 py-2 border text-gray-600">Rate limited — too many requests (default: 60/min)</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono">500</td><td class="px-3 py-2 border text-gray-600">Server error</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono">503</td><td class="px-3 py-2 border text-gray-600">Service unavailable — try again later</td></tr>
-                    </tbody>
-                </table>
-<pre class="mt-4">
-// Error response example
-{
+                <div class="code-block mb-5">
+                    <span class="lang-label">JSON</span>
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre style="padding-top:28px"><code>{
   "success": false,
   "error": "Insufficient wallet balance.",
   "required": 18.00,
   "available": 5.00
-}</pre>
+}</code></pre>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <table class="param-table">
+                        <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+                        <tbody>
+                            <tr><td><code class="font-mono font-bold text-gray-800">400</code></td><td>Bad request — invalid parameters or insufficient wallet balance</td></tr>
+                            <tr><td><code class="font-mono font-bold text-gray-800">401</code></td><td>Unauthorized — missing or invalid API key</td></tr>
+                            <tr><td><code class="font-mono font-bold text-gray-800">403</code></td><td>Forbidden — key lacks required scope, or domain not whitelisted</td></tr>
+                            <tr><td><code class="font-mono font-bold text-gray-800">404</code></td><td>Not found — the requested resource does not exist</td></tr>
+                            <tr><td><code class="font-mono font-bold text-gray-800">429</code></td><td>Too many requests — rate limit exceeded, back off and retry</td></tr>
+                            <tr><td><code class="font-mono font-bold text-gray-800">500</code></td><td>Internal server error — contact support if persistent</td></tr>
+                            <tr><td><code class="font-mono font-bold text-gray-800">503</code></td><td>Service unavailable — delivery provider temporarily unreachable</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- Code Examples -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6 doc-section" id="examples">
-                <h2 class="text-xl font-bold text-gray-800 mb-3"><i class="fas fa-code mr-2 text-gray-400"></i>Code Examples</h2>
+            <!-- ===================== RATE LIMITS ===================== -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 doc-section" id="rate-limits">
+                <h2 class="text-xl font-bold text-gray-800 mb-1"><i class="fas fa-tachometer-alt mr-2 text-gray-400"></i>Rate Limits</h2>
+                <p class="text-gray-500 text-sm mb-4">All API key requests share a default limit of <strong class="text-gray-700">60 requests per minute</strong> per key. Exceeding this returns a <code class="bg-red-50 text-red-600 px-1.5 py-0.5 rounded text-xs font-mono">429 Too Many Requests</code> response.</p>
 
-                <!-- JavaScript / Node.js -->
-                <h3 class="font-semibold text-gray-800 mt-4 mb-2">JavaScript (Node.js / Fetch)</h3>
-<pre>
-const API_KEY = 'de_live_your_key_here';
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                    <p class="text-gray-700 text-sm font-semibold mb-3">Retry Tips</p>
+                    <ul class="text-gray-500 text-sm space-y-2">
+                        <li><i class="fas fa-arrow-right mr-2 text-blue-400 text-xs"></i>When you receive a <code class="bg-red-50 text-red-600 px-1 rounded text-xs">429</code>, wait at least <strong class="text-gray-700">1 second</strong> then retry with exponential back-off.</li>
+                        <li><i class="fas fa-arrow-right mr-2 text-blue-400 text-xs"></i>Batch multiple numbers into a single order request (up to 10 items) to minimise API calls.</li>
+                        <li><i class="fas fa-arrow-right mr-2 text-blue-400 text-xs"></i>Cache the <code class="bg-slate-200 text-slate-700 px-1 rounded text-xs font-mono">GET /packages</code> response — package lists change infrequently.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ===================== CODE EXAMPLES ===================== -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 doc-section" id="examples">
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-code mr-2 text-gray-400"></i>Code Examples</h2>
+
+                <div class="border-b border-gray-200 mb-5 flex gap-1">
+                    <button class="tab-btn active" onclick="switchTab('js',     this)"><i class="fab fa-js-square mr-1 text-yellow-500"></i>JavaScript</button>
+                    <button class="tab-btn"        onclick="switchTab('python', this)"><i class="fab fa-python mr-1 text-blue-500"></i>Python</button>
+                    <button class="tab-btn"        onclick="switchTab('php',    this)"><i class="fab fa-php mr-1 text-indigo-500"></i>PHP</button>
+                </div>
+
+                <!-- JavaScript -->
+                <div id="tab-js" class="tab-panel active">
+                    <div class="code-block">
+                        <span class="lang-label">Node.js / Fetch</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre style="padding-top:28px"><code>const API_KEY  = 'de_live_your_key_here';
 const BASE_URL = 'https://your-domain.com/api/v1';
 
-// List packages
-async function getPackages() {
-  const res = await fetch(`${BASE_URL}/packages`, {
-    headers: { 'X-API-Key': API_KEY }
-  });
-  return res.json();
-}
-
-// Place an order
-async function placeOrder(network, packageId, phoneNumber) {
-  const res = await fetch(`${BASE_URL}/orders`, {
-    method: 'POST',
+async function apiRequest(method, path, body) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
     headers: {
       'X-API-Key': API_KEY,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      network,
-      items: [{ packageId, phoneNumber }]
-    })
+    body: body ? JSON.stringify(body) : undefined
   });
-  return res.json();
-}
-
-// Check balance
-async function checkBalance() {
-  const res = await fetch(`${BASE_URL}/balance`, {
-    headers: { 'X-API-Key': API_KEY }
-  });
-  return res.json();
-}
-
-// Usage
-const packages = await getPackages();
-console.log(packages.packages.MTN);
-
-const order = await placeOrder('MTN', 'mtn-5gb', '0241234567');
-console.log('Order placed:', order.order.orderId);
-</pre>
-
-                <!-- Python -->
-                <h3 class="font-semibold text-gray-800 mt-6 mb-2">Python (requests)</h3>
-<pre>
-import requests
-
-API_KEY = "de_live_your_key_here"
-BASE_URL = "https://your-domain.com/api/v1"
-HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
-
-# List packages
-packages = requests.get(f"{BASE_URL}/packages", headers=HEADERS).json()
-
-# Place an order
-order = requests.post(f"{BASE_URL}/orders", headers=HEADERS, json={
-    "network": "MTN",
-    "items": [{"packageId": "mtn-5gb", "phoneNumber": "0241234567"}]
-}).json()
-
-print(f"Order #{order['order']['orderId']} placed!")
-
-# Check balance
-balance = requests.get(f"{BASE_URL}/balance", headers=HEADERS).json()
-print(f"Balance: GHS {balance['balance']}")
-</pre>
-
-                <!-- PHP -->
-                <h3 class="font-semibold text-gray-800 mt-6 mb-2">PHP (cURL)</h3>
-<pre>
-&lt;?php
-$apiKey = "de_live_your_key_here";
-$baseUrl = "https://your-domain.com/api/v1";
-
-function apiRequest($method, $endpoint, $body = null) {
-    global $apiKey, $baseUrl;
-    $ch = curl_init("$baseUrl$endpoint");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "X-API-Key: $apiKey",
-        "Content-Type: application/json"
-    ]);
-    if ($method === "POST") {
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
-    }
-    $response = curl_exec($ch);
-    curl_close($ch);
-    return json_decode($response, true);
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error);
+  return data;
 }
 
 // List packages
-$packages = apiRequest("GET", "/packages");
+const { packages } = await apiRequest('GET', '/packages');
+console.log(packages.MTN);
 
 // Place an order
-$order = apiRequest("POST", "/orders", [
-    "network" =&gt; "MTN",
-    "items" =&gt; [["packageId" =&gt; "mtn-5gb", "phoneNumber" =&gt; "0241234567"]]
-]);
-
-echo "Order #{$order['order']['orderId']} placed!\n";
+const result = await apiRequest('POST', '/orders', {
+  network: 'MTN',
+  items: [{ packageId: 'mtn-5gb', phoneNumber: '0241234567' }]
+});
+console.log('Order #' + result.order.orderId, '— Balance:', result.walletBalance);
 
 // Check balance
-$balance = apiRequest("GET", "/balance");
-echo "Balance: GHS {$balance['balance']}\n";
-?&gt;
-</pre>
+const { balance } = await apiRequest('GET', '/balance');
+console.log(`GHS ${balance}`);</code></pre>
+                    </div>
+                </div>
+
+                <!-- Python -->
+                <div id="tab-python" class="tab-panel">
+                    <div class="code-block">
+                        <span class="lang-label">Python · requests</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre style="padding-top:28px"><code>import requests
+
+API_KEY  = "de_live_your_key_here"
+BASE_URL = "https://your-domain.com/api/v1"
+HEADERS  = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
+
+def api(method, path, **kwargs):
+    r = requests.request(method, BASE_URL + path, headers=HEADERS, **kwargs)
+    data = r.json()
+    if not data.get("success"):
+        raise Exception(data.get("error"))
+    return data
+
+# List packages
+pkgs = api("GET", "/packages")
+print(pkgs["packages"]["MTN"])
+
+# Place an order
+order = api("POST", "/orders", json={
+    "network": "MTN",
+    "items": [{"packageId": "mtn-5gb", "phoneNumber": "0241234567"}]
+})
+print(f"Order #{order['order']['orderId']} — Balance: GHS {order['walletBalance']}")
+
+# Check balance
+bal = api("GET", "/balance")
+print(f"GHS {bal['balance']}")</code></pre>
+                    </div>
+                </div>
+
+                <!-- PHP -->
+                <div id="tab-php" class="tab-panel">
+                    <div class="code-block">
+                        <span class="lang-label">PHP · cURL</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre style="padding-top:28px"><code>&lt;?php
+define('API_KEY',  'de_live_your_key_here');
+define('BASE_URL', 'https://your-domain.com/api/v1');
+
+function apiRequest(string $method, string $path, ?array $body = null): array {
+    $ch = curl_init(BASE_URL . $path);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER =&gt; true,
+        CURLOPT_CUSTOMREQUEST  =&gt; $method,
+        CURLOPT_HTTPHEADER     =&gt; [
+            'X-API-Key: ' . API_KEY,
+            'Content-Type: application/json'
+        ],
+        CURLOPT_POSTFIELDS =&gt; $body ? json_encode($body) : null
+    ]);
+    $response = json_decode(curl_exec($ch), true);
+    curl_close($ch);
+    if (!$response['success']) throw new Exception($response['error']);
+    return $response;
+}
+
+// List packages
+$pkgs = apiRequest('GET', '/packages');
+print_r($pkgs['packages']['MTN']);
+
+// Place an order
+$result = apiRequest('POST', '/orders', [
+    'network' =&gt; 'MTN',
+    'items'   =&gt; [['packageId' =&gt; 'mtn-5gb', 'phoneNumber' =&gt; '0241234567']]
+]);
+echo "Order #{$result['order']['orderId']} — Balance: GHS {$result['walletBalance']}\n";
+
+// Check balance
+$bal = apiRequest('GET', '/balance');
+echo "GHS {$bal['balance']}\n";
+?&gt;</code></pre>
+                    </div>
+                </div>
             </div>
 
-            <!-- Rate Limits -->
-            <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-3"><i class="fas fa-tachometer-alt mr-2 text-gray-400"></i>Rate Limits</h2>
-                <p class="text-gray-600 text-sm mb-3">Default rate limit is <strong>60 requests per minute</strong> per API key. Rate limit headers are included in responses:</p>
-                <table class="w-full text-sm border-collapse">
-                    <thead><tr class="bg-gray-50"><th class="text-left px-3 py-2 border">Header</th><th class="text-left px-3 py-2 border">Description</th></tr></thead>
-                    <tbody>
-                        <tr><td class="px-3 py-2 border font-mono text-xs">RateLimit-Limit</td><td class="px-3 py-2 border text-gray-600">Maximum requests per window</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono text-xs">RateLimit-Remaining</td><td class="px-3 py-2 border text-gray-600">Requests remaining in current window</td></tr>
-                        <tr><td class="px-3 py-2 border font-mono text-xs">RateLimit-Reset</td><td class="px-3 py-2 border text-gray-600">Seconds until window resets</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <p class="text-center text-xs text-gray-400 pb-8">DataEasy+ API v1 &bull; Last updated May 2026</p>
 
         </div>
     </main>
@@ -474,9 +741,32 @@ echo "Balance: GHS {$balance['balance']}\n";
         if (!AdminCommon.checkAdminAuth()) return;
         AdminCommon.initSidebar();
 
-        // Detect base URL
         const baseUrl = window.location.origin + '/api/v1';
         document.getElementById('baseUrlDisplay').textContent = baseUrl;
+
+        // Language tab switching
+        window.switchTab = function(tab, btn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const panel = document.getElementById('tab-' + tab);
+            if (panel) panel.classList.add('active');
+            if (btn) btn.classList.add('active');
+        };
+
+        // Copy code block
+        window.copyCode = function(btn) {
+            const block = btn.closest('.code-block');
+            const code  = block.querySelector('code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.color = '#16a34a';
+                setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
+            });
+        };
+
+        // Copy arbitrary text
+        window.copyText = function(text) { navigator.clipboard.writeText(text); };
     })();
     </script>
 </body>
