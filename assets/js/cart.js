@@ -439,9 +439,13 @@ const DataEasyCart = (function() {
     }
 
     function getNetworkFromPackageId(packageId) {
-        if (packageId.startsWith('mtn-')) return 'MTN';
-        if (packageId.startsWith('at-')) return 'AirtelTigo';
-        if (packageId.startsWith('tc-')) return 'Telecel';
+        // Prefer the network field stamped onto the package object
+        const pkg = findPackage(packageId);
+        if (pkg && pkg.network) return pkg.network;
+        // Legacy fallback for string-prefixed IDs
+        if (String(packageId).startsWith('mtn-')) return 'MTN';
+        if (String(packageId).startsWith('at-')) return 'AirtelTigo';
+        if (String(packageId).startsWith('tc-')) return 'Telecel';
         return null;
     }
 
