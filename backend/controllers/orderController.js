@@ -10,6 +10,7 @@ const { sequelize } = require('../config/database');
 const { packages, getPackages, getAllPackages, getAllPackagesForClient, getAllPackagesForRole, findPackage, findPackageSync, getNetworkFromPackageId, getPriceForRole } = require('../config/packages');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const dispatchLock = require('../services/dispatchLock');
 
 // Lazy load services to avoid circular dependency
 let mcbisProvider = null;
@@ -396,6 +397,18 @@ exports.createOrder = async (req, res) => {
                 // Send items to MCBIS sequentially to respect rate limits
                 for (let i = 0; i < orderItems.length; i++) {
                     const item = orderItems[i];
+
+                    // Claim exclusive dispatch rights — prevents recovery sweep from
+                    // sending the same item concurrently while this loop is awaiting
+                    if (!dispatchLock.claim(order.id, i)) {
+                        logger.warn('Dispatch lock already held for item, skipping', {
+                            orderId: order.orderId, itemIndex: i
+                        });
+                        // Mark Processing so recovery sweep won't pick it up
+                        orderItems[i].deliveryStatus = 'Processing';
+                        continue;
+                    }
+
                     try {
                         const deliveryResult = await provider.deliverBundle({
                             orderId: order.id,
@@ -441,6 +454,8 @@ exports.createOrder = async (req, res) => {
                         });
                         orderItems[i].deliveryStatus = 'Failed';
                         orderItems[i].deliveryError = itemError.message;
+                    } finally {
+                        dispatchLock.release(order.id, i);
                     }
 
                     // 500ms gap between placeOrder calls to respect MCBIS rate limit

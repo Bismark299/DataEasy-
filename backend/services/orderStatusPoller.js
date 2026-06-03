@@ -11,6 +11,7 @@
 
 const logger = require('../utils/logger');
 const mcbisProvider = require('./mcbisProvider');
+const dispatchLock = require('./dispatchLock');
 const { Order, Setting, Wallet, Transaction } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
@@ -621,6 +622,38 @@ async function recoverPendingOrders() {
                 break; // STOP — don't try remaining items, wait for next cycle after top-up
             }
 
+            // Claim exclusive dispatch rights — prevents new-order or API dispatch
+            // from sending this same item concurrently while we await MCBIS
+            if (!dispatchLock.claim(order.id, itemIndex)) {
+                logger.warn('Recovery: dispatch lock held for item, skipping this cycle', {
+                    orderId: order.orderId, itemIndex
+                });
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+            }
+
+            // Pre-dispatch fresh DB check — the item snapshot collected above may be
+            // stale if another dispatch path ran between collection and now
+            try {
+                await order.reload();
+            } catch (reloadErr) {
+                dispatchLock.release(order.id, itemIndex);
+                logger.error('Recovery: pre-dispatch reload failed', { orderId: order.orderId, error: reloadErr.message });
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+            }
+            const preCheckItem = (order.items || [])[itemIndex];
+            if (!preCheckItem || preCheckItem.providerReference || preCheckItem.deliveryStatus === 'Processing') {
+                dispatchLock.release(order.id, itemIndex);
+                logger.info('Recovery: item already dispatched by another path, skipping', {
+                    orderId: order.orderId, itemIndex,
+                    status: preCheckItem && preCheckItem.deliveryStatus,
+                    hasRef: !!(preCheckItem && preCheckItem.providerReference)
+                });
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+            }
+
             try {
                 logger.info('Recovery: sending stuck order to MCBIS', {
                     orderId: order.orderId, itemIndex, network: order.network
@@ -636,7 +669,7 @@ async function recoverPendingOrders() {
                     existingReference: null
                 }, { skipBalanceCheck: true }); // Balance already verified above
 
-                // Reload order to get fresh items (in case another process updated it)
+                // Reload order to get fresh items for writing results back
                 await order.reload();
                 const freshItems = [...(order.items || [])];
 
@@ -650,6 +683,7 @@ async function recoverPendingOrders() {
                     logger.info('Recovery: MCBIS says insufficient balance, stopping batch', {
                         orderId: order.orderId
                     });
+                    dispatchLock.release(order.id, itemIndex);
                     break;
 
                 } else if (deliveryResult.reference && deliveryResult.status !== 'Failed') {
@@ -695,6 +729,8 @@ async function recoverPendingOrders() {
                 logger.error('Recovery: delivery error', {
                     orderId: order.orderId, itemIndex, error: err.message
                 });
+            } finally {
+                dispatchLock.release(order.id, itemIndex);
             }
 
             // Small delay between MCBIS API calls

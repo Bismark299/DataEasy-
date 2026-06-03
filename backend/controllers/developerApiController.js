@@ -8,6 +8,7 @@ const { Order, Wallet, Transaction, Setting, User, Package } = require('../model
 const { sequelize } = require('../config/database');
 const { getAllPackagesForRole, findPackage, getNetworkFromPackageId, getPriceForRole } = require('../config/packages');
 const logger = require('../utils/logger');
+const dispatchLock = require('../services/dispatchLock');
 
 // Lazy load services
 let mcbisProvider = null;
@@ -274,6 +275,16 @@ exports.createOrder = async (req, res) => {
                     const dispatched = [...orderItems];
                     for (let i = 0; i < orderItems.length; i++) {
                         const item = orderItems[i];
+
+                        // Claim exclusive dispatch rights for this item
+                        if (!dispatchLock.claim(order.id, i)) {
+                            logger.warn('API dispatch: lock already held for item, skipping', {
+                                orderId: order.orderId, itemIndex: i
+                            });
+                            dispatched[i] = { ...dispatched[i], deliveryStatus: 'Processing' };
+                            continue;
+                        }
+
                         try {
                             const deliveryResult = await provider.deliverBundle({
                                 orderId: order.id,
@@ -282,7 +293,7 @@ exports.createOrder = async (req, res) => {
                                 phoneNumber: item.phoneNumber,
                                 dataAmount: item.data,
                                 price: item.costPrice || item.price,
-                                existingReference: null
+                                existingReference: item.providerReference || null
                             }, { skipBalanceCheck: batchSkipBalanceCheck });
 
                             if (deliveryResult.status === 'InsufficientBalance') {
@@ -307,6 +318,8 @@ exports.createOrder = async (req, res) => {
                         } catch (itemErr) {
                             logger.error('API order auto-delivery failed for item', { orderId: order.orderId, itemIndex: i, error: itemErr.message });
                             dispatched[i] = { ...dispatched[i], deliveryStatus: 'Failed', deliveryError: itemErr.message };
+                        } finally {
+                            dispatchLock.release(order.id, i);
                         }
 
                         // 500ms gap between placeOrder calls to respect MCBIS rate limit
