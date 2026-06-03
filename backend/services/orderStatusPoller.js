@@ -345,6 +345,18 @@ async function updateOrderItemStatus(orderId, itemIndex, status, reference, erro
             overallStatus
         });
 
+        // Fire delivery webhook if the order has a callbackUrl (developer API orders)
+        if ((status === 'Delivered' || status === 'Failed') && order.callbackUrl) {
+            const { fireItemWebhook } = require('./webhookDelivery');
+            fireItemWebhook(order.callbackUrl, {
+                orderId:     order.orderId,
+                orderUuid:   order.id,
+                itemIndex,
+                item:        items[itemIndex],
+                overallStatus
+            });
+        }
+
         return true;
 
     } catch (err) {

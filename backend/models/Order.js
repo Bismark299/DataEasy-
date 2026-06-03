@@ -82,6 +82,12 @@ const Order = sequelize.define('Order', {
         type: DataTypes.DATE,
         allowNull: true,
         defaultValue: null
+    },
+    callbackUrl: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Optional HTTPS URL to POST delivery status updates to (developer webhook)'
     }
 }, {
     tableName: 'orders',

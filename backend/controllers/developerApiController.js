@@ -113,7 +113,7 @@ exports.createOrder = async (req, res) => {
     const MAX_RETRIES = 3;
     
     // Validate input before starting any transaction
-    const { items, network } = req.body;
+    const { items, network, callbackUrl } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ success: false, error: 'items array is required.' });
@@ -125,6 +125,18 @@ exports.createOrder = async (req, res) => {
 
     if (items.length > 10) {
         return res.status(400).json({ success: false, error: 'Maximum 10 items per order.' });
+    }
+
+    // Validate callbackUrl if provided
+    if (callbackUrl !== undefined && callbackUrl !== null) {
+        try {
+            const parsed = new URL(callbackUrl);
+            if (parsed.protocol !== 'https:') {
+                return res.status(400).json({ success: false, error: 'callbackUrl must use HTTPS.' });
+            }
+        } catch {
+            return res.status(400).json({ success: false, error: 'callbackUrl is not a valid URL.' });
+        }
     }
 
     const userRole = req.user.role || 'agent';
@@ -227,7 +239,8 @@ exports.createOrder = async (req, res) => {
                 total,
                 paymentStatus: 'Completed',
                 paymentMethod: 'wallet',
-                deliveryStatus: 'Processing'
+                deliveryStatus: 'Processing',
+                callbackUrl: callbackUrl || null
             }, { transaction: t });
 
             await Transaction.create({

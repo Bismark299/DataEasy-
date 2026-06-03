@@ -84,6 +84,8 @@
             <a href="#overview"        class="nav-link active" data-section="overview"><i class="fas fa-home w-4 mr-2 text-center"></i>Overview</a>
             <a href="#authentication"  class="nav-link" data-section="authentication"><i class="fas fa-lock w-4 mr-2 text-center"></i>Authentication</a>
             <a href="#permissions"     class="nav-link" data-section="permissions"><i class="fas fa-shield-alt w-4 mr-2 text-center"></i>Permissions</a>
+            <a href="#idempotency"    class="nav-link" data-section="idempotency"><i class="fas fa-fingerprint w-4 mr-2 text-center"></i>Idempotency</a>
+            <a href="#webhooks"       class="nav-link" data-section="webhooks"><i class="fas fa-bolt w-4 mr-2 text-center"></i>Webhooks</a>
 
             <div class="nav-section">Endpoints</div>
             <a href="#get-packages" class="nav-link" data-section="get-packages"><span class="method-badge method-get mr-1" style="font-size:9px;padding:1px 5px;">GET</span> /packages</a>
@@ -212,6 +214,121 @@ X-API-Key: de_live_abcdef1234567890...</code></pre>
                 </div>
             </section>
 
+            <!-- ===================== IDEMPOTENCY ===================== -->
+            <section id="idempotency" class="endpoint-section mb-14">
+                <h2 class="text-xl font-bold text-white mb-1"><i class="fas fa-fingerprint mr-2 text-gray-500"></i>Idempotency</h2>
+                <p class="text-gray-400 text-sm mb-4">Add an <code class="bg-[#1e293b] text-blue-300 px-1.5 py-0.5 rounded text-xs">X-Idempotency-Key</code> header to <code class="bg-[#1e293b] text-blue-300 px-1.5 py-0.5 rounded text-xs">POST /orders</code> to make it safe to retry. If your server retries a request that already succeeded, the API returns the original response instead of creating a duplicate order and charging you again.</p>
+
+                <div class="code-block mb-5">
+                    <span class="lang-label">HTTP</span>
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre style="padding-top:28px"><code>POST /api/v1/orders HTTP/1.1
+X-API-Key: de_live_your_key_here
+X-Idempotency-Key: my-order-uuid-or-any-unique-string
+Content-Type: application/json</code></pre>
+                </div>
+
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl overflow-hidden mb-5">
+                    <table class="param-table">
+                        <thead><tr><th>Detail</th><th>Value</th></tr></thead>
+                        <tbody>
+                            <tr><td class="param-name">Header</td><td><code class="text-xs text-blue-300">X-Idempotency-Key</code></td></tr>
+                            <tr><td class="param-name">Required</td><td><span class="param-opt">Optional</span> — omit to disable idempotency</td></tr>
+                            <tr><td class="param-name">Format</td><td>Any string 16–255 characters (UUID recommended)</td></tr>
+                            <tr><td class="param-name">Scope</td><td>Per API key + per endpoint — the same key can be reused on different endpoints</td></tr>
+                            <tr><td class="param-name">TTL</td><td>Keys expire after <strong class="text-white">24 hours</strong></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-white font-semibold text-sm mb-3">How it works</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                    <div class="bg-[#111827] border border-[#1e293b] rounded-lg p-4">
+                        <p class="text-green-400 text-xs font-bold mb-1">First call</p>
+                        <p class="text-gray-400 text-xs">Order is created, wallet debited, delivery started. Response is cached against your key.</p>
+                    </div>
+                    <div class="bg-[#111827] border border-[#1e293b] rounded-lg p-4">
+                        <p class="text-blue-400 text-xs font-bold mb-1">Retry with same key</p>
+                        <p class="text-gray-400 text-xs">The cached response is returned instantly. No new order, no new charge. Response includes <code class="text-xs text-blue-300">"_idempotent": true</code>.</p>
+                    </div>
+                    <div class="bg-[#111827] border border-[#1e293b] rounded-lg p-4">
+                        <p class="text-yellow-400 text-xs font-bold mb-1">New key</p>
+                        <p class="text-gray-400 text-xs">A genuinely new order is created. Use a fresh key for each intended transaction.</p>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-900/15 border border-yellow-700/30 rounded-xl p-4">
+                    <p class="text-yellow-300 text-sm font-semibold mb-1"><i class="fas fa-lightbulb mr-1"></i>Best practice</p>
+                    <p class="text-yellow-200/70 text-xs">Generate a UUID per order attempt on your side (e.g. <code class="text-xs">crypto.randomUUID()</code>) and store it with the pending order in your database before calling this API. On any retry, reuse the same UUID. This guarantees exactly-once delivery even under network failures.</p>
+                </div>
+            </section>
+
+            <!-- ===================== WEBHOOKS ===================== -->
+            <section id="webhooks" class="endpoint-section mb-14">
+                <h2 class="text-xl font-bold text-white mb-1"><i class="fas fa-bolt mr-2 text-gray-500"></i>Webhooks</h2>
+                <p class="text-gray-400 text-sm mb-4">Pass an optional <code class="bg-[#1e293b] text-blue-300 px-1.5 py-0.5 rounded text-xs">callbackUrl</code> in your <code class="bg-[#1e293b] text-blue-300 px-1.5 py-0.5 rounded text-xs">POST /orders</code> body. When each item is delivered or fails, we POST a delivery event to that URL — no polling required.</p>
+
+                <h3 class="text-white font-semibold text-sm mb-3">Webhook payload</h3>
+                <div class="code-block mb-5">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre><code>{
+  "event": "order.item.delivered",
+  "orderId": "0042",
+  "orderUuid": "9f2e1d3a-...",
+  "itemIndex": 0,
+  "item": {
+    "phoneNumber": "0241234567",
+    "data": "1GB",
+    "packageId": "mtn-1gb",
+    "deliveryStatus": "Delivered",
+    "providerReference": "BT-42-0-1748993412345",
+    "deliveredAt": "2026-06-03T10:05:32.000Z",
+    "deliveryError": null
+  },
+  "orderStatus": "Delivered",
+  "timestamp": "2026-06-03T10:05:32.123Z"
+}</code></pre>
+                </div>
+
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl overflow-hidden mb-5">
+                    <table class="param-table">
+                        <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td class="param-name">event</td><td><code class="text-xs text-blue-300">order.item.delivered</code> or <code class="text-xs text-blue-300">order.item.failed</code></td></tr>
+                            <tr><td class="param-name">orderId</td><td>Your human-readable order number</td></tr>
+                            <tr><td class="param-name">itemIndex</td><td>Zero-based index of the item in your original <code class="text-xs text-blue-300">items</code> array</td></tr>
+                            <tr><td class="param-name">orderStatus</td><td>Overall order status after this item resolved — <code class="text-xs text-blue-300">Delivered</code>, <code class="text-xs text-blue-300">Partially Delivered</code>, or <code class="text-xs text-blue-300">Failed</code></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-white font-semibold text-sm mb-3">Delivery rules</h3>
+                <div class="bg-[#111827] border border-[#1e293b] rounded-xl p-5 mb-5">
+                    <ul class="text-gray-400 text-sm space-y-2">
+                        <li><i class="fas fa-arrow-right mr-2 text-blue-500 text-xs"></i>One webhook per item — if an order has 3 items, you receive up to 3 separate events.</li>
+                        <li><i class="fas fa-arrow-right mr-2 text-blue-500 text-xs"></i>We retry up to <strong class="text-white">3 times</strong> with exponential back-off (1s then 2s) if your server does not return a 2xx response.</li>
+                        <li><i class="fas fa-arrow-right mr-2 text-blue-500 text-xs"></i>Each attempt times out after <strong class="text-white">10 seconds</strong>. Respond quickly — do your processing asynchronously.</li>
+                        <li><i class="fas fa-arrow-right mr-2 text-blue-500 text-xs"></i><code class="text-xs text-blue-300">callbackUrl</code> must be <strong class="text-white">HTTPS</strong>.</li>
+                        <li><i class="fas fa-arrow-right mr-2 text-blue-500 text-xs"></i>Requests include a <code class="text-xs text-blue-300">X-DataEasy-Event</code> header with the event name for quick routing.</li>
+                    </ul>
+                </div>
+
+                <h3 class="text-white font-semibold text-sm mb-3">Example — order with callback</h3>
+                <div class="code-block">
+                    <span class="lang-label">cURL</span>
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy mr-1"></i>Copy</button>
+                    <pre style="padding-top:28px"><code>curl -X POST https://your-domain.com/api/v1/orders \
+  -H "X-API-Key: de_live_your_key_here" \
+  -H "X-Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "network": "MTN",
+    "callbackUrl": "https://yoursite.com/webhooks/dataeasy",
+    "items": [{ "packageId": "mtn-1gb", "phoneNumber": "0241234567" }]
+  }'</code></pre>
+                </div>
+            </section>
+
             <!-- ===================== GET /packages ===================== -->
             <section id="get-packages" class="endpoint-section mb-14">
                 <div class="endpoint-card">
@@ -333,8 +450,19 @@ X-API-Key: de_live_abcdef1234567890...</code></pre>
                                         <td><span class="param-req">Required</span></td>
                                         <td>Ghana mobile number — e.g. <code class="text-xs text-blue-300">0241234567</code></td>
                                     </tr>
+                                    <tr>
+                                        <td class="param-name">callbackUrl</td>
+                                        <td class="param-type">string</td>
+                                        <td><span class="param-opt">Optional</span></td>
+                                        <td>HTTPS URL to receive delivery webhooks. See <a href="#webhooks" class="text-blue-400 hover:underline">Webhooks</a>.</td>
+                                    </tr>
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div class="bg-blue-900/15 border border-blue-700/30 rounded-xl p-4 mb-5">
+                            <p class="text-blue-300 text-xs font-semibold mb-1"><i class="fas fa-fingerprint mr-1"></i>Idempotency supported</p>
+                            <p class="text-blue-200/70 text-xs">Add <code class="text-xs text-blue-300">X-Idempotency-Key: &lt;your-unique-key&gt;</code> to this request to prevent duplicate orders on retry. See <a href="#idempotency" class="text-blue-400 hover:underline">Idempotency</a>.</p>
                         </div>
 
                         <h4 class="text-gray-300 text-xs font-semibold uppercase tracking-wider mb-2">Example Request</h4>

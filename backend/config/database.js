@@ -345,6 +345,9 @@ const fixMissingColumns = async () => {
         
         // Stores table - pricing for agent selling prices
         `ALTER TABLE stores ADD COLUMN IF NOT EXISTS pricing JSONB DEFAULT '{}'::jsonb`,
+
+        // Orders table - webhook callback URL for developer API orders
+        `ALTER TABLE orders ADD COLUMN IF NOT EXISTS "callbackUrl" TEXT`,
     ];
     
     // lookup_users is no longer used — auth moved to LOOKUP_PASSWORD env var.
