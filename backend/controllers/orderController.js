@@ -393,8 +393,9 @@ exports.createOrder = async (req, res) => {
                     });
                 }
                 
-                // Send all items to MCBIS concurrently for speed
-                const deliveryPromises = orderItems.map(async (item, i) => {
+                // Send items to MCBIS sequentially to respect rate limits
+                for (let i = 0; i < orderItems.length; i++) {
+                    const item = orderItems[i];
                     try {
                         const deliveryResult = await provider.deliverBundle({
                             orderId: order.id,
@@ -405,7 +406,7 @@ exports.createOrder = async (req, res) => {
                             price: item.costPrice || item.price,
                             existingReference: item.providerReference
                         }, { skipBalanceCheck: true }); // Balance already checked above
-                        
+
                         if (deliveryResult.status === 'InsufficientBalance' || deliveryResult.status === 'BalanceCheckFailed') {
                             // MCBIS rejected — keep as Pending so recovery sweep retries later
                             orderItems[i].deliveryStatus = 'Pending';
@@ -429,7 +430,7 @@ exports.createOrder = async (req, res) => {
                             orderItems[i].deliveryStatus = 'Failed';
                             orderItems[i].deliveryError = deliveryResult.error || 'MCBIS dispatch returned no reference';
                         }
-                        
+
                         logger.info('Sent to MCBIS', {
                             orderId: order.orderId, itemIndex: i,
                             reference: deliveryResult.reference, status: deliveryResult.status
@@ -441,9 +442,12 @@ exports.createOrder = async (req, res) => {
                         orderItems[i].deliveryStatus = 'Failed';
                         orderItems[i].deliveryError = itemError.message;
                     }
-                });
 
-                await Promise.all(deliveryPromises);
+                    // 500ms gap between placeOrder calls to respect MCBIS rate limit
+                    if (i < orderItems.length - 1) {
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+                }
                 
                 // Update order with delivery statuses
                 const anyProcessing = orderItems.some(i => i.deliveryStatus === 'Processing');

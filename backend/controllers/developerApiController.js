@@ -270,9 +270,10 @@ exports.createOrder = async (req, res) => {
                         logger.warn('API order: balance pre-check failed, proceeding anyway', { orderId: order.orderId, error: balErr.message });
                     }
 
-                    // Dispatch all items concurrently
+                    // Dispatch items sequentially to respect MCBIS rate limit
                     const dispatched = [...orderItems];
-                    await Promise.all(orderItems.map(async (item, i) => {
+                    for (let i = 0; i < orderItems.length; i++) {
+                        const item = orderItems[i];
                         try {
                             const deliveryResult = await provider.deliverBundle({
                                 orderId: order.id,
@@ -307,7 +308,12 @@ exports.createOrder = async (req, res) => {
                             logger.error('API order auto-delivery failed for item', { orderId: order.orderId, itemIndex: i, error: itemErr.message });
                             dispatched[i] = { ...dispatched[i], deliveryStatus: 'Failed', deliveryError: itemErr.message };
                         }
-                    }));
+
+                        // 500ms gap between placeOrder calls to respect MCBIS rate limit
+                        if (i < orderItems.length - 1) {
+                            await new Promise(r => setTimeout(r, 500));
+                        }
+                    }
 
                     // Write updated item statuses back to DB
                     const anyProcessing = dispatched.some(it => it.deliveryStatus === 'Processing');
