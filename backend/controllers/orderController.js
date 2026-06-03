@@ -406,26 +406,28 @@ exports.createOrder = async (req, res) => {
                             existingReference: item.providerReference
                         }, { skipBalanceCheck: true }); // Balance already checked above
                         
-                        orderItems[i].deliveryStatus = 'Processing';
-                        orderItems[i].providerReference = deliveryResult.reference;
-                        orderItems[i].sentToProviderAt = new Date().toISOString();
-                        
-                        if (deliveryResult.reference && deliveryResult.status !== 'Failed') {
+                        if (deliveryResult.status === 'InsufficientBalance' || deliveryResult.status === 'BalanceCheckFailed') {
+                            // MCBIS rejected — keep as Pending so recovery sweep retries later
+                            orderItems[i].deliveryStatus = 'Pending';
+                            orderItems[i].deliveryError = deliveryResult.error;
+                            logger.warn('Insufficient MCBIS balance, item stays Pending', {
+                                orderId: order.orderId, itemIndex: i, error: deliveryResult.error
+                            });
+                        } else if (deliveryResult.reference && deliveryResult.status !== 'Failed') {
+                            // MCBIS accepted — mark Processing and start poller
+                            orderItems[i].deliveryStatus = 'Processing';
+                            orderItems[i].providerReference = deliveryResult.reference;
+                            orderItems[i].sentToProviderAt = new Date().toISOString();
                             poller.startPolling({
                                 orderId: order.id,
                                 itemIndex: i,
                                 reference: deliveryResult.reference,
                                 displayOrderId: order.orderId
                             });
-                        } else if (deliveryResult.status === 'InsufficientBalance' || deliveryResult.status === 'BalanceCheckFailed') {
-                            orderItems[i].deliveryStatus = 'Pending';
-                            orderItems[i].deliveryError = deliveryResult.error;
-                            logger.warn('Insufficient MCBIS balance, order stays Pending', {
-                                orderId: order.orderId, itemIndex: i, error: deliveryResult.error
-                            });
-                        } else if (deliveryResult.error) {
+                        } else {
+                            // MCBIS failed or returned no reference — mark Failed so it's visible
                             orderItems[i].deliveryStatus = 'Failed';
-                            orderItems[i].deliveryError = deliveryResult.error;
+                            orderItems[i].deliveryError = deliveryResult.error || 'MCBIS dispatch returned no reference';
                         }
                         
                         logger.info('Sent to MCBIS', {
