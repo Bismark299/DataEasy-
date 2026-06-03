@@ -186,7 +186,7 @@
                         <p class="text-lg font-bold text-gray-800" id="statTotalPayouts">₵0.00</p>
                     </div>
                     <div class="bg-white rounded-xl p-4 shadow-sm">
-                        <p class="text-xs text-gray-500 mb-1">Active Products</p>
+                        <p class="text-xs text-gray-500 mb-1">Active Stores</p>
                         <p class="text-lg font-bold text-gray-800" id="statActiveProducts">0</p>
                     </div>
                     <div class="bg-white rounded-xl p-4 shadow-sm">
@@ -373,13 +373,13 @@
             try {
                 const data = await apiRequest('/admin/stores/stats');
                 const s = data.stats;
-                document.getElementById('statTotalStores').textContent = s.totalStores;
-                document.getElementById('statTotalRevenue').textContent = `₵${parseFloat(s.totalRevenue || 0).toFixed(2)}`;
-                document.getElementById('statCommission').textContent = `₵${parseFloat(s.totalCommission || 0).toFixed(2)}`;
-                document.getElementById('statPendingPayouts').textContent = s.pendingPayouts;
-                document.getElementById('statTotalPayouts').textContent = `₵${parseFloat(s.totalPayouts || 0).toFixed(2)}`;
-                document.getElementById('statActiveProducts').textContent = s.activeProducts;
-                document.getElementById('statTotalOrders').textContent = s.totalOrders;
+                document.getElementById('statTotalStores').textContent = s.stores ? s.stores.total : 0;
+                document.getElementById('statTotalRevenue').textContent = `₵${parseFloat(s.sales ? s.sales.revenue : 0).toFixed(2)}`;
+                document.getElementById('statCommission').textContent = `₵${parseFloat(s.sales ? s.sales.commissionEarned : 0).toFixed(2)}`;
+                document.getElementById('statPendingPayouts').textContent = s.payouts && s.payouts.pending ? s.payouts.pending.count : 0;
+                document.getElementById('statTotalPayouts').textContent = `₵${parseFloat(s.payouts && s.payouts.completed ? s.payouts.completed.total : 0).toFixed(2)}`;
+                document.getElementById('statActiveProducts').textContent = s.stores ? s.stores.active : 0;
+                document.getElementById('statTotalOrders').textContent = s.sales ? s.sales.count : 0;
             } catch (e) {
                 toast('Failed to load store stats', 'error');
             }
@@ -413,12 +413,15 @@
                         </div>
                         <div>
                             <p class="font-semibold text-gray-800">${escapeHtml(s.name)}</p>
-                            <p class="text-xs text-gray-500">${escapeHtml(s.user ? s.user.name : '')} &middot; ${escapeHtml(s.location || 'No location')}</p>
+                            <p class="text-xs text-gray-500">${escapeHtml(s.owner ? s.owner.fullName : '')} &middot; ${escapeHtml(s.location || 'No location')}</p>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="font-bold text-green-600">₵${parseFloat(sa.availableBalance || 0).toFixed(2)}</p>
-                        <p class="text-xs text-gray-500">Available</p>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs px-2 py-0.5 rounded-full font-medium ${s.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${s.isActive ? 'Active' : 'Inactive'}</span>
+                        <div class="text-right">
+                            <p class="font-bold text-green-600">₵${parseFloat(sa.availableBalance || 0).toFixed(2)}</p>
+                            <p class="text-xs text-gray-500">Available</p>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
@@ -432,14 +435,33 @@
                 const s = data.store;
                 const sa = s.settlementAccount || {};
                 document.getElementById('detailStoreName').textContent = s.name;
+                const recentOrdersHtml = data.recentOrders && data.recentOrders.length
+                    ? `<div class="overflow-x-auto"><table class="w-full text-xs">
+                        <thead><tr class="text-gray-400 border-b">
+                            <th class="py-1 text-left">Order ID</th>
+                            <th class="py-1 text-left">Customer</th>
+                            <th class="py-1 text-right">Amount</th>
+                            <th class="py-1 text-left">Status</th>
+                            <th class="py-1 text-left">Date</th>
+                        </tr></thead>
+                        <tbody>${data.recentOrders.map(o => `<tr class="border-b border-gray-50">
+                            <td class="py-1 font-mono text-gray-600">${escapeHtml(o.orderId)}</td>
+                            <td class="py-1">${escapeHtml(o.customerName || '')}</td>
+                            <td class="py-1 text-right font-semibold">₵${parseFloat(o.subtotal || 0).toFixed(2)}</td>
+                            <td class="py-1"><span class="px-1.5 py-0.5 rounded text-[10px] ${o.status === 'fulfilled' ? 'bg-green-100 text-green-700' : o.status === 'paid' ? 'bg-blue-100 text-blue-700' : o.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}">${o.status}</span></td>
+                            <td class="py-1 text-gray-400">${new Date(o.createdAt).toLocaleDateString()}</td>
+                        </tr>`).join('')}</tbody>
+                    </table></div>`
+                    : '<p class="text-gray-400 text-xs">No orders yet.</p>';
+
                 document.getElementById('storeDetailContent').innerHTML = `
                     <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div><p class="text-xs text-gray-500">Owner</p><p class="font-semibold">${escapeHtml(s.user ? s.user.name : 'N/A')}</p></div>
+                        <div><p class="text-xs text-gray-500">Owner</p><p class="font-semibold">${escapeHtml(s.owner ? s.owner.fullName : 'N/A')}</p></div>
+                        <div><p class="text-xs text-gray-500">Agent Code</p><p class="font-semibold">${escapeHtml(s.owner ? (s.owner.agentCode || 'N/A') : 'N/A')}</p></div>
                         <div><p class="text-xs text-gray-500">Location</p><p class="font-semibold">${escapeHtml(s.location || 'N/A')}</p></div>
-                        <div><p class="text-xs text-gray-500">Commission Rate</p><p class="font-semibold">${s.commissionRate}%</p></div>
-                        <div><p class="text-xs text-gray-500">Payout Threshold</p><p class="font-semibold">₵${parseFloat(s.payoutThreshold).toFixed(2)}</p></div>
+                        <div><p class="text-xs text-gray-500">Status</p><p class="font-semibold"><span class="px-2 py-0.5 rounded-full text-xs ${s.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${s.isActive ? 'Active' : 'Inactive'}</span></p></div>
                     </div>
-                    <h4 class="font-bold text-gray-800 mb-2 mt-4 border-t pt-3">Settlement Account</h4>
+                    <h4 class="font-bold text-gray-800 mb-2 mt-2 border-t pt-3">Settlement Account</h4>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                         <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500">Ledger Balance</p><p class="font-bold text-gray-800">₵${parseFloat(sa.ledgerBalance || 0).toFixed(2)}</p></div>
                         <div class="bg-gray-50 p-3 rounded-lg"><p class="text-xs text-gray-500">Available</p><p class="font-bold text-green-600">₵${parseFloat(sa.availableBalance || 0).toFixed(2)}</p></div>
@@ -450,13 +472,58 @@
                     </div>
                     <h4 class="font-bold text-gray-800 mb-2 border-t pt-3">Bank / MoMo</h4>
                     <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div><p class="text-xs text-gray-500">Bank</p><p class="text-sm">${escapeHtml(s.bankName || 'Not set')} - ${escapeHtml(s.bankAccountNumber || '')}</p></div>
-                        <div><p class="text-xs text-gray-500">MoMo</p><p class="text-sm">${escapeHtml(s.momoProvider || 'Not set')} - ${escapeHtml(s.momoNumber || '')}</p></div>
+                        <div><p class="text-xs text-gray-500">Bank</p><p class="text-sm">${escapeHtml(s.bankName || 'Not set')}${s.bankAccountNumber ? ' — ' + escapeHtml(s.bankAccountNumber) : ''}</p></div>
+                        <div><p class="text-xs text-gray-500">MoMo</p><p class="text-sm">${escapeHtml(s.momoProvider || 'Not set')}${s.momoNumber ? ' — ' + escapeHtml(s.momoNumber) : ''}</p></div>
                     </div>
+                    <h4 class="font-bold text-gray-800 mb-3 border-t pt-3">Admin Settings</h4>
+                    <form id="storeSettingsAdminForm" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                        <input type="hidden" name="adminSettingsStoreId" value="${s.id}">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Store Status</label>
+                            <select name="isActive" class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="true" ${s.isActive ? 'selected' : ''}>Active</option>
+                                <option value="false" ${!s.isActive ? 'selected' : ''}>Inactive</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Commission Rate (%)</label>
+                            <input type="number" name="commissionRate" step="0.1" min="0" max="50" value="${s.commissionRate}" class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Payout Threshold (₵)</label>
+                            <input type="number" name="payoutThreshold" step="0.01" min="0" value="${parseFloat(s.payoutThreshold).toFixed(2)}" class="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="md:col-span-3 flex gap-2">
+                            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700"><i class="fas fa-save mr-1"></i> Save Settings</button>
+                        </div>
+                    </form>
+                    <h4 class="font-bold text-gray-800 mb-2 border-t pt-3">Recent Orders (last 10)</h4>
+                    <div class="mb-4">${recentOrdersHtml}</div>
                     <div class="flex gap-3 border-t pt-4">
                         <button onclick="window._adjustStore('${s.id}')" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"><i class="fas fa-sliders-h mr-1"></i> Adjust Balance</button>
                     </div>
                 `;
+
+                document.getElementById('storeSettingsAdminForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const sid = this.querySelector('[name="adminSettingsStoreId"]').value;
+                    const isActive = this.querySelector('[name="isActive"]').value === 'true';
+                    const commissionRate = parseFloat(this.querySelector('[name="commissionRate"]').value);
+                    const payoutThreshold = parseFloat(this.querySelector('[name="payoutThreshold"]').value);
+                    const btn = this.querySelector('[type="submit"]');
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+                    try {
+                        await apiRequest(`/admin/stores/${sid}`, { method: 'PUT', body: JSON.stringify({ isActive, commissionRate, payoutThreshold }) });
+                        toast('Store settings updated', 'success');
+                        loadAllStores();
+                    } catch (err) {
+                        toast(err.message, 'error');
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-save mr-1"></i> Save Settings';
+                    }
+                });
             } catch (e) {
                 document.getElementById('storeDetailContent').innerHTML = `<p class="text-red-500">${escapeHtml(e.message)}</p>`;
             }
@@ -507,12 +574,12 @@
                     <div class="text-xs text-gray-400 mb-3">${new Date(p.createdAt).toLocaleString()}</div>
                     ${p.status === 'pending' ? `
                         <div class="flex gap-2">
-                            <button onclick="window._approvePayout('${p.id}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700"><i class="fas fa-check mr-1"></i> Approve</button>
-                            <button onclick="window._rejectPayout('${p.id}')" class="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700"><i class="fas fa-times mr-1"></i> Reject</button>
+                            <button onclick="window._approvePayout('${p.payoutId}')" class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700"><i class="fas fa-check mr-1"></i> Approve</button>
+                            <button onclick="window._rejectPayout('${p.payoutId}')" class="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm hover:bg-red-700"><i class="fas fa-times mr-1"></i> Reject</button>
                         </div>
                     ` : ''}
                     ${p.status === 'approved' ? `
-                        <button onclick="window._completePayout('${p.id}')" class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700"><i class="fas fa-paper-plane mr-1"></i> Mark Completed (Sent via Paystack)</button>
+                        <button onclick="window._completePayout('${p.payoutId}')" class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700"><i class="fas fa-paper-plane mr-1"></i> Mark Completed (Sent via Paystack)</button>
                     ` : ''}
                     ${p.rejectionReason ? `<p class="text-xs text-red-500 mt-2"><i class="fas fa-info-circle mr-1"></i>${escapeHtml(p.rejectionReason)}</p>` : ''}
                 </div>
@@ -622,7 +689,7 @@
             // Store search
             document.getElementById('storeSearch').addEventListener('input', function() {
                 const q = this.value.toLowerCase();
-                const filtered = allStores.filter(s => (s.name || '').toLowerCase().includes(q) || (s.user && s.user.name || '').toLowerCase().includes(q));
+                const filtered = allStores.filter(s => (s.name || '').toLowerCase().includes(q) || (s.owner && s.owner.fullName || '').toLowerCase().includes(q) || (s.owner && s.owner.agentCode || '').toLowerCase().includes(q));
                 renderStores(filtered);
             });
 
@@ -641,11 +708,11 @@
             document.getElementById('reconcileForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const storeId = document.getElementById('reconcileStore').value;
-                const periodStart = document.getElementById('reconcileStart').value;
-                const periodEnd = document.getElementById('reconcileEnd').value;
-                if (!storeId || !periodStart || !periodEnd) return;
+                const startDate = document.getElementById('reconcileStart').value;
+                const endDate = document.getElementById('reconcileEnd').value;
+                if (!storeId || !startDate || !endDate) return;
                 try {
-                    await apiRequest(`/admin/stores/${storeId}/reconcile`, { method: 'POST', body: JSON.stringify({ periodStart, periodEnd }) });
+                    await apiRequest(`/admin/stores/${storeId}/reconcile`, { method: 'POST', body: JSON.stringify({ startDate, endDate }) });
                     toast('Reconciliation completed', 'success');
                     document.getElementById('reconcileModal').classList.add('hidden');
                     loadReconciliations();
@@ -661,7 +728,7 @@
                 const reason = document.getElementById('adjustReason').value;
                 if (!storeId || !amount || !reason) return;
                 try {
-                    await apiRequest(`/admin/stores/${storeId}/adjust`, { method: 'POST', body: JSON.stringify({ type, amount, reason }) });
+                    await apiRequest(`/admin/stores/${storeId}/adjust`, { method: 'POST', body: JSON.stringify({ type, amount, description: reason }) });
                     toast('Settlement adjusted', 'success');
                     document.getElementById('adjustModal').classList.add('hidden');
                     loadStats();

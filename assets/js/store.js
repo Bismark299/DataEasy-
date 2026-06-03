@@ -181,7 +181,7 @@ const StoreApp = (function() {
             if (dateVal) params.set('date', dateVal);
             const data = await apiRequest('/store/orders?' + params.toString());
             dashOrders = data.orders || [];
-            dashTotalPages = data.totalPages || 1;
+            dashTotalPages = (data.pagination && data.pagination.pages) || 1;
             filterAndRenderDashOrders();
         } catch (e) {
             const tbody = document.getElementById('dashOrdersBody');
