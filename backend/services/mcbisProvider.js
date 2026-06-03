@@ -534,6 +534,31 @@ async function deliverBundle(orderItem, options = {}) {
     });
 
     if (!result.success) {
+        // Detect if MCBIS rejected because of low balance — these should stay
+        // Pending (retried after top-up) rather than being permanently Failed
+        const errLower = (result.error || '').toLowerCase();
+        const isBalanceError = errLower.includes('insufficient') ||
+            errLower.includes('balance') ||
+            errLower.includes('low balance') ||
+            errLower.includes('not enough') ||
+            errLower.includes('no funds') ||
+            errLower.includes('topup');
+
+        if (isBalanceError) {
+            // Bust the balance cache so the next pre-check fetches fresh data
+            _balanceCache.value = null;
+            _balanceCache.expiresAt = 0;
+            logger.warn('MCBIS placeOrder rejected due to balance — item stays Pending until recharged', {
+                orderId, itemIndex, error: result.error
+            });
+            return {
+                success: false,
+                status: 'InsufficientBalance',
+                error: result.error,
+                reference
+            };
+        }
+
         return {
             success: false,
             status: 'Failed',
