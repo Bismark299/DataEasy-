@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -7,490 +7,580 @@
     <link rel="stylesheet" href="../assets/css/tailwind.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/custom.css">
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
     <script src="../assets/js/config.js"></script>
     <style>
-        body { background: #111827; color: #f3f4f6; }
-        .card { background: #1f2937; border: 1px solid #374151; border-radius: 12px; }
-        .card-header { border-bottom: 1px solid #374151; }
-        .stat-card { background: linear-gradient(135deg, #1f2937, #111827); border: 1px solid #374151; }
-        .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); transition: all 0.2s; }
-        .btn-secondary { background: #374151; }
-        .btn-danger { background: #ef4444; }
-        .badge-success { background: #10b981; color: white; }
-        .badge-warning { background: #f59e0b; color: #111; }
-        .badge-error { background: #ef4444; color: white; }
-        .badge-info { background: #6366f1; color: white; }
-        .input-field { background: #111827; border: 1px solid #4b5563; color: #f3f4f6; }
-        .input-field:focus { border-color: #818cf8; outline: none; box-shadow: 0 0 0 2px rgba(129,140,248,0.2); }
-        .tab-active { border-bottom: 2px solid #818cf8; color: #818cf8; }
-        .modal-overlay { background: rgba(0,0,0,0.7); }
-        .nav-link { transition: all 0.2s; color: #9ca3af; }
-        .nav-link:hover { background: #374151; color: #e5e7eb; }
-        .nav-link.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+        * { font-family: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, sans-serif; }
+        html, body { height: 100%; overflow: hidden; }
+        body { background: #070b14; color: #cbd5e1; display: flex; }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        /* Layout */
+        .app-shell { display: flex; width: 100%; height: 100vh; position: relative; overflow: hidden; }
+        .bg-glow { position: fixed; border-radius: 9999px; pointer-events: none; z-index: 0; filter: blur(120px); }
+        .bg-glow-1 { top: -20%; left: -10%; width: 50%; height: 50%; background: rgba(49,46,129,0.06); }
+        .bg-glow-2 { bottom: -20%; right: -10%; width: 50%; height: 50%; background: rgba(109,40,217,0.06); }
+
+        /* Sidebar */
+        .sidebar { width: 240px; flex-shrink: 0; display: flex; flex-direction: column; background: rgba(10,15,28,0.85); backdrop-filter: blur(20px); border-right: 1px solid rgba(255,255,255,0.055); z-index: 10; position: relative; }
+        .sidebar-logo { height: 64px; display: flex; align-items: center; padding: 0 24px; border-bottom: 1px solid rgba(255,255,255,0.055); flex-shrink: 0; }
+        .logo-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(99,102,241,0.3); flex-shrink: 0; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 20px 12px; display: flex; flex-direction: column; gap: 2px; }
+        .nav-section-label { font-size: 10px; font-weight: 600; color: #475569; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 10px; margin-bottom: 6px; }
+        .nav-link { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; font-weight: 500; color: #64748b; transition: all 0.15s ease; border: none; background: none; cursor: pointer; text-align: left; }
+        .nav-link:hover { background: rgba(51,65,85,0.35); color: #e2e8f0; }
+        .nav-link:hover i { color: #94a3b8; }
+        .nav-link.active { background: rgba(99,102,241,0.12); color: #818cf8; }
+        .nav-link.active i { color: #818cf8; }
+        .nav-link i { width: 15px; text-align: center; font-size: 13px; color: #334155; transition: color 0.15s; }
+        .nav-spacer { flex: 1; min-height: 16px; }
+        .sidebar-footer { padding: 12px; border-top: 1px solid rgba(255,255,255,0.055); flex-shrink: 0; }
+        .agent-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(10,15,28,0.85) 100%); border: 1px solid rgba(255,255,255,0.05); }
+        .agent-avatar { width: 36px; height: 36px; border-radius: 9999px; background: #1e293b; border: 1px solid rgba(51,65,85,0.7); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #94a3b8; flex-shrink: 0; }
+
+        /* Main area */
+        .main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; z-index: 5; }
+        .main-header { height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; border-bottom: 1px solid rgba(255,255,255,0.055); background: rgba(10,15,28,0.5); backdrop-filter: blur(12px); flex-shrink: 0; }
+        .main-content { flex: 1; overflow-y: auto; padding: 28px; }
+        .content-max { max-width: 1200px; margin: 0 auto; }
+
+        /* Cards */
+        .card { background: linear-gradient(180deg, rgba(15,23,42,0.5) 0%, rgba(10,15,28,0.85) 100%); border: 1px solid rgba(255,255,255,0.055); border-radius: 16px; }
+        .stat-card { position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at top right, rgba(99,102,241,0.07), transparent 55%); pointer-events: none; z-index: 0; }
+        .stat-card > * { position: relative; z-index: 1; }
+        .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .sec-stat { background: rgba(15,23,42,0.35); border: 1px solid rgba(51,65,85,0.45); border-radius: 12px; padding: 16px; text-align: center; transition: background 0.15s; }
+        .sec-stat:hover { background: rgba(51,65,85,0.2); }
+
+        /* Buttons */
+        .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-weight: 500; border: none; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-outline { background: rgba(15,23,42,0.5); border: 1px solid #334155; color: #94a3b8; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-outline:hover { background: rgba(51,65,85,0.4); color: #e2e8f0; }
+
+        /* Inputs */
+        .input-field { background: rgba(10,15,28,0.7); border: 1px solid rgba(51,65,85,0.6); color: #e2e8f0; border-radius: 8px; transition: border-color 0.15s; }
+        .input-field:focus { border-color: rgba(99,102,241,0.5); outline: none; box-shadow: 0 0 0 2px rgba(99,102,241,0.12); }
+        .input-field::placeholder { color: #334155; }
+        select.input-field option { background: #0f172a; color: #e2e8f0; }
+
+        /* Badges */
+        .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; }
+        .badge-success { background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+        .badge-warning { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+        .badge-error   { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+        .badge-info    { background: rgba(99,102,241,0.1); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
+        .badge-ready   { background: rgba(16,185,129,0.08); color: #34d399; border: 1px solid rgba(16,185,129,0.15); }
+
+        /* Table */
+        .data-table { width: 100%; }
+        .data-table th { font-size: 10.5px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; padding: 11px 20px; background: rgba(10,15,28,0.5); white-space: nowrap; }
+        .data-table td { padding: 13px 20px; border-bottom: 1px solid rgba(51,65,85,0.25); font-size: 13px; }
+        .data-table tbody tr:hover td { background: rgba(51,65,85,0.12); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+
+        /* Financial & order sub-tabs */
+        .fin-tab { padding: 6px 16px; font-size: 13px; font-weight: 500; border-radius: 7px; cursor: pointer; border: none; transition: all 0.15s; white-space: nowrap; }
+        .fin-tab.active, .fin-tab.bg-indigo-600 { background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; color: white !important; }
+        .fin-tab:not(.active) { background: rgba(51,65,85,0.35); color: #64748b; }
+        .fin-tab:not(.active):hover { background: rgba(51,65,85,0.5); color: #94a3b8; }
+
+        .order-filter { padding: 5px 14px; font-size: 12.5px; border-radius: 9999px; cursor: pointer; border: none; transition: all 0.15s; font-weight: 500; white-space: nowrap; }
+        .order-filter.active, .order-filter.bg-indigo-600 { background: linear-gradient(135deg, #6366f1, #8b5cf6) !important; color: white !important; }
+        .order-filter:not(.active) { background: rgba(51,65,85,0.35); color: #64748b; }
+        .order-filter:not(.active):hover { background: rgba(51,65,85,0.5); color: #94a3b8; }
+
+        /* Modal */
+        .modal-overlay { background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); }
+
+        /* Pagination buttons */
+        .dash-page-btn { padding: 4px 10px; border-radius: 6px; font-size: 12px; border: none; cursor: pointer; }
     </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-    <!-- Top Navigation -->
-    <nav class="bg-[#1f2937] border-b border-[#374151]">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center gap-4">
-                    <a href=".." class="text-gray-400 hover:text-white transition">
-                        <i class="fas fa-arrow-left"></i>
-                    </a>
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">S</div>
-                        <span class="text-white font-bold text-lg">My Store</span>
-                    </div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<div class="app-shell">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="flex items-center gap-2.5">
+                <div class="logo-icon">
+                    <i class="fas fa-store text-white" style="font-size: 13px;"></i>
                 </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-gray-400 text-sm" id="agentCode"></span>
-                    <a href=".." class="text-gray-400 hover:text-white text-sm">
-                        <i class="fas fa-home"></i> Dashboard
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Store Navigation Tabs -->
-    <div class="bg-[#1f2937]">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex gap-1 overflow-x-auto py-2" id="storeTabs">
-                <button class="nav-link active px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-tab="dashboard">
-                    <i class="fas fa-th-large mr-1"></i> Dashboard
-                </button>
-                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="packages">
-                    <i class="fas fa-box mr-1"></i> Packages
-                </button>
-                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="orders">
-                    <i class="fas fa-shopping-bag mr-1"></i> Orders
-                </button>
-                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="payouts">
-                    <i class="fas fa-money-bill-wave mr-1"></i> Payouts
-                </button>
-                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="financials">
-                    <i class="fas fa-chart-line mr-1"></i> Financials
-                </button>
-                <button class="nav-link px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-gray-400" data-tab="settings">
-                    <i class="fas fa-cog mr-1"></i> Settings
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="max-w-7xl mx-auto px-4 py-6">
-
-        <!-- No Store Setup -->
-        <div id="noStoreSection" class="hidden">
-            <div class="card p-8 text-center max-w-lg mx-auto">
-                <div class="w-20 h-20 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-store text-3xl text-indigo-400"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-white mb-2">Create Your Store</h2>
-                <p class="text-gray-400 mb-6">Set up your store to start selling products and earning revenue.</p>
-                <form id="createStoreForm" class="text-left space-y-4">
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">Store Name *</label>
-                        <input type="text" id="newStoreName" class="input-field w-full px-4 py-2 rounded-lg" required placeholder="My Awesome Store">
-                    </div>
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">Description</label>
-                        <textarea id="newStoreDesc" class="input-field w-full px-4 py-2 rounded-lg" rows="2" placeholder="What does your store sell?"></textarea>
-                    </div>
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">Location</label>
-                        <input type="text" id="newStoreLoc" class="input-field w-full px-4 py-2 rounded-lg" placeholder="Accra, Ghana">
-                    </div>
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">Phone</label>
-                        <input type="text" id="newStorePhone" class="input-field w-full px-4 py-2 rounded-lg" placeholder="0241234567">
-                    </div>
-                    <button type="submit" class="btn-primary w-full py-3 rounded-lg text-white font-semibold">
-                        <i class="fas fa-plus mr-2"></i> Create Store
-                    </button>
-                </form>
+                <span class="font-bold text-white" style="font-size: 17px; letter-spacing: -0.02em;">DataEasy<span style="color: #818cf8;">+</span></span>
             </div>
         </div>
 
-        <!-- DASHBOARD TAB -->
-        <div id="tab-dashboard" class="tab-content">
-            <!-- Settlement Balance Card -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="stat-card p-4 rounded-xl">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-400 text-xs uppercase tracking-wider">Available Balance</span>
-                        <i class="fas fa-wallet text-green-400"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-green-400" id="availableBalance">₵0.00</p>
-                    <p class="text-xs text-gray-500 mt-1">Ledger: <span id="ledgerBalance">₵0.00</span></p>
-                </div>
-                <div class="stat-card p-4 rounded-xl">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-400 text-xs uppercase tracking-wider">Today's Sales</span>
-                        <i class="fas fa-chart-bar text-indigo-400"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-white" id="todaySales">₵0.00</p>
-                    <p class="text-xs text-gray-500 mt-1"><span id="todayCount">0</span> orders</p>
-                </div>
-                <div class="stat-card p-4 rounded-xl">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-400 text-xs uppercase tracking-wider">Total Revenue</span>
-                        <i class="fas fa-coins text-yellow-400"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-white" id="totalRevenue">₵0.00</p>
-                    <p class="text-xs text-gray-500 mt-1">Commission paid: <span id="totalCommission">₵0.00</span></p>
-                </div>
-                <div class="stat-card p-4 rounded-xl">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-400 text-xs uppercase tracking-wider">Total Payouts</span>
-                        <i class="fas fa-money-bill-wave text-purple-400"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-white" id="totalPayouts">₵0.00</p>
-                    <p class="text-xs text-gray-500 mt-1">Pending: <span id="pendingPayoutsCount">0</span></p>
-                </div>
-            </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Menu</div>
+            <button class="nav-link active" data-tab="dashboard">
+                <i class="fas fa-th-large"></i> Dashboard
+            </button>
+            <button class="nav-link" data-tab="packages">
+                <i class="fas fa-box"></i> Packages
+            </button>
+            <button class="nav-link" data-tab="orders">
+                <i class="fas fa-shopping-bag"></i> Orders
+            </button>
+            <button class="nav-link" data-tab="payouts">
+                <i class="fas fa-money-bill-wave"></i> Payouts
+            </button>
+            <button class="nav-link" data-tab="financials">
+                <i class="fas fa-chart-line"></i> Financials
+            </button>
+            <button class="nav-link" data-tab="settings">
+                <i class="fas fa-cog"></i> Settings
+            </button>
+            <div class="nav-spacer"></div>
+            <a href=".." class="nav-link" style="text-decoration: none;">
+                <i class="fas fa-arrow-left"></i> Back to App
+            </a>
+        </nav>
 
-            <!-- Quick Stats Row -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="card p-4 text-center">
-                    <p class="text-3xl font-bold text-white" id="totalOrders">0</p>
-                    <p class="text-gray-400 text-sm">Total Orders</p>
+        <div class="sidebar-footer">
+            <div class="agent-card">
+                <div class="agent-avatar" id="agentAvatarInitials">SA</div>
+                <div class="flex flex-col flex-1 min-w-0">
+                    <span class="font-semibold truncate" style="font-size: 13px; color: #e2e8f0;" id="sidebarStoreName">My Store</span>
+                    <span class="truncate" style="font-size: 11px; color: #818cf8;"><span id="sidebarBalance">₵0.00</span> Available</span>
                 </div>
-                <div class="card p-4 text-center">
-                    <p class="text-3xl font-bold text-white" id="activePackages">0</p>
-                    <p class="text-gray-400 text-sm">Priced Packages</p>
-                </div>
-                <div class="card p-4 text-center">
-                    <p class="text-3xl font-bold text-white" id="holdAmount">₵0.00</p>
-                    <p class="text-gray-400 text-sm">On Hold</p>
-                </div>
-                <div class="card p-4 text-center">
-                    <p class="text-3xl font-bold text-white" id="cogsTotal">₵0.00</p>
-                    <p class="text-gray-400 text-sm">Cost of Goods</p>
-                </div>
-            </div>
-
-            <!-- Recent Orders -->
-            <div class="card mt-6">
-                <div class="card-header p-4 flex flex-wrap items-center justify-between gap-3">
-                    <h3 class="text-white font-bold text-base"><i class="fas fa-shopping-bag mr-2 text-indigo-400"></i>Orders</h3>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <!-- Status filter -->
-                        <select id="dashOrderStatus" class="input-field px-3 py-1.5 rounded-lg text-xs">
-                            <option value="">All Status</option>
-                            <option value="sent">Sent</option>
-                            <option value="processing">Processing</option>
-                            <option value="pending">Pending</option>
-                            <option value="failed">Failed</option>
-                        </select>
-                        <!-- Date filter -->
-                        <input type="date" id="dashOrderDate" class="input-field px-3 py-1.5 rounded-lg text-xs">
-                        <!-- Search by phone -->
-                        <input type="text" id="dashOrderSearch" class="input-field px-3 py-1.5 rounded-lg text-xs w-40" placeholder="Search phone...">
-                        <button data-action="goto-orders" class="text-xs text-indigo-400 hover:text-indigo-300 whitespace-nowrap">View All &rarr;</button>
-                    </div>
-                </div>
-                <!-- Per page & pagination info -->
-                <div class="flex items-center justify-between px-4 py-2 border-b border-[#374151]">
-                    <div class="flex items-center gap-2">
-                        <span class="text-gray-400 text-xs">Show</span>
-                        <select id="dashPerPage" class="input-field px-2 py-1 rounded text-xs">
-                            <option value="20" selected>20</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                        <span class="text-gray-400 text-xs">per page</span>
-                    </div>
-                    <span class="text-gray-500 text-xs" id="dashOrderInfo"></span>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-[#374151] text-gray-400 text-xs uppercase">
-                                <th class="text-left py-3 px-4">Date</th>
-                                <th class="text-left py-3 px-4">Reference</th>
-                                <th class="text-left py-3 px-4">Phone</th>
-                                <th class="text-left py-3 px-4">Data</th>
-                                <th class="text-left py-3 px-4">Amount</th>
-                                <th class="text-left py-3 px-4">Status</th>
-                                <th class="text-left py-3 px-4">Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dashOrdersBody">
-                            <tr><td colspan="7" class="text-center text-gray-500 py-8">Loading orders...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <!-- Pagination -->
-                <div class="flex items-center justify-center gap-2 p-4 border-t border-[#374151]" id="dashPagination"></div>
             </div>
         </div>
+    </aside>
 
-        <!-- DATA PACKAGES TAB -->
-        <div id="tab-packages" class="tab-content hidden">
-            <div class="flex items-center justify-between mb-6">
-                <div>
+    <!-- ===== MAIN AREA ===== -->
+    <div class="main-area">
+
+        <header class="main-header">
+            <h1 class="font-semibold text-white" style="font-size: 17px;" id="pageTitle">Dashboard</h1>
+            <div class="flex items-center gap-3">
+                <span class="text-sm" style="color: #475569;" id="agentCode"></span>
+                <button id="newOrderBtn" class="btn-primary px-4 py-2 rounded-full text-sm">
+                    <i class="fas fa-plus" style="font-size: 11px;"></i> New Order
+                </button>
+            </div>
+        </header>
+
+        <div class="main-content">
+        <div class="content-max">
+
+            <!-- No Store Setup -->
+            <div id="noStoreSection" class="hidden">
+                <div class="card p-8 text-center mx-auto" style="max-width: 460px;">
+                    <div class="mx-auto mb-5 flex items-center justify-center" style="width: 72px; height: 72px; border-radius: 9999px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);">
+                        <i class="fas fa-store text-3xl" style="color: #818cf8;"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-2">Create Your Store</h2>
+                    <p style="color: #64748b;" class="mb-6">Set up your store to start selling data bundles and earning revenue.</p>
+                    <form id="createStoreForm" class="text-left space-y-4">
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">Store Name *</label>
+                            <input type="text" id="newStoreName" class="input-field w-full px-4 py-2" required placeholder="My Awesome Store">
+                        </div>
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">Description</label>
+                            <textarea id="newStoreDesc" class="input-field w-full px-4 py-2" rows="2" placeholder="What does your store sell?"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">Location</label>
+                            <input type="text" id="newStoreLoc" class="input-field w-full px-4 py-2" placeholder="Accra, Ghana">
+                        </div>
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">Phone</label>
+                            <input type="text" id="newStorePhone" class="input-field w-full px-4 py-2" placeholder="0241234567">
+                        </div>
+                        <button type="submit" class="btn-primary w-full py-3 rounded-lg font-semibold justify-center">
+                            <i class="fas fa-plus"></i> Create Store
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ===== DASHBOARD TAB ===== -->
+            <div id="tab-dashboard" class="tab-content">
+
+                <!-- Primary KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                    <div class="card stat-card p-5">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="stat-icon" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2);">
+                                <i class="fas fa-wallet" style="color: #34d399;"></i>
+                            </div>
+                            <span class="badge badge-ready">Ready</span>
+                        </div>
+                        <p class="text-sm font-medium mb-1" style="color: #64748b;">Available Balance</p>
+                        <p class="text-3xl font-bold text-white" style="letter-spacing: -0.03em;" id="availableBalance">₵0.00</p>
+                        <p class="text-xs mt-1" style="color: #475569;">Ledger: <span id="ledgerBalance">₵0.00</span></p>
+                    </div>
+
+                    <div class="card stat-card p-5">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="stat-icon" style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);">
+                                <i class="fas fa-chart-bar" style="color: #818cf8;"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm font-medium mb-1" style="color: #64748b;">Today's Sales</p>
+                        <p class="text-3xl font-bold text-white" style="letter-spacing: -0.03em;" id="todaySales">₵0.00</p>
+                        <p class="text-xs mt-1" style="color: #475569;"><span id="todayCount">0</span> orders today</p>
+                    </div>
+
+                    <div class="card stat-card p-5">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="stat-icon" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.2);">
+                                <i class="fas fa-coins" style="color: #c084fc;"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm font-medium mb-1" style="color: #64748b;">Total Revenue</p>
+                        <p class="text-3xl font-bold text-white" style="letter-spacing: -0.03em;" id="totalRevenue">₵0.00</p>
+                        <p class="text-xs mt-1" style="color: #475569;">Commission: <span id="totalCommission">₵0.00</span></p>
+                    </div>
+
+                    <div class="card stat-card p-5">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="stat-icon" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);">
+                                <i class="fas fa-money-bill-wave" style="color: #fbbf24;"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm font-medium mb-1" style="color: #64748b;">Total Payouts</p>
+                        <p class="text-3xl font-bold text-white" style="letter-spacing: -0.03em;" id="totalPayouts">₵0.00</p>
+                        <p class="text-xs mt-1" style="color: #475569;">Pending: <span id="pendingPayoutsCount">0</span></p>
+                    </div>
+                </div>
+
+                <!-- Secondary Stats (3 tiles — Cost of Goods removed) -->
+                <div class="grid grid-cols-3 gap-4 mb-5">
+                    <div class="sec-stat">
+                        <p class="text-xl font-bold mb-1" style="color: #e2e8f0;" id="totalOrders">0</p>
+                        <p class="text-xs font-medium uppercase tracking-wider" style="color: #475569;">Total Orders</p>
+                    </div>
+                    <div class="sec-stat">
+                        <p class="text-xl font-bold mb-1" style="color: #e2e8f0;" id="activePackages">0</p>
+                        <p class="text-xs font-medium uppercase tracking-wider" style="color: #475569;">Priced Packages</p>
+                    </div>
+                    <div class="sec-stat">
+                        <p class="text-xl font-bold mb-1" style="color: #e2e8f0;" id="holdAmount">₵0.00</p>
+                        <p class="text-xs font-medium uppercase tracking-wider" style="color: #475569;">On Hold</p>
+                    </div>
+                </div>
+
+                <!-- Orders Table -->
+                <div class="card overflow-hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-3 p-5" style="border-bottom: 1px solid rgba(51,65,85,0.3);">
+                        <div>
+                            <h3 class="font-semibold text-white" style="font-size: 15px;">Recent Orders</h3>
+                            <p class="text-sm mt-0.5" style="color: #475569;">Latest transactions from your store</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <select id="dashOrderStatus" class="input-field px-3 py-1.5 text-xs">
+                                <option value="">All Status</option>
+                                <option value="sent">Sent</option>
+                                <option value="processing">Processing</option>
+                                <option value="pending">Pending</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                            <input type="date" id="dashOrderDate" class="input-field px-3 py-1.5 text-xs">
+                            <input type="text" id="dashOrderSearch" class="input-field px-3 py-1.5 text-xs" style="width: 140px;" placeholder="Search phone...">
+                            <button data-action="goto-orders" class="text-xs whitespace-nowrap" style="color: #818cf8;">View All →</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between px-5 py-2" style="border-bottom: 1px solid rgba(51,65,85,0.2);">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs" style="color: #475569;">Show</span>
+                            <select id="dashPerPage" class="input-field px-2 py-1 text-xs">
+                                <option value="20" selected>20</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                            <span class="text-xs" style="color: #475569;">per page</span>
+                        </div>
+                        <span class="text-xs" style="color: #475569;" id="dashOrderInfo"></span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">Date</th>
+                                    <th class="text-left">Reference</th>
+                                    <th class="text-left">Phone</th>
+                                    <th class="text-left">Package</th>
+                                    <th class="text-right">Amount</th>
+                                    <th class="text-left">Status</th>
+                                    <th class="text-right">Profit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashOrdersBody">
+                                <tr><td colspan="7" class="text-center py-10" style="color: #475569;">Loading orders...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="flex items-center justify-center gap-2 p-4" style="border-top: 1px solid rgba(51,65,85,0.2);" id="dashPagination"></div>
+                </div>
+            </div>
+
+            <!-- ===== PACKAGES TAB ===== -->
+            <div id="tab-packages" class="tab-content hidden">
+                <div class="mb-6">
                     <h2 class="text-xl font-bold text-white">Data Packages & Pricing</h2>
-                    <p class="text-gray-400 text-xs mt-1">Set your selling prices. Customers see your prices, not your cost.</p>
+                    <p class="text-sm mt-1" style="color: #64748b;">Set your selling prices. Customers see your prices, not your cost.</p>
                 </div>
-
-            </div>
-            <div id="packagesList" class="space-y-6">
-                <p class="text-gray-500 text-center py-8">Loading packages...</p>
-            </div>
-            <!-- Store link section -->
-            <div id="storeLinkSection" class="mt-6 p-4 card border border-dashed border-gray-600 hidden">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-white font-semibold text-sm"><i class="fas fa-link mr-1"></i> Your Store Link</h3>
-                        <p class="text-gray-400 text-xs mt-1">Share with customers so they can buy directly</p>
+                <div id="packagesList" class="space-y-5">
+                    <p class="text-center py-8" style="color: #475569;">Loading packages...</p>
+                </div>
+                <div id="storeLinkSection" class="mt-5 p-4 card hidden" style="border-style: dashed; border-color: rgba(99,102,241,0.3);">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold text-sm text-white"><i class="fas fa-link mr-1" style="color: #818cf8;"></i> Your Store Link</h3>
+                            <p class="text-xs mt-1" style="color: #475569;">Share with customers so they can buy directly</p>
+                        </div>
+                        <button id="copyStoreLinkBtn" class="btn-primary text-xs px-3 py-1.5 rounded-lg">
+                            <i class="fas fa-copy"></i> Copy Link
+                        </button>
                     </div>
-                    <button id="copyStoreLinkBtn" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg">
-                        <i class="fas fa-copy mr-1"></i> Copy Link
+                    <p id="storeLinkUrl" class="text-xs mt-2 break-all" style="color: #818cf8;"></p>
+                </div>
+            </div>
+
+            <!-- ===== ORDERS TAB ===== -->
+            <div id="tab-orders" class="tab-content hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-white">Store Orders</h2>
+                </div>
+                <div class="flex gap-2 mb-4 overflow-x-auto">
+                    <button class="order-filter active" data-filter="all">All</button>
+                    <button class="order-filter" data-filter="pending">Pending</button>
+                    <button class="order-filter" data-filter="paid">Paid</button>
+                    <button class="order-filter" data-filter="fulfilled">Fulfilled</button>
+                </div>
+                <div id="ordersList" class="space-y-3">
+                    <p class="text-center py-8" style="color: #475569;">Loading orders...</p>
+                </div>
+            </div>
+
+            <!-- ===== PAYOUTS TAB ===== -->
+            <div id="tab-payouts" class="tab-content hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-white">Payout Requests</h2>
+                    <button id="requestPayoutBtn" class="btn-primary px-4 py-2 rounded-full text-sm">
+                        <i class="fas fa-money-bill-wave" style="font-size: 11px;"></i> Request Payout
                     </button>
                 </div>
-                <p id="storeLinkUrl" class="text-indigo-400 text-xs mt-2 break-all"></p>
-            </div>
-        </div>
-
-        <!-- ORDERS TAB -->
-        <div id="tab-orders" class="tab-content hidden">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold text-white">Store Orders</h2>
-                <button id="newOrderBtn" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
-                    <i class="fas fa-plus mr-1"></i> New Order
-                </button>
-            </div>
-            <div class="flex gap-2 mb-4 overflow-x-auto">
-                <button class="order-filter active px-3 py-1 text-sm rounded-full bg-indigo-600 text-white" data-filter="all">All</button>
-                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#374151] text-gray-300" data-filter="pending">Pending</button>
-                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#374151] text-gray-300" data-filter="paid">Paid</button>
-                <button class="order-filter px-3 py-1 text-sm rounded-full bg-[#374151] text-gray-300" data-filter="fulfilled">Fulfilled</button>
-            </div>
-            <div id="ordersList" class="space-y-3">
-                <p class="text-gray-500 text-center py-8">Loading orders...</p>
-            </div>
-        </div>
-
-        <!-- PAYOUTS TAB -->
-        <div id="tab-payouts" class="tab-content hidden">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold text-white">Payout Requests</h2>
-                <button id="requestPayoutBtn" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
-                    <i class="fas fa-money-bill-wave mr-1"></i> Request Payout
-                </button>
-            </div>
-            <div class="card p-4 mb-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-400 text-sm">Available for Withdrawal</p>
-                        <p class="text-2xl font-bold text-green-400" id="withdrawableBalance">₵0.00</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-gray-400 text-sm">On Hold</p>
-                        <p class="text-xl font-bold text-yellow-400" id="payoutHoldAmount">₵0.00</p>
-                    </div>
-                </div>
-            </div>
-            <div id="payoutsList" class="space-y-3">
-                <p class="text-gray-500 text-center py-8">Loading payouts...</p>
-            </div>
-        </div>
-
-        <!-- FINANCIALS TAB -->
-        <div id="tab-financials" class="tab-content hidden">
-            <h2 class="text-xl font-bold text-white mb-4">Financial Statements</h2>
-
-            <!-- Date Range Filter -->
-            <div class="card p-4 mb-4">
-                <div class="flex flex-wrap gap-3 items-end">
-                    <div>
-                        <label class="text-gray-400 text-xs block mb-1">Start Date</label>
-                        <input type="date" id="finStartDate" class="input-field px-3 py-2 rounded-lg text-sm">
-                    </div>
-                    <div>
-                        <label class="text-gray-400 text-xs block mb-1">End Date</label>
-                        <input type="date" id="finEndDate" class="input-field px-3 py-2 rounded-lg text-sm">
-                    </div>
-                    <button data-action="refresh-financials" class="btn-primary px-4 py-2 rounded-lg text-white text-sm">
-                        <i class="fas fa-sync mr-1"></i> Refresh
-                    </button>
-                </div>
-            </div>
-
-            <!-- Financial Sub-tabs -->
-            <div class="flex gap-2 mb-4 overflow-x-auto">
-                <button class="fin-tab active px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white" data-fin="income">Income Statement</button>
-                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#374151] text-gray-300" data-fin="balance">Balance Sheet</button>
-                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#374151] text-gray-300" data-fin="cashflow">Cash Flow</button>
-                <button class="fin-tab px-4 py-2 text-sm font-medium rounded-lg bg-[#374151] text-gray-300" data-fin="ledger">Ledger</button>
-            </div>
-
-            <div id="financialContent" class="card p-6">
-                <p class="text-gray-500 text-center">Loading financial data...</p>
-            </div>
-        </div>
-
-        <!-- SETTINGS TAB -->
-        <div id="tab-settings" class="tab-content hidden">
-            <h2 class="text-xl font-bold text-white mb-4">Store Settings</h2>
-            <form id="storeSettingsForm" class="card p-6 space-y-4 max-w-2xl">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">Store Name</label>
-                        <input type="text" id="settStoreName" class="input-field w-full px-4 py-2 rounded-lg">
-                    </div>
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">Phone</label>
-                        <input type="text" id="settStorePhone" class="input-field w-full px-4 py-2 rounded-lg">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-gray-400 text-sm mb-1 block">Description</label>
-                    <textarea id="settStoreDesc" class="input-field w-full px-4 py-2 rounded-lg" rows="2"></textarea>
-                </div>
-                <div>
-                    <label class="text-gray-400 text-sm mb-1 block">Location</label>
-                    <input type="text" id="settStoreLoc" class="input-field w-full px-4 py-2 rounded-lg">
-                </div>
-                <h3 class="text-white font-semibold pt-4 border-t border-[#374151]">Payout Details</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">Bank Name</label>
-                        <input type="text" id="settBankName" class="input-field w-full px-4 py-2 rounded-lg" placeholder="e.g. GCB Bank">
-                    </div>
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">Bank Account Number</label>
-                        <input type="text" id="settBankAcct" class="input-field w-full px-4 py-2 rounded-lg">
-                    </div>
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">Account Name</label>
-                        <input type="text" id="settBankAcctName" class="input-field w-full px-4 py-2 rounded-lg">
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">MoMo Number</label>
-                        <input type="text" id="settMomoNum" class="input-field w-full px-4 py-2 rounded-lg" placeholder="0241234567">
-                    </div>
-                    <div>
-                        <label class="text-gray-400 text-sm mb-1 block">MoMo Provider</label>
-                        <select id="settMomoProv" class="input-field w-full px-4 py-2 rounded-lg">
-                            <option value="">Select provider</option>
-                            <option value="MTN">MTN</option>
-                            <option value="AirtelTigo">AirtelTigo</option>
-                            <option value="Telecel">Telecel</option>
-                        </select>
-                    </div>
-                </div>
-                <button type="submit" class="btn-primary px-6 py-2 rounded-lg text-white font-semibold">
-                    <i class="fas fa-save mr-2"></i> Save Changes
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- New Order Modal -->
-    <div id="orderModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
-        <div class="card p-6 w-full max-w-lg scale-in max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-white">New Sale Order</h3>
-                <button data-close-modal="orderModal" class="text-gray-400 hover:text-white">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form id="orderForm" class="space-y-3">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-gray-400 text-xs mb-1 block">Customer Name *</label>
-                        <input type="text" id="orderCustName" class="input-field w-full px-3 py-2 rounded-lg text-sm" required>
-                    </div>
-                    <div>
-                        <label class="text-gray-400 text-xs mb-1 block">Customer Email *</label>
-                        <input type="email" id="orderCustEmail" class="input-field w-full px-3 py-2 rounded-lg text-sm" required>
-                    </div>
-                </div>
-                <div>
-                    <label class="text-gray-400 text-xs mb-1 block">Customer Phone</label>
-                    <input type="text" id="orderCustPhone" class="input-field w-full px-3 py-2 rounded-lg text-sm">
-                </div>
-                <div>
-                    <label class="text-gray-400 text-xs mb-1 block">Select Data Packages</label>
-                    <div class="flex gap-2 mb-2">
-                        <button type="button" class="order-network-tab active text-xs px-3 py-1 rounded-full bg-yellow-500 text-black font-semibold" data-order-network="MTN">MTN</button>
-                        <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full bg-[#374151] text-gray-300" data-order-network="AirtelTigo">AirtelTigo</button>
-                        <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full bg-[#374151] text-gray-300" data-order-network="Telecel">Telecel</button>
-                    </div>
-                    <div id="orderPackageSelect" class="space-y-2 max-h-48 overflow-y-auto">
-                        <p class="text-gray-500 text-sm">Loading packages...</p>
-                    </div>
-                </div>
-                <div id="orderItemsSummary" class="hidden bg-[#111827] rounded-lg p-3">
-                    <p class="text-gray-400 text-xs mb-2">Order Summary</p>
-                    <div id="orderItemsList"></div>
-                    <div class="border-t border-[#374151] pt-2 mt-2">
-                        <div class="flex justify-between text-white font-bold">
-                            <span>Total:</span>
-                            <span id="orderTotal">₵0.00</span>
+                <div class="card p-5 mb-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm" style="color: #64748b;">Available for Withdrawal</p>
+                            <p class="text-3xl font-bold mt-1" style="color: #34d399; letter-spacing: -0.03em;" id="withdrawableBalance">₵0.00</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm" style="color: #64748b;">On Hold</p>
+                            <p class="text-2xl font-bold mt-1" style="color: #fbbf24; letter-spacing: -0.03em;" id="payoutHoldAmount">₵0.00</p>
                         </div>
                     </div>
                 </div>
-                <div>
-                    <label class="text-gray-400 text-xs mb-1 block">Notes</label>
-                    <textarea id="orderNotes" class="input-field w-full px-3 py-2 rounded-lg text-sm" rows="2"></textarea>
+                <div id="payoutsList" class="space-y-3">
+                    <p class="text-center py-8" style="color: #475569;">Loading payouts...</p>
                 </div>
-                <button type="submit" class="btn-primary w-full py-2 rounded-lg text-white font-semibold text-sm" id="createOrderBtn">
-                    <i class="fas fa-credit-card mr-1"></i> Create Order & Send Payment Link
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Payout Request Modal -->
-    <div id="payoutModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
-        <div class="card p-6 w-full max-w-md scale-in">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-white">Request Payout</h3>
-                <button data-close-modal="payoutModal" class="text-gray-400 hover:text-white">
-                    <i class="fas fa-times"></i>
-                </button>
             </div>
-            <form id="payoutForm" class="space-y-3">
-                <div class="bg-[#111827] rounded-lg p-3 mb-2">
-                    <p class="text-gray-400 text-xs">Available Balance</p>
-                    <p class="text-2xl font-bold text-green-400" id="payoutAvailable">₵0.00</p>
+
+            <!-- ===== FINANCIALS TAB ===== -->
+            <div id="tab-financials" class="tab-content hidden">
+                <h2 class="text-xl font-bold text-white mb-5">Financial Statements</h2>
+                <div class="card p-4 mb-4">
+                    <div class="flex flex-wrap gap-3 items-end">
+                        <div>
+                            <label class="text-xs block mb-1" style="color: #64748b;">Start Date</label>
+                            <input type="date" id="finStartDate" class="input-field px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs block mb-1" style="color: #64748b;">End Date</label>
+                            <input type="date" id="finEndDate" class="input-field px-3 py-2 text-sm">
+                        </div>
+                        <button data-action="refresh-financials" class="btn-primary px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <label class="text-gray-400 text-xs mb-1 block">Amount (₵) *</label>
-                    <input type="number" step="0.01" id="payoutAmount" class="input-field w-full px-3 py-2 rounded-lg text-sm" required>
+                <div class="flex gap-2 mb-4 overflow-x-auto">
+                    <button class="fin-tab active" data-fin="income">Income Statement</button>
+                    <button class="fin-tab" data-fin="balance">Balance Sheet</button>
+                    <button class="fin-tab" data-fin="cashflow">Cash Flow</button>
+                    <button class="fin-tab" data-fin="ledger">Ledger</button>
                 </div>
-                <div>
-                    <label class="text-gray-400 text-xs mb-1 block">Payout Method *</label>
-                    <select id="payoutMethod" class="input-field w-full px-3 py-2 rounded-lg text-sm" required>
-                        <option value="">Choose method</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                        <option value="momo">Mobile Money</option>
-                    </select>
+                <div id="financialContent" class="card p-6">
+                    <p class="text-center" style="color: #475569;">Loading financial data...</p>
                 </div>
-                <div id="payoutDestination" class="bg-[#111827] rounded-lg p-3 hidden">
-                    <p class="text-gray-400 text-xs mb-1">Payout will be sent to:</p>
-                    <p class="text-white text-sm font-medium" id="payoutDestText">-</p>
-                </div>
-                <button type="submit" class="btn-primary w-full py-2 rounded-lg text-white font-semibold text-sm">
-                    <i class="fas fa-paper-plane mr-1"></i> Submit Payout Request
-                </button>
-            </form>
+            </div>
+
+            <!-- ===== SETTINGS TAB ===== -->
+            <div id="tab-settings" class="tab-content hidden">
+                <h2 class="text-xl font-bold text-white mb-5">Store Settings</h2>
+                <form id="storeSettingsForm" class="card p-6 space-y-4" style="max-width: 640px;">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">Store Name</label>
+                            <input type="text" id="settStoreName" class="input-field w-full px-4 py-2">
+                        </div>
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">Phone</label>
+                            <input type="text" id="settStorePhone" class="input-field w-full px-4 py-2">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm mb-1 block" style="color: #94a3b8;">Description</label>
+                        <textarea id="settStoreDesc" class="input-field w-full px-4 py-2" rows="2"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-sm mb-1 block" style="color: #94a3b8;">Location</label>
+                        <input type="text" id="settStoreLoc" class="input-field w-full px-4 py-2">
+                    </div>
+                    <h3 class="text-white font-semibold pt-4" style="border-top: 1px solid rgba(51,65,85,0.4);">Payout Details</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">Bank Name</label>
+                            <input type="text" id="settBankName" class="input-field w-full px-4 py-2" placeholder="e.g. GCB Bank">
+                        </div>
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">Bank Account Number</label>
+                            <input type="text" id="settBankAcct" class="input-field w-full px-4 py-2">
+                        </div>
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">Account Name</label>
+                            <input type="text" id="settBankAcctName" class="input-field w-full px-4 py-2">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">MoMo Number</label>
+                            <input type="text" id="settMomoNum" class="input-field w-full px-4 py-2" placeholder="0241234567">
+                        </div>
+                        <div>
+                            <label class="text-sm mb-1 block" style="color: #94a3b8;">MoMo Provider</label>
+                            <select id="settMomoProv" class="input-field w-full px-4 py-2">
+                                <option value="">Select provider</option>
+                                <option value="MTN">MTN</option>
+                                <option value="AirtelTigo">AirtelTigo</option>
+                                <option value="Telecel">Telecel</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary px-6 py-2 rounded-lg font-semibold">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+
+        </div><!-- /content-max -->
+        </div><!-- /main-content -->
+    </div><!-- /main-area -->
+
+</div><!-- /app-shell -->
+
+<!-- ===== ORDER MODAL ===== -->
+<div id="orderModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
+    <div class="card p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" style="border-radius: 20px;">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-white">New Sale Order</h3>
+            <button data-close-modal="orderModal" class="hover:text-white transition-colors" style="color: #64748b;">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
+        <form id="orderForm" class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="text-xs mb-1 block" style="color: #94a3b8;">Customer Name *</label>
+                    <input type="text" id="orderCustName" class="input-field w-full px-3 py-2 text-sm" required>
+                </div>
+                <div>
+                    <label class="text-xs mb-1 block" style="color: #94a3b8;">Customer Email *</label>
+                    <input type="email" id="orderCustEmail" class="input-field w-full px-3 py-2 text-sm" required>
+                </div>
+            </div>
+            <div>
+                <label class="text-xs mb-1 block" style="color: #94a3b8;">Customer Phone</label>
+                <input type="text" id="orderCustPhone" class="input-field w-full px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="text-xs mb-1 block" style="color: #94a3b8;">Select Data Packages</label>
+                <div class="flex gap-2 mb-2">
+                    <button type="button" class="order-network-tab active text-xs px-3 py-1 rounded-full bg-yellow-500 text-black font-semibold" data-order-network="MTN">MTN</button>
+                    <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full" style="background: rgba(51,65,85,0.5); color: #94a3b8;" data-order-network="AirtelTigo">AirtelTigo</button>
+                    <button type="button" class="order-network-tab text-xs px-3 py-1 rounded-full" style="background: rgba(51,65,85,0.5); color: #94a3b8;" data-order-network="Telecel">Telecel</button>
+                </div>
+                <div id="orderPackageSelect" class="space-y-2 max-h-48 overflow-y-auto">
+                    <p class="text-sm" style="color: #475569;">Loading packages...</p>
+                </div>
+            </div>
+            <div id="orderItemsSummary" class="hidden rounded-xl p-3" style="background: rgba(10,15,28,0.7); border: 1px solid rgba(51,65,85,0.4);">
+                <p class="text-xs mb-2" style="color: #64748b;">Order Summary</p>
+                <div id="orderItemsList"></div>
+                <div class="pt-2 mt-2" style="border-top: 1px solid rgba(51,65,85,0.4);">
+                    <div class="flex justify-between text-white font-bold">
+                        <span>Total:</span>
+                        <span id="orderTotal">₵0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="text-xs mb-1 block" style="color: #94a3b8;">Notes</label>
+                <textarea id="orderNotes" class="input-field w-full px-3 py-2 text-sm" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn-primary w-full py-2 rounded-lg font-semibold text-sm justify-center" id="createOrderBtn">
+                <i class="fas fa-credit-card"></i> Create Order & Send Payment Link
+            </button>
+        </form>
     </div>
+</div>
 
-    <!-- Toast Container -->
-    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+<!-- ===== PAYOUT MODAL ===== -->
+<div id="payoutModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
+    <div class="card p-6 w-full max-w-md" style="border-radius: 20px;">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-white">Request Payout</h3>
+            <button data-close-modal="payoutModal" class="hover:text-white transition-colors" style="color: #64748b;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="payoutForm" class="space-y-3">
+            <div class="rounded-xl p-3 mb-2" style="background: rgba(10,15,28,0.7); border: 1px solid rgba(51,65,85,0.4);">
+                <p class="text-xs" style="color: #64748b;">Available Balance</p>
+                <p class="text-2xl font-bold mt-0.5" style="color: #34d399;" id="payoutAvailable">₵0.00</p>
+            </div>
+            <div>
+                <label class="text-xs mb-1 block" style="color: #94a3b8;">Amount (₵) *</label>
+                <input type="number" step="0.01" id="payoutAmount" class="input-field w-full px-3 py-2 text-sm" required>
+            </div>
+            <div>
+                <label class="text-xs mb-1 block" style="color: #94a3b8;">Payout Method *</label>
+                <select id="payoutMethod" class="input-field w-full px-3 py-2 text-sm" required>
+                    <option value="">Choose method</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="momo">Mobile Money</option>
+                </select>
+            </div>
+            <div id="payoutDestination" class="rounded-xl p-3 hidden" style="background: rgba(10,15,28,0.7); border: 1px solid rgba(51,65,85,0.4);">
+                <p class="text-xs mb-1" style="color: #64748b;">Payout will be sent to:</p>
+                <p class="text-sm font-medium text-white" id="payoutDestText">-</p>
+            </div>
+            <button type="submit" class="btn-primary w-full py-2 rounded-lg font-semibold text-sm justify-center">
+                <i class="fas fa-paper-plane"></i> Submit Payout Request
+            </button>
+        </form>
+    </div>
+</div>
 
-    <script src="../assets/js/utils.js"></script>
-    <script src="../assets/js/api.js"></script>
-    <script src="../assets/js/store.js"></script>
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<script src="../assets/js/utils.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/store.js"></script>
 </body>
 </html>

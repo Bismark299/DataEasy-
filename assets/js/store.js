@@ -96,6 +96,10 @@ const StoreApp = (function() {
                 if (el.id === `tab-${currentTab}`) el.classList.remove('hidden');
             });
 
+            // Populate sidebar store name
+            const sidebarName = document.getElementById('sidebarStoreName');
+            if (sidebarName && store.name) sidebarName.textContent = store.name;
+
             // Show store link
             const linkSection = document.getElementById('storeLinkSection');
             if (linkSection && store.id) {
@@ -126,13 +130,13 @@ const StoreApp = (function() {
         if (tabEl) tabEl.classList.remove('hidden');
 
         document.querySelectorAll('[data-tab]').forEach(btn => {
-            btn.classList.remove('active', 'text-white');
-            btn.classList.add('text-gray-400');
-            if (btn.dataset.tab === tab) {
-                btn.classList.add('active', 'text-white');
-                btn.classList.remove('text-gray-400');
-            }
+            btn.classList.remove('active');
+            if (btn.dataset.tab === tab) btn.classList.add('active');
         });
+
+        const titles = { dashboard: 'Dashboard', packages: 'Packages & Pricing', orders: 'Store Orders', payouts: 'Payouts', financials: 'Financials', settings: 'Settings' };
+        const titleEl = document.getElementById('pageTitle');
+        if (titleEl) titleEl.textContent = titles[tab] || 'Store';
 
         if (tab === 'dashboard') loadDashboard();
         else if (tab === 'packages') loadPackages();
@@ -162,7 +166,9 @@ const StoreApp = (function() {
             document.getElementById('totalOrders').textContent = d.totalOrders;
             document.getElementById('activePackages').textContent = d.activePackages;
             document.getElementById('holdAmount').textContent = `₵${s.holdAmount.toFixed(2)}`;
-            document.getElementById('cogsTotal').textContent = `₵${s.totalCostOfGoods.toFixed(2)}`;
+            // Update sidebar balance
+            const sb = document.getElementById('sidebarBalance');
+            if (sb) sb.textContent = `₵${s.availableBalance.toFixed(2)}`;
         } catch (e) {
             toast('Failed to load dashboard', 'error');
         }
@@ -1090,10 +1096,16 @@ const StoreApp = (function() {
             }
         });
 
-        // Set agent code
+        // Set agent code + avatar initials
         try {
             const user = JSON.parse(localStorage.getItem('dataeasy_user') || '{}');
             document.getElementById('agentCode').textContent = user.agentCode || '';
+            const avatar = document.getElementById('agentAvatarInitials');
+            if (avatar && user.fullName) {
+                const parts = (user.fullName || '').split(' ').filter(Boolean);
+                avatar.textContent = parts.length >= 2 ? parts[0][0] + parts[1][0] : (parts[0] || 'SA').slice(0, 2);
+                avatar.textContent = avatar.textContent.toUpperCase();
+            }
         } catch (e) {}
     }
 
