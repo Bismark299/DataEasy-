@@ -138,8 +138,22 @@ async function getProducts() {
     }
 }
 
+// ── Wallet balance cache ──────────────────────────────────────────────────────
+// Shared across all callers to prevent concurrent API hammering (429 errors).
+// - Successful response cached for 90 seconds
+// - 429 response cached for 120 seconds (let MCBIS recover before retrying)
+// - In-flight deduplication: concurrent callers share one pending promise
+const _balanceCache = {
+    value: null,
+    expiresAt: 0,
+    inflight: null  // shared Promise while a request is in progress
+};
+const BALANCE_CACHE_TTL   = 90  * 1000; // 90s normal TTL
+const BALANCE_CACHE_429   = 120 * 1000; // 120s back-off after rate-limit
+
 /**
  * Get dealer wallet balance from MCBIS
+ * Cached for 90 s; deduplicated so concurrent callers share one HTTP request.
  * @returns {Promise<Object>} Wallet balance info
  */
 async function getWalletBalance() {
@@ -153,61 +167,91 @@ async function getWalletBalance() {
             configured: false
         };
     }
-    
-    try {
-        const response = await mcbisApi.get('/walletBalance');
-        const data = response.data;
-        
-        // Robust balance extraction - handle multiple possible response formats
-        // MCBIS may change field names across API updates
-        const rawBalance = 
-            data?.data?.walletBalance ??   // Original: { data: { walletBalance: X } }
-            data?.data?.wallet_balance ??   // Snake_case variant
-            data?.data?.balance ??          // Simplified: { data: { balance: X } }
-            data?.walletBalance ??          // Flat: { walletBalance: X }
-            data?.wallet_balance ??         // Flat snake_case
-            data?.balance ??               // Flat simplified
-            null;
-        
-        const balance = rawBalance !== null ? parseFloat(rawBalance) : 0;
-        const balanceParsed = !isNaN(balance) && rawBalance !== null;
-        
-        if (!balanceParsed) {
-            logger.warn('MCBIS wallet balance field not found in response - API format may have changed', {
-                responseKeys: data ? Object.keys(data) : [],
-                dataKeys: data?.data ? Object.keys(data.data) : [],
-                rawResponse: JSON.stringify(data).substring(0, 500)
-            });
-        }
-        
-        return {
-            success: true,
-            balance,
-            balanceParsed,
-            configured: true,
-            raw: data
-        };
-    } catch (error) {
-        // Check for Cloudflare challenge
-        if (error.cloudflareBlocked) {
-            logger.error('MCBIS API blocked by Cloudflare challenge');
+
+    // Return cached value if still fresh
+    if (_balanceCache.value && Date.now() < _balanceCache.expiresAt) {
+        logger.info('MCBIS wallet balance (cached)', { balance: _balanceCache.value.balance });
+        return _balanceCache.value;
+    }
+
+    // Deduplicate concurrent callers — share one in-flight request
+    if (_balanceCache.inflight) {
+        logger.info('MCBIS wallet balance request already in-flight, awaiting shared promise');
+        return _balanceCache.inflight;
+    }
+
+    // Start the real HTTP request and store the promise so other callers can join
+    _balanceCache.inflight = (async () => {
+        try {
+            const response = await mcbisApi.get('/walletBalance');
+            const data = response.data;
+
+            // Robust balance extraction - handle multiple possible response formats
+            // MCBIS may change field names across API updates
+            const rawBalance =
+                data?.data?.walletBalance ??   // Original: { data: { walletBalance: X } }
+                data?.data?.wallet_balance ??   // Snake_case variant
+                data?.data?.balance ??          // Simplified: { data: { balance: X } }
+                data?.walletBalance ??          // Flat: { walletBalance: X }
+                data?.wallet_balance ??         // Flat snake_case
+                data?.balance ??               // Flat simplified
+                null;
+
+            const balance = rawBalance !== null ? parseFloat(rawBalance) : 0;
+            const balanceParsed = !isNaN(balance) && rawBalance !== null;
+
+            if (!balanceParsed) {
+                logger.warn('MCBIS wallet balance field not found in response - API format may have changed', {
+                    responseKeys: data ? Object.keys(data) : [],
+                    dataKeys: data?.data ? Object.keys(data.data) : [],
+                    rawResponse: JSON.stringify(data).substring(0, 500)
+                });
+            }
+
+            const result = { success: true, balance, balanceParsed, configured: true, raw: data };
+            // Cache successful result
+            _balanceCache.value     = result;
+            _balanceCache.expiresAt = Date.now() + BALANCE_CACHE_TTL;
+            return result;
+        } catch (error) {
+            // Apply longer back-off on 429 to stop hammering MCBIS
+            if (error.response?.status === 429) {
+                logger.error('MCBIS /walletBalance rate-limited (429) — backing off', { backOffMs: BALANCE_CACHE_429 });
+                const rateLimitResult = {
+                    success: false, balance: 0, configured: true,
+                    error: 'MCBIS rate limit hit (429). Retrying after back-off.',
+                    rateLimited: true,
+                    // Preserve last known balance so callers can still make decisions
+                    lastKnownBalance: _balanceCache.value?.balance ?? null
+                };
+                _balanceCache.value     = rateLimitResult;
+                _balanceCache.expiresAt = Date.now() + BALANCE_CACHE_429;
+                return rateLimitResult;
+            }
+
+            // Check for Cloudflare challenge
+            if (error.cloudflareBlocked) {
+                logger.error('MCBIS API blocked by Cloudflare challenge');
+                return {
+                    success: false, balance: 0, configured: true,
+                    error: 'MCBIS API blocked by Cloudflare. Contact McbisSolution to whitelist your server IP.',
+                    cloudflareBlocked: true
+                };
+            }
+
+            logger.error('Failed to fetch MCBIS wallet balance', { error: error.message });
             return {
-                success: false,
-                balance: 0,
-                configured: true,
-                error: 'MCBIS API blocked by Cloudflare. Contact McbisSolution to whitelist your server IP.',
-                cloudflareBlocked: true
+                success: false, balance: 0, configured: true,
+                error: 'Failed to fetch wallet balance: ' + error.message
             };
         }
-        
-        logger.error('Failed to fetch MCBIS wallet balance', { error: error.message });
-        return {
-            success: false,
-            balance: 0,
-            configured: true,
-            error: 'Failed to fetch wallet balance: ' + error.message
-        };
-    }
+    })().finally(() => {
+        // Always clear the in-flight reference so the next expired-cache call
+        // triggers a real HTTP request instead of re-using a stale promise.
+        _balanceCache.inflight = null;
+    });
+
+    return _balanceCache.inflight;
 }
 
 /**

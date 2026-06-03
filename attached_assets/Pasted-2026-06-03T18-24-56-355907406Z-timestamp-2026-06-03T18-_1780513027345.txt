@@ -1,0 +1,76 @@
+2026-06-03T18:24:56.355907406Z {"timestamp":"2026-06-03T18:24:56.355Z","level":"error","message":"Failed to place MCBIS order","error":"Insufficient wallet balance. Order price is 6.80 and your balance is 2.51","network":"MTN","receiver":"0559688134","amount":2}
+2026-06-03T18:24:56.369551946Z {"timestamp":"2026-06-03T18:24:56.369Z","level":"error","message":"Request failed with status code 429","url":"/placeOrder","status":429,"cloudflareBlocked":false}
+2026-06-03T18:24:56.369785161Z {"timestamp":"2026-06-03T18:24:56.369Z","level":"error","message":"Failed to place MCBIS order","error":"Insufficient wallet balance. Order price is 10.20 and your balance is 2.51","network":"MTN","receiver":"0593100762","amount":3}
+2026-06-03T18:24:56.434390814Z {"timestamp":"2026-06-03T18:24:56.434Z","level":"error","message":"Request failed with status code 429","url":"/placeOrder","status":429,"cloudflareBlocked":false}
+2026-06-03T18:24:56.434659249Z {"timestamp":"2026-06-03T18:24:56.434Z","level":"error","message":"Failed to place MCBIS order","error":"Insufficient wallet balance. Order price is 3.40 and your balance is 2.51","network":"MTN","receiver":"0596083744","amount":1}
+2026-06-03T18:24:56.435233411Z {"timestamp":"2026-06-03T18:24:56.435Z","level":"error","message":"Request failed with status code 429","url":"/placeOrder","status":429,"cloudflareBlocked":false}
+2026-06-03T18:24:56.437135722Z {"timestamp":"2026-06-03T18:24:56.435Z","level":"error","message":"Failed to place MCBIS order","error":"Insufficient wallet balance. Order price is 3.40 and your balance is 2.51","network":"MTN","receiver":"0539550067","amount":1}
+2026-06-03T18:34:28.426244212Z GET /api/admin/orders?limit=9999&status=Failed 200 5.100 ms - 1005
+2026-06-03T18:36:10.164410954Z {"timestamp":"2026-06-03T18:36:10.164Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:36:10.16464513Z {"timestamp":"2026-06-03T18:36:10.164Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:36:10.462239819Z {"timestamp":"2026-06-03T18:36:10.462Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:36:10.462444603Z {"timestamp":"2026-06-03T18:36:10.462Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:36:11.163435716Z {"timestamp":"2026-06-03T18:36:11.163Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:36:11.16358553Z {"timestamp":"2026-06-03T18:36:11.163Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:36:13.681144282Z {"timestamp":"2026-06-03T18:36:13.680Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:36:13.681361126Z {"timestamp":"2026-06-03T18:36:13.681Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:36:17.294162299Z Failed to create audit log: Error
+2026-06-03T18:41:25.85312272Z {"timestamp":"2026-06-03T18:41:25.852Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:41:25.853286634Z {"timestamp":"2026-06-03T18:41:25.853Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:42:06.479801931Z {"timestamp":"2026-06-03T18:42:06.478Z","level":"error","message":"Failed to check MCBIS order status","error":"socket hang up","reference":"BT-18b2a990-140f-4031-92a4-4e77b648dada-31-1780510656593","notFound":false}
+2026-06-03T18:44:19.362278579Z {"timestamp":"2026-06-03T18:44:19.362Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:44:19.362539804Z {"timestamp":"2026-06-03T18:44:19.362Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:50:18.527102787Z {"timestamp":"2026-06-03T18:50:18.526Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:50:18.527332432Z {"timestamp":"2026-06-03T18:50:18.527Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:50:26.595242326Z {"timestamp":"2026-06-03T18:50:26.595Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:50:26.595382719Z {"timestamp":"2026-06-03T18:50:26.595Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:50:46.37760985Z {"timestamp":"2026-06-03T18:50:46.377Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:50:46.377768423Z {"timestamp":"2026-06-03T18:50:46.377Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:50:49.194069613Z {"timestamp":"2026-06-03T18:50:49.193Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:50:49.194104134Z {"timestamp":"2026-06-03T18:50:49.193Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:50:50.599892607Z {"timestamp":"2026-06-03T18:50:50.599Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:50:50.600530281Z {"timestamp":"2026-06-03T18:50:50.600Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:50:54.792076733Z {"timestamp":"2026-06-03T18:50:54.791Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:50:54.792296957Z {"timestamp":"2026-06-03T18:50:54.792Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:51:00.382846232Z {"timestamp":"2026-06-03T18:51:00.382Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:51:00.383046176Z {"timestamp":"2026-06-03T18:51:00.382Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:51:46.867077177Z {"timestamp":"2026-06-03T18:51:46.866Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:51:46.867303092Z {"timestamp":"2026-06-03T18:51:46.867Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:51:49.393473174Z {"timestamp":"2026-06-03T18:51:49.393Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:51:49.393642888Z {"timestamp":"2026-06-03T18:51:49.393Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:51:59.149395283Z {"timestamp":"2026-06-03T18:51:59.149Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:51:59.149525016Z {"timestamp":"2026-06-03T18:51:59.149Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:52:00.683369063Z {"timestamp":"2026-06-03T18:52:00.683Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:52:00.683495576Z {"timestamp":"2026-06-03T18:52:00.683Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:53:06.56442337Z {"timestamp":"2026-06-03T18:53:06.564Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:53:06.564622254Z {"timestamp":"2026-06-03T18:53:06.564Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:53:41.527580346Z {"timestamp":"2026-06-03T18:53:41.527Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:53:41.52776371Z {"timestamp":"2026-06-03T18:53:41.527Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:53:44.317755021Z {"timestamp":"2026-06-03T18:53:44.317Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:53:44.317897674Z {"timestamp":"2026-06-03T18:53:44.317Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:54:24.896706886Z {"timestamp":"2026-06-03T18:54:24.896Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:54:24.896740697Z {"timestamp":"2026-06-03T18:54:24.896Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:54:26.331667562Z {"timestamp":"2026-06-03T18:54:26.331Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:54:26.331935738Z {"timestamp":"2026-06-03T18:54:26.331Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:54:27.715626077Z {"timestamp":"2026-06-03T18:54:27.715Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:54:27.71577201Z {"timestamp":"2026-06-03T18:54:27.715Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:54:33.297809104Z {"timestamp":"2026-06-03T18:54:33.297Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:54:33.297995848Z {"timestamp":"2026-06-03T18:54:33.297Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:54:38.899069499Z {"timestamp":"2026-06-03T18:54:38.897Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:54:38.89911225Z {"timestamp":"2026-06-03T18:54:38.898Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:54:45.902028735Z {"timestamp":"2026-06-03T18:54:45.901Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:54:45.902196739Z {"timestamp":"2026-06-03T18:54:45.902Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:55:36.469487081Z {"timestamp":"2026-06-03T18:55:36.469Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:55:36.469707416Z {"timestamp":"2026-06-03T18:55:36.469Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:55:40.57495688Z {"timestamp":"2026-06-03T18:55:40.574Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:55:40.575136133Z {"timestamp":"2026-06-03T18:55:40.575Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:55:44.767685707Z {"timestamp":"2026-06-03T18:55:44.767Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:55:44.767844411Z {"timestamp":"2026-06-03T18:55:44.767Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:55:50.399056034Z {"timestamp":"2026-06-03T18:55:50.398Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:55:50.399381781Z {"timestamp":"2026-06-03T18:55:50.399Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:55:55.996447235Z {"timestamp":"2026-06-03T18:55:55.995Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:55:55.996475865Z {"timestamp":"2026-06-03T18:55:55.996Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:55:58.781473084Z {"timestamp":"2026-06-03T18:55:58.781Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:55:58.781626097Z {"timestamp":"2026-06-03T18:55:58.781Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
+2026-06-03T18:56:33.954470406Z {"timestamp":"2026-06-03T18:56:33.954Z","level":"error","message":"Request failed with status code 429","url":"/walletBalance","status":429,"cloudflareBlocked":false}
+2026-06-03T18:56:33.955008797Z {"timestamp":"2026-06-03T18:56:33.954Z","level":"error","message":"Failed to fetch MCBIS wallet balance","error":"Request failed with status code 429"}
