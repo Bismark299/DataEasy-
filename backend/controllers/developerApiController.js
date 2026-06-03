@@ -244,25 +244,58 @@ exports.createOrder = async (req, res) => {
 
             await t.commit();
 
-            // Auto-delivery via MCBIS (same as core order flow)
-            try {
-                const shouldAutoDeliver = await Setting.shouldDeliverViaMcbis(network);
-                if (shouldAutoDeliver) {
+            // Auto-delivery via MCBIS (fire-and-forget after response)
+            (async () => {
+                try {
+                    const shouldAutoDeliver = await Setting.shouldDeliverViaMcbis(network);
+                    if (!shouldAutoDeliver) return;
+
                     const provider = getMcbisProvider();
                     const poller = getOrderStatusPoller();
 
-                    for (let i = 0; i < orderItems.length; i++) {
+                    // Pre-check MCBIS balance once for the whole batch
+                    let batchSkipBalanceCheck = false;
+                    try {
+                        const balResult = await provider.getWalletBalance();
+                        const bal = parseFloat(balResult.balance || 0);
+                        if (balResult.balanceParsed && bal < 1) {
+                            // Balance too low — mark all items Pending and bail out
+                            const pendingItems = orderItems.map(it => ({ ...it, deliveryStatus: 'Pending', deliveryError: `MCBIS balance too low: ₵${bal.toFixed(2)}` }));
+                            await order.update({ items: pendingItems, deliveryStatus: 'Pending' });
+                            logger.warn('API order: MCBIS balance too low, all items marked Pending', { orderId: order.orderId, balance: bal });
+                            return;
+                        }
+                        batchSkipBalanceCheck = true; // Balance confirmed OK, skip per-item checks
+                    } catch (balErr) {
+                        logger.warn('API order: balance pre-check failed, proceeding anyway', { orderId: order.orderId, error: balErr.message });
+                    }
+
+                    // Dispatch all items concurrently
+                    const dispatched = [...orderItems];
+                    await Promise.all(orderItems.map(async (item, i) => {
                         try {
                             const deliveryResult = await provider.deliverBundle({
                                 orderId: order.id,
                                 itemIndex: i,
                                 network,
-                                phoneNumber: orderItems[i].phoneNumber,
-                                dataAmount: orderItems[i].data,
-                                price: orderItems[i].costPrice || orderItems[i].price,
-                                existingReference: orderItems[i].providerReference
-                            });
-                            if (deliveryResult.reference) {
+                                phoneNumber: item.phoneNumber,
+                                dataAmount: item.data,
+                                price: item.costPrice || item.price,
+                                existingReference: null
+                            }, { skipBalanceCheck: batchSkipBalanceCheck });
+
+                            if (deliveryResult.status === 'InsufficientBalance') {
+                                dispatched[i] = { ...dispatched[i], deliveryStatus: 'Pending', deliveryError: deliveryResult.error };
+                            } else if (deliveryResult.status === 'Failed' || !deliveryResult.reference) {
+                                dispatched[i] = { ...dispatched[i], deliveryStatus: 'Failed', deliveryError: deliveryResult.error };
+                            } else {
+                                // Successfully submitted — mark Processing and start poller
+                                dispatched[i] = {
+                                    ...dispatched[i],
+                                    deliveryStatus: 'Processing',
+                                    providerReference: deliveryResult.reference,
+                                    sentToProviderAt: new Date().toISOString()
+                                };
                                 poller.startPolling({
                                     orderId: order.id,
                                     itemIndex: i,
@@ -270,14 +303,31 @@ exports.createOrder = async (req, res) => {
                                     displayOrderId: order.orderId
                                 });
                             }
-                        } catch (deliveryError) {
-                            logger.error('API order auto-delivery failed for item', { orderId: order.orderId, itemIndex: i, error: deliveryError.message });
+                        } catch (itemErr) {
+                            logger.error('API order auto-delivery failed for item', { orderId: order.orderId, itemIndex: i, error: itemErr.message });
+                            dispatched[i] = { ...dispatched[i], deliveryStatus: 'Failed', deliveryError: itemErr.message };
                         }
-                    }
+                    }));
+
+                    // Write updated item statuses back to DB
+                    const anyProcessing = dispatched.some(it => it.deliveryStatus === 'Processing');
+                    const allPending = dispatched.every(it => it.deliveryStatus === 'Pending');
+                    const allFailed = dispatched.every(it => it.deliveryStatus === 'Failed');
+                    await order.update({
+                        items: dispatched,
+                        deliveryStatus: anyProcessing ? 'Processing' : allPending ? 'Pending' : allFailed ? 'Failed' : 'Processing'
+                    });
+
+                    logger.info('API order dispatch complete', {
+                        orderId: order.orderId,
+                        processing: dispatched.filter(it => it.deliveryStatus === 'Processing').length,
+                        pending: dispatched.filter(it => it.deliveryStatus === 'Pending').length,
+                        failed: dispatched.filter(it => it.deliveryStatus === 'Failed').length
+                    });
+                } catch (autoDeliveryError) {
+                    logger.error('API order auto-delivery error', { orderId: order.orderId, error: autoDeliveryError.message });
                 }
-            } catch (autoDeliveryError) {
-                logger.error('API order auto-delivery error', { orderId: order.orderId, error: autoDeliveryError.message });
-            }
+            })();
 
             return res.status(201).json({
                 success: true,

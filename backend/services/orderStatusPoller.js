@@ -402,7 +402,7 @@ function isPolling(orderId, itemIndex) {
 let backgroundSyncInterval = null;
 let recoveryInterval = null;
 const BACKGROUND_SYNC_INTERVAL = 5 * 60 * 1000; // Every 5 minutes
-const RECOVERY_INTERVAL = 3 * 60 * 1000; // Every 3 minutes — retry pending orders
+const RECOVERY_INTERVAL = 60 * 1000; // Every 60 seconds — retry pending orders faster after top-up
 const MIN_ORDER_AGE = 60 * 1000; // Don't retry orders less than 60 seconds old (let initial attempt finish)
 const MAX_RECOVERY_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days — covers all historic orders
 const MAX_SYNC_ITEMS_PER_CYCLE = 100; // Cap background sync to avoid multi-hour runs
@@ -634,7 +634,7 @@ async function recoverPendingOrders() {
                     dataAmount: item.data,
                     price: item.costPrice || item.price,
                     existingReference: null
-                });
+                }, { skipBalanceCheck: true }); // Balance already verified above
 
                 // Reload order to get fresh items (in case another process updated it)
                 await order.reload();
