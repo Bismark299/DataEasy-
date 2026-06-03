@@ -2674,6 +2674,67 @@ exports.syncOrderStatus = async (req, res) => {
 };
 
 /**
+ * Retry all failed items in an order — resets them to Pending so the
+ * recovery sweep picks them up and re-dispatches to MCBIS.
+ * POST /api/admin/orders/:id/retry-failed
+ */
+exports.retryFailedItems = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const order = await Order.findByPk(id);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        const items = order.items || [];
+        const failedIndexes = items.reduce((acc, item, i) => {
+            if (item.deliveryStatus === 'Failed') acc.push(i);
+            return acc;
+        }, []);
+
+        if (failedIndexes.length === 0) {
+            return res.status(400).json({ error: 'No failed items to retry in this order' });
+        }
+
+        const updatedItems = items.map((item, i) => {
+            if (item.deliveryStatus !== 'Failed') return item;
+            return {
+                ...item,
+                deliveryStatus: 'Pending',
+                providerReference: null,
+                sentToProviderAt: null,
+                deliveryError: null
+            };
+        });
+
+        const hasProcessing = updatedItems.some(i => i.deliveryStatus === 'Processing');
+        const hasPending    = updatedItems.some(i => i.deliveryStatus === 'Pending');
+        const hasDelivered  = updatedItems.some(i => i.deliveryStatus === 'Delivered');
+        const allDelivered  = updatedItems.every(i => i.deliveryStatus === 'Delivered');
+
+        let newStatus;
+        if (allDelivered)                        newStatus = 'Delivered';
+        else if (hasProcessing)                  newStatus = 'Processing';
+        else if (hasPending && hasDelivered)     newStatus = 'Partially Delivered';
+        else                                     newStatus = 'Pending';
+
+        await order.update({ items: updatedItems, deliveryStatus: newStatus });
+
+        logger.info('Admin: retry failed items', {
+            orderId: order.orderId, resetCount: failedIndexes.length, newStatus
+        });
+
+        res.json({
+            success: true,
+            message: `${failedIndexes.length} failed item(s) queued for retry`,
+            resetCount: failedIndexes.length,
+            newOrderStatus: newStatus
+        });
+    } catch (error) {
+        logger.error('Retry failed items error', { error: error.message });
+        res.status(500).json({ error: 'Failed to retry items' });
+    }
+};
+
+/**
  * Helper: Sync a single order item with MCBIS
  */
 async function syncSingleItem(order, itemIndex, item) {

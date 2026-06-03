@@ -359,8 +359,11 @@
             <div class="p-6" id="orderDetailContent">
                 <!-- Order details will be populated here -->
             </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 flex-wrap">
                 <button class="modal-close-btn px-4 py-2 text-gray-600 hover:text-gray-800 transition" data-modal="viewOrderModal">Close</button>
+                <button class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition hidden" id="retryFailedBtn">
+                    <i class="fas fa-redo mr-1"></i> Retry Failed Items
+                </button>
                 <button class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition hidden" id="completeOrderBtn">
                     <i class="fas fa-check mr-1"></i> Complete
                 </button>
@@ -1315,7 +1318,8 @@
 
             const completeBtn = document.getElementById('completeOrderBtn');
             const cancelBtn = document.getElementById('cancelOrderBtn');
-            
+            const retryFailedBtn = document.getElementById('retryFailedBtn');
+
             if (status === 'pending') {
                 completeBtn.classList.remove('hidden');
                 cancelBtn.classList.remove('hidden');
@@ -1324,6 +1328,14 @@
             } else {
                 completeBtn.classList.add('hidden');
                 cancelBtn.classList.add('hidden');
+            }
+
+            const hasFailed = items.some(item => (item.deliveryStatus || '').toLowerCase() === 'failed');
+            if (hasFailed) {
+                retryFailedBtn.classList.remove('hidden');
+                retryFailedBtn.onclick = () => retryFailedItems(order.id, order.orderId);
+            } else {
+                retryFailedBtn.classList.add('hidden');
             }
 
             document.getElementById('viewOrderModal').classList.remove('hidden');
@@ -1413,6 +1425,63 @@
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
             document.getElementById(modalId).classList.remove('flex');
+        }
+
+        async function retryFailedItems(orderId, displayOrderId) {
+            showConfirm(
+                'Retry Failed Items',
+                `Reset all failed items in order #${displayOrderId || orderId} to Pending so they are automatically re-dispatched?`,
+                'success',
+                async () => {
+                    try {
+                        const token = localStorage.getItem('dataeasy_admin_token');
+                        const res = await fetch(`/api/admin/orders/${orderId}/retry-failed`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Failed to queue retry');
+                        showToast('success', 'Queued for Retry', data.message);
+                        closeModal('viewOrderModal');
+                        closeModal('confirmModal');
+                        loadOrders();
+                    } catch (err) {
+                        console.error(err);
+                        showToast('error', 'Error', err.message || 'Failed to retry items');
+                    }
+                }
+            );
+        }
+
+        async function retryOrderItem(orderId, itemIndex) {
+            try {
+                const token = localStorage.getItem('dataeasy_admin_token');
+                const res = await fetch('/api/admin/provider/retry-poll', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId, itemIndex })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    // No providerReference — reset this single item to Pending instead
+                    if (data.error && data.error.includes('No provider reference')) {
+                        const res2 = await fetch(`/api/admin/orders/${orderId}/retry-failed`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                        });
+                        const data2 = await res2.json();
+                        if (!res2.ok) throw new Error(data2.error || 'Retry failed');
+                        showToast('success', 'Queued', data2.message);
+                        loadOrders();
+                        return;
+                    }
+                    throw new Error(data.error || 'Retry failed');
+                }
+                showToast('success', 'Polling Started', `Checking delivery status for item ${itemIndex + 1}`);
+            } catch (err) {
+                console.error(err);
+                showToast('error', 'Error', err.message || 'Failed to retry item');
+            }
         }
 
         function debounce(func, wait) {
