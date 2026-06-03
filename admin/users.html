@@ -894,16 +894,16 @@
             document.getElementById('viewUserContent').innerHTML = `
                 <div class="text-center mb-6">
                     <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-3">${initials}</div>
-                    <h3 class="text-lg font-semibold text-gray-800">${user.fullName || user.name || 'N/A'}</h3>
-                    <p class="text-gray-500 text-sm">${user.email || 'N/A'}</p>
-                    <span class="inline-block px-2 py-1 rounded-full text-xs font-medium ${roleColor} mt-2">${roleDisplay}</span>
+                    <h3 class="text-lg font-semibold text-gray-800">${esc(user.fullName || user.name || 'N/A')}</h3>
+                    <p class="text-gray-500 text-sm">${esc(user.email || 'N/A')}</p>
+                    <span class="inline-block px-2 py-1 rounded-full text-xs font-medium ${roleColor} mt-2">${esc(roleDisplay)}</span>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><p class="text-xs text-gray-500 mb-1">Phone</p><p class="font-medium text-gray-800">${user.phone || 'N/A'}</p></div>
-                    <div><p class="text-xs text-gray-500 mb-1">Status</p><span class="px-2 py-1 rounded-full text-xs font-medium ${status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${status}</span></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Phone</p><p class="font-medium text-gray-800">${esc(user.phone || 'N/A')}</p></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Status</p><span class="px-2 py-1 rounded-full text-xs font-medium ${status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${esc(status)}</span></div>
                     <div><p class="text-xs text-gray-500 mb-1">Wallet Balance</p><p class="${balance >= 0 ? 'text-green-600' : 'text-red-600'} font-bold">GH₵ ${balance.toFixed(2)}</p></div>
-                    <div><p class="text-xs text-gray-500 mb-1">Total Orders</p><p class="font-medium text-gray-800">${user.orderCount || 0}</p></div>
-                    <div class="col-span-2"><p class="text-xs text-gray-500 mb-1">Registered</p><p class="text-gray-600">${new Date(user.createdAt).toLocaleString()}</p></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Total Orders</p><p class="font-medium text-gray-800">${parseInt(user.orderCount || 0)}</p></div>
+                    <div class="col-span-2"><p class="text-xs text-gray-500 mb-1">Registered</p><p class="text-gray-600">${esc(new Date(user.createdAt).toLocaleString())}</p></div>
                 </div>
             `;
 
@@ -988,8 +988,8 @@
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">${initials}</div>
                     <div class="flex-1">
-                        <div class="font-semibold text-gray-800">${user.fullName || user.name || 'N/A'}</div>
-                        <div class="text-sm text-gray-500">${user.phone || user.email || 'N/A'}</div>
+                        <div class="font-semibold text-gray-800">${esc(user.fullName || user.name || 'N/A')}</div>
+                        <div class="text-sm text-gray-500">${esc(user.phone || user.email || 'N/A')}</div>
                     </div>
                     <div class="text-right">
                         <div class="text-xs text-gray-500">Current Balance</div>

@@ -12,6 +12,14 @@ const DataEasyCart = (function() {
 
     const { Storage, Toast, Format, EventBus, DOM } = DataEasyUtils;
 
+    // XSS Protection
+    function escHtml(str) {
+        if (str === null || str === undefined) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
+
     // ==========================================
     // CACHE CONFIGURATION
     // ==========================================
@@ -511,7 +519,7 @@ const DataEasyCart = (function() {
                 <div class="flex justify-between items-start mb-2">
                     <div>
                         <span class="inline-block px-2 py-0.5 rounded text-xs font-bold mb-1" style="background-color: ${DataEasyUtils.Network.getColor(item.network).bg}; color: ${DataEasyUtils.Network.getColor(item.network).text}">
-                            ${item.network}
+                            ${escHtml(item.network)}
                         </span>
                     </div>
                     <button class="text-gray-500 hover:text-red-400 transition" data-action="remove-item" data-item-id="${item.id}">
@@ -522,8 +530,8 @@ const DataEasyCart = (function() {
                 ${item.phoneNumbers.length > 0 ? item.phoneNumbers.map(phone => `
                     <div class="flex justify-between items-center py-1.5 border-b border-gray-700/50 last:border-0">
                         <div>
-                            <span class="text-white text-sm">${phone}</span>
-                            <span class="text-gray-500 text-xs ml-2">${item.package.data}</span>
+                            <span class="text-white text-sm">${escHtml(phone)}</span>
+                            <span class="text-gray-500 text-xs ml-2">${escHtml(item.package.data)}</span>
                         </div>
                         <span class="text-mtn-yellow text-sm font-medium">${Format.currency(item.package.price)}</span>
                     </div>
@@ -531,7 +539,7 @@ const DataEasyCart = (function() {
                     <div class="flex justify-between items-center py-1.5">
                         <div>
                             <span class="text-gray-400 text-sm">No number specified</span>
-                            <span class="text-gray-500 text-xs ml-2">${item.package.data}</span>
+                            <span class="text-gray-500 text-xs ml-2">${escHtml(item.package.data)}</span>
                         </div>
                         <span class="text-mtn-yellow text-sm font-medium">${Format.currency(item.package.price)}</span>
                     </div>

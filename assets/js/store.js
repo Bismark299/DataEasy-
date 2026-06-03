@@ -779,7 +779,7 @@ const StoreApp = (function() {
                 </div>
             `;
         } catch (e) {
-            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${e.message}</p>`;
+            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${escapeHtml(e.message)}</p>`;
         }
     }
 
@@ -813,7 +813,7 @@ const StoreApp = (function() {
                 </div>
             `;
         } catch (e) {
-            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${e.message}</p>`;
+            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${escapeHtml(e.message)}</p>`;
         }
     }
 
@@ -854,7 +854,7 @@ const StoreApp = (function() {
                 </div>
             `;
         } catch (e) {
-            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${e.message}</p>`;
+            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${escapeHtml(e.message)}</p>`;
         }
     }
 
@@ -897,7 +897,7 @@ const StoreApp = (function() {
                 </div>
             `;
         } catch (e) {
-            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${e.message}</p>`;
+            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${escapeHtml(e.message)}</p>`;
         }
     }
 

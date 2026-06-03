@@ -1295,19 +1295,19 @@
 
             document.getElementById('orderDetailContent').innerHTML = `
                 <div class="grid grid-cols-2 gap-4">
-                    <div><p class="text-xs text-gray-500 mb-1">Order ID</p><p class="font-medium text-gray-800">#${order.orderId || order.id}</p></div>
-                    <div><p class="text-xs text-gray-500 mb-1">Status</p><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColors[status]}">${status}</span></div>
-                    <div><p class="text-xs text-gray-500 mb-1">Customer</p><p class="font-medium text-gray-800">${order.user?.fullName || order.user?.name || 'N/A'}</p></div>
-                    <div><p class="text-xs text-gray-500 mb-1">Customer Phone</p><p class="text-gray-600">${order.user?.phone || 'N/A'}</p></div>
-                    <div><p class="text-xs text-gray-500 mb-1">Recipient</p><p class="font-bold text-gray-800">${firstItem.phone || order.recipientNumber || 'N/A'}</p></div>
-                    <div><p class="text-xs text-gray-500 mb-1">Network</p><span class="px-2 py-1 rounded-full text-xs font-medium ${networkColors[order.network] || 'bg-gray-100 text-gray-800'}">${order.network || 'N/A'}</span></div>
-                    <div><p class="text-xs text-gray-500 mb-1">Package</p><p class="text-gray-600">${firstItem.packageName || order.package?.name || 'N/A'}</p></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Order ID</p><p class="font-medium text-gray-800">#${esc(order.orderId || order.id)}</p></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Status</p><span class="px-2 py-1 rounded-full text-xs font-medium ${statusColors[status]}">${esc(status)}</span></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Customer</p><p class="font-medium text-gray-800">${esc(order.user?.fullName || order.user?.name || 'N/A')}</p></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Customer Phone</p><p class="text-gray-600">${esc(order.user?.phone || 'N/A')}</p></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Recipient</p><p class="font-bold text-gray-800">${esc(firstItem.phone || order.recipientNumber || 'N/A')}</p></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Network</p><span class="px-2 py-1 rounded-full text-xs font-medium ${networkColors[order.network] || 'bg-gray-100 text-gray-800'}">${esc(order.network || 'N/A')}</span></div>
+                    <div><p class="text-xs text-gray-500 mb-1">Package</p><p class="text-gray-600">${esc(firstItem.packageName || order.package?.name || 'N/A')}</p></div>
                     <div><p class="text-xs text-gray-500 mb-1">Amount</p><p class="text-green-600 font-bold">GH₵ ${parseFloat(order.total || order.totalAmount || 0).toFixed(2)}</p></div>
                     <div class="col-span-2"><p class="text-xs text-gray-500 mb-1">Order Date</p><p class="text-gray-600">${new Date(order.createdAt).toLocaleString()}</p></div>
                     ${items.length > 1 ? `
                     <div class="col-span-2"><p class="text-xs text-gray-500 mb-2">All Items (${items.length})</p>
                     <div class="bg-gray-50 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
-                        ${items.map(item => `<div class="flex justify-between text-sm"><span class="text-gray-600">${item.phone} - ${item.packageName}</span><span class="font-medium">GH₵ ${item.price}</span></div>`).join('')}
+                        ${items.map(item => `<div class="flex justify-between text-sm"><span class="text-gray-600">${esc(item.phone)} - ${esc(item.packageName)}</span><span class="font-medium">GH₵ ${parseFloat(item.price || 0).toFixed(2)}</span></div>`).join('')}
                     </div></div>
                     ` : ''}
                 </div>

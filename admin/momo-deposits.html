@@ -306,6 +306,14 @@
 
     <script src="../assets/js/admin-common.js"></script>
     <script>
+        // XSS Protection
+        function esc(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
         // State
         let currentPage = 1;
         let totalPages = 1;
@@ -472,11 +480,11 @@
                 return `
                     <tr class="hover:bg-gray-50 transition">
                         <td class="px-4 py-3 text-sm text-gray-600">${new Date(deposit.createdAt).toLocaleString()}</td>
-                        <td class="px-4 py-3 font-mono text-sm text-gray-800">${deposit.transactionId || '-'}</td>
+                        <td class="px-4 py-3 font-mono text-sm text-gray-800">${esc(deposit.transactionId || '-')}</td>
                         <td class="px-4 py-3 font-bold text-green-600">₵ ${parseFloat(deposit.amount || 0).toFixed(2)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">${deposit.senderPhone || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600 font-medium">${deposit.reference || '-'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-800">${deposit.user ? deposit.user.fullName : '<span class="text-gray-400">-</span>'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${esc(deposit.senderPhone || '-')}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 font-medium">${esc(deposit.reference || '-')}</td>
+                        <td class="px-4 py-3 text-sm text-gray-800">${deposit.user ? esc(deposit.user.fullName) : '<span class="text-gray-400">-</span>'}</td>
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 rounded-full text-xs font-medium ${status.bg} ${status.text}">${status.label}</span>
                         </td>
@@ -534,9 +542,9 @@
 
             document.getElementById('depositInfo').innerHTML = `
                 <p class="mb-1"><strong class="text-gray-700">Amount:</strong> <span class="text-green-600 font-bold">₵ ${parseFloat(deposit.amount).toFixed(2)}</span></p>
-                <p class="mb-1"><strong class="text-gray-700">Transaction ID:</strong> ${deposit.transactionId}</p>
-                <p class="mb-1"><strong class="text-gray-700">Reference:</strong> ${deposit.reference || 'None'}</p>
-                <p><strong class="text-gray-700">Sender:</strong> ${deposit.senderPhone}</p>
+                <p class="mb-1"><strong class="text-gray-700">Transaction ID:</strong> ${esc(deposit.transactionId)}</p>
+                <p class="mb-1"><strong class="text-gray-700">Reference:</strong> ${esc(deposit.reference || 'None')}</p>
+                <p><strong class="text-gray-700">Sender:</strong> ${esc(deposit.senderPhone)}</p>
             `;
             document.getElementById('selectedDepositId').value = depositId;
             document.getElementById('selectedUserId').value = '';
@@ -573,10 +581,10 @@
                     const users = data.users || [];
 
                     document.getElementById('userSearchResults').innerHTML = users.map(user => `
-                        <div class="p-3 bg-gray-50 hover:bg-blue-50 cursor-pointer rounded-lg border border-gray-200 transition" data-action="selectUser" data-userid="${user.id}" data-username="${user.fullName.replace(/"/g, '&quot;')}">
-                            <p class="font-semibold text-gray-800">${user.fullName}</p>
-                            <p class="text-sm text-gray-500">${user.email} | ${user.phone}</p>
-                            ${user.agentCode ? `<p class="text-sm text-blue-600 font-medium">${user.agentCode}</p>` : ''}
+                        <div class="p-3 bg-gray-50 hover:bg-blue-50 cursor-pointer rounded-lg border border-gray-200 transition" data-action="selectUser" data-userid="${user.id}" data-username="${esc(user.fullName)}">
+                            <p class="font-semibold text-gray-800">${esc(user.fullName)}</p>
+                            <p class="text-sm text-gray-500">${esc(user.email)} | ${esc(user.phone)}</p>
+                            ${user.agentCode ? `<p class="text-sm text-blue-600 font-medium">${esc(user.agentCode)}</p>` : ''}
                         </div>
                     `).join('') || '<p class="text-gray-400 p-3 text-center">No users found</p>';
                 } catch (error) {
@@ -592,7 +600,7 @@
             document.getElementById('userSearchResults').innerHTML = `
                 <div class="p-3 bg-green-100 rounded-lg border border-green-200">
                     <i class="fas fa-check-circle text-green-600 mr-2"></i> 
-                    <span class="text-green-800 font-medium">Selected: ${userName}</span>
+                    <span class="text-green-800 font-medium">Selected: ${esc(userName)}</span>
                 </div>
             `;
             document.getElementById('confirmCredit').disabled = false;

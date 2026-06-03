@@ -7,6 +7,14 @@ const DataEasyApp = (function() {
     'use strict';
 
     const { Storage, Toast, Format, EventBus, DOM, Network, Modal, Paystack } = DataEasyUtils;
+
+    // XSS Protection - escape HTML special characters
+    function escHtml(str) {
+        if (str === null || str === undefined) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
     const { BulkParser } = DataEasyValidation;
 
     // ==========================================
@@ -220,7 +228,7 @@ const DataEasyApp = (function() {
                 ` : ''}
                 <div class="card-body ${style.body} p-4 sm:p-5 text-center relative">
                     <span class="absolute top-3 left-3 border-2 ${style.badgeColor} rounded-full px-3 py-0.5 text-xs font-bold">${style.badge}</span>
-                    <p class="${style.text} text-3xl sm:text-4xl font-bold mt-4">${pkg.data}</p>
+                    <p class="${style.text} text-3xl sm:text-4xl font-bold mt-4">${escHtml(pkg.data)}</p>
                 </div>
                 <div class="card-footer p-2 grid grid-cols-3 gap-1 text-center">
                     <div>
@@ -1145,11 +1153,11 @@ const DataEasyApp = (function() {
 
                     return `
                         <tr class="border-b border-gray-700 hover:bg-gray-800/30 transition">
-                            <td class="py-3 px-3 md:px-4 text-gray-400 text-sm">${row.date}</td>
-                            <td class="py-3 px-3 md:px-4 text-white text-sm font-medium">${row.orderId}</td>
-                            <td class="py-3 px-3 md:px-4 text-white text-sm">${row.phone !== '—' ? Format.phone(row.phone) : '—'}</td>
-                            <td class="py-3 px-3 md:px-4 text-white text-sm">${row.package}</td>
-                            <td class="py-3 px-3 md:px-4 ${networkClass} text-sm font-medium">${row.network}</td>
+                            <td class="py-3 px-3 md:px-4 text-gray-400 text-sm">${escHtml(row.date)}</td>
+                            <td class="py-3 px-3 md:px-4 text-white text-sm font-medium">${escHtml(row.orderId)}</td>
+                            <td class="py-3 px-3 md:px-4 text-white text-sm">${row.phone !== '—' ? escHtml(Format.phone(row.phone)) : '—'}</td>
+                            <td class="py-3 px-3 md:px-4 text-white text-sm">${escHtml(row.package)}</td>
+                            <td class="py-3 px-3 md:px-4 ${networkClass} text-sm font-medium">${escHtml(row.network)}</td>
                             <td class="py-3 px-3 md:px-4 text-white text-sm">${Format.currency(row.price)}</td>
                             <td class="py-3 px-3 md:px-4 text-sm">${deliveryDisplay}</td>
                         </tr>
@@ -1187,23 +1195,23 @@ const DataEasyApp = (function() {
                             <div class="divide-y divide-gray-700">
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">DATE:</span>
-                                    <span class="text-white text-sm">${row.date}</span>
+                                    <span class="text-white text-sm">${escHtml(row.date)}</span>
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">ORDER ID:</span>
-                                    <span class="text-white text-sm font-medium">${row.orderId}</span>
+                                    <span class="text-white text-sm font-medium">${escHtml(row.orderId)}</span>
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">NUMBER:</span>
-                                    <span class="text-white text-sm font-bold">${row.phone !== '—' ? Format.phone(row.phone) : '—'}</span>
+                                    <span class="text-white text-sm font-bold">${row.phone !== '—' ? escHtml(Format.phone(row.phone)) : '—'}</span>
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">PACKAGE:</span>
-                                    <span class="text-white text-sm">${row.package}</span>
+                                    <span class="text-white text-sm">${escHtml(row.package)}</span>
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">NETWORK:</span>
-                                    <span class="${networkClass} text-sm font-medium">${row.network}</span>
+                                    <span class="${networkClass} text-sm font-medium">${escHtml(row.network)}</span>
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">PRICE:</span>
@@ -1211,7 +1219,7 @@ const DataEasyApp = (function() {
                                 </div>
                                 <div class="flex justify-between items-center px-4 py-2">
                                     <span class="text-gray-400 font-semibold text-sm">STATUS:</span>
-                                    <span class="${deliveryClass} text-sm">${deliveryText}</span>
+                                    <span class="${deliveryClass} text-sm">${escHtml(deliveryText)}</span>
                                 </div>
                             </div>
                         </div>

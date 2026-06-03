@@ -76,39 +76,66 @@ module.exports = (sequelize) => {
     };
 
     // Get all MCBIS settings at once
+    /**
+     * Batch-fetch multiple settings in a single SQL query.
+     * @param {Object} keysWithDefaults - { key: defaultValue }
+     * @returns {Object} - { key: resolvedValue }
+     */
+    Setting.getMultiple = async function(keysWithDefaults) {
+        const keys = Object.keys(keysWithDefaults);
+        const rows = await this.findAll({ where: { key: keys } });
+
+        // Build a lookup map from DB rows
+        const rowMap = {};
+        rows.forEach(row => { rowMap[row.key] = row; });
+
+        // Resolve each key with type conversion and fallback to default
+        const result = {};
+        for (const [key, defaultValue] of Object.entries(keysWithDefaults)) {
+            const row = rowMap[key];
+            if (!row) {
+                result[key] = defaultValue;
+                continue;
+            }
+            switch (row.type) {
+                case 'boolean':
+                    result[key] = row.value === 'true';
+                    break;
+                case 'number':
+                    result[key] = parseFloat(row.value);
+                    break;
+                case 'json':
+                    try { result[key] = JSON.parse(row.value); } catch { result[key] = defaultValue; }
+                    break;
+                default:
+                    result[key] = row.value;
+            }
+        }
+        return result;
+    };
+
     Setting.getMcbisSettings = async function() {
-        const defaults = {
+        return await this.getMultiple({
             mcbisEnabled: false,
             mcbis_mtnAPI: true,
             mcbis_telecelAPI: true,
-            mcbis_airteltigoAPI: true,  // Uses atishare in MCBIS DataHub
+            mcbis_airteltigoAPI: true,
             mcbisAutoSync: true,
             mcbisApiUrl: 'https://datahub.mcbissolution.com/api/v1'
-        };
-
-        const settings = {};
-        for (const [key, defaultValue] of Object.entries(defaults)) {
-            settings[key] = await this.getValue(key, defaultValue);
-        }
-        return settings;
+        });
     };
 
     // Get network availability settings
     Setting.getNetworkAvailability = async function() {
-        const defaults = {
+        const s = await this.getMultiple({
             network_mtn_available: true,
             network_telecel_available: true,
             network_airteltigo_available: true
-        };
-
-        const settings = {};
-        for (const [key, defaultValue] of Object.entries(defaults)) {
-            settings[key] = await this.getValue(key, defaultValue);
-        }
+        });
         return {
-            MTN: settings.network_mtn_available,
-            Telecel: settings.network_telecel_available,
-            AirtelTigo: settings.network_airteltigo_available
+            MTN: s.network_mtn_available,
+            Telecel: s.network_telecel_available,
+            AirtelTigo: s.network_airteltigo_available
         };
     };
 
@@ -154,43 +181,63 @@ module.exports = (sequelize) => {
 
     // Get wallet topup fee settings
     Setting.getTopupFeeSettings = async function() {
+        const s = await this.getMultiple({
+            topup_fee_percentage: 2,
+            topup_minimum_fee: 0,
+            topup_fees_enabled: true
+        });
         return {
-            // Fee percentage charged to user (default 2% to cover Paystack)
-            feePercentage: await this.getValue('topup_fee_percentage', 2),
-            // Minimum fee in GHS
-            minimumFee: await this.getValue('topup_minimum_fee', 0),
-            // Whether fees are enabled
-            feesEnabled: await this.getValue('topup_fees_enabled', true)
+            feePercentage: s.topup_fee_percentage,
+            minimumFee: s.topup_minimum_fee,
+            feesEnabled: s.topup_fees_enabled
         };
     };
 
     // Get general app settings
     Setting.getAppSettings = async function() {
+        const s = await this.getMultiple({
+            app_name: 'DataEasy+',
+            support_email: 'support@dataeasyplus.com',
+            support_phone: '+233 20 000 0000',
+            maintenance_mode: false,
+            send_claim_visible: true,
+            store_visible: true,
+            momo_details_visible: true,
+            momo_enabled: true,
+            momo_number: '0555546229',
+            momo_name: 'Bismark Kwame Oteng'
+        });
         return {
-            appName: await this.getValue('app_name', 'DataEasy+'),
-            supportEmail: await this.getValue('support_email', 'support@dataeasyplus.com'),
-            supportPhone: await this.getValue('support_phone', '+233 20 000 0000'),
-            maintenanceMode: await this.getValue('maintenance_mode', false),
-            sendClaimVisible: await this.getValue('send_claim_visible', true),
-            storeVisible: await this.getValue('store_visible', true),
-            momoDetailsVisible: await this.getValue('momo_details_visible', true),
-            // MoMo settings
-            momoEnabled: await this.getValue('momo_enabled', true),
-            momoNumber: await this.getValue('momo_number', '0555546229'),
-            momoName: await this.getValue('momo_name', 'Bismark Kwame Oteng')
+            appName: s.app_name,
+            supportEmail: s.support_email,
+            supportPhone: s.support_phone,
+            maintenanceMode: s.maintenance_mode,
+            sendClaimVisible: s.send_claim_visible,
+            storeVisible: s.store_visible,
+            momoDetailsVisible: s.momo_details_visible,
+            momoEnabled: s.momo_enabled,
+            momoNumber: s.momo_number,
+            momoName: s.momo_name
         };
     };
 
     // Get client UI settings (for public API)
     Setting.getClientUISettings = async function() {
+        const s = await this.getMultiple({
+            send_claim_visible: true,
+            store_visible: true,
+            momo_details_visible: true,
+            momo_enabled: true,
+            momo_number: '0555546229',
+            momo_name: 'Bismark Kwame Oteng'
+        });
         return {
-            sendClaimVisible: await this.getValue('send_claim_visible', true),
-            storeVisible: await this.getValue('store_visible', true),
-            momoDetailsVisible: await this.getValue('momo_details_visible', true),
-            // MoMo settings for client
-            momoEnabled: await this.getValue('momo_enabled', true),
-            momoNumber: await this.getValue('momo_number', '0555546229'),
-            momoName: await this.getValue('momo_name', 'Bismark Kwame Oteng')
+            sendClaimVisible: s.send_claim_visible,
+            storeVisible: s.store_visible,
+            momoDetailsVisible: s.momo_details_visible,
+            momoEnabled: s.momo_enabled,
+            momoNumber: s.momo_number,
+            momoName: s.momo_name
         };
     };
 
@@ -201,17 +248,21 @@ module.exports = (sequelize) => {
 
     // Get deposit limit settings
     Setting.getDepositLimits = async function() {
-        return {
-            minDeposit: await this.getValue('min_deposit', 5)
-        };
+        const s = await this.getMultiple({ min_deposit: 5 });
+        return { minDeposit: s.min_deposit };
     };
 
     // Get security settings
     Setting.getSecuritySettings = async function() {
+        const s = await this.getMultiple({
+            max_login_attempts: 5,
+            lockout_minutes: 15,
+            session_timeout_hours: 24
+        });
         return {
-            maxLoginAttempts: await this.getValue('max_login_attempts', 5),
-            lockoutMinutes: await this.getValue('lockout_minutes', 15),
-            sessionTimeoutHours: await this.getValue('session_timeout_hours', 24)
+            maxLoginAttempts: s.max_login_attempts,
+            lockoutMinutes: s.lockout_minutes,
+            sessionTimeoutHours: s.session_timeout_hours
         };
     };
 

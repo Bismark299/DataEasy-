@@ -905,8 +905,8 @@
                     <div><p class="text-xs text-gray-500 mb-1">Source</p><span class="px-2 py-1 rounded-full text-xs font-medium ${sourceColor}">${sourceLabel}</span></div>
                     <div><p class="text-xs text-gray-500 mb-1">Amount</p><p class="font-bold ${tx.type === 'credit' ? 'text-green-600' : 'text-red-600'}">${tx.type === 'credit' ? '+' : '-'}GH₵ ${parseFloat(tx.amount || 0).toFixed(2)}</p></div>
                     <div><p class="text-xs text-gray-500 mb-1">Balance After</p><p class="font-bold text-gray-800">GH₵ ${parseFloat(tx.balanceAfter || 0).toFixed(2)}</p></div>
-                    <div class="col-span-2"><p class="text-xs text-gray-500 mb-1">Description</p><p class="text-gray-600">${tx.description || 'N/A'}</p></div>
-                    <div class="col-span-2"><p class="text-xs text-gray-500 mb-1">Reference</p><p class="text-gray-600">${tx.reference || 'N/A'}</p></div>
+                    <div class="col-span-2"><p class="text-xs text-gray-500 mb-1">Description</p><p class="text-gray-600">${esc(tx.description || 'N/A')}</p></div>
+                    <div class="col-span-2"><p class="text-xs text-gray-500 mb-1">Reference</p><p class="text-gray-600">${esc(tx.reference || 'N/A')}</p></div>
                     <div class="col-span-2"><p class="text-xs text-gray-500 mb-1">Date</p><p class="text-gray-600">${new Date(tx.createdAt).toLocaleString()}</p></div>
                 </div>
             `;

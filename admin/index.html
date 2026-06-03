@@ -1370,19 +1370,19 @@
                         <div class="grid grid-cols-2 gap-3 mb-3 text-sm">
                             <div>
                                 <p class="text-gray-400 text-xs">Agent</p>
-                                <p class="text-gray-800 font-medium truncate">${agentName}</p>
+                                <p class="text-gray-800 font-medium truncate">${esc(agentName)}</p>
                             </div>
                             <div>
                                 <p class="text-gray-400 text-xs">Recipient</p>
-                                <p class="text-gray-800">${recipient}</p>
+                                <p class="text-gray-800">${esc(recipient)}</p>
                             </div>
                             <div>
                                 <p class="text-gray-400 text-xs">Network</p>
-                                <p class="text-blue-600 font-medium">${networkShort}</p>
+                                <p class="text-blue-600 font-medium">${esc(networkShort)}</p>
                             </div>
                             <div>
                                 <p class="text-gray-400 text-xs">Package</p>
-                                <p class="text-gray-800 font-medium">${dataStr}</p>
+                                <p class="text-gray-800 font-medium">${esc(dataStr)}</p>
                             </div>
                         </div>
 
@@ -1731,19 +1731,19 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Order ID</p>
-                        <p class="font-medium text-gray-800">#${order.orderId || order.id}</p>
+                        <p class="font-medium text-gray-800">#${esc(order.orderId || order.id)}</p>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Status</p>
-                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-${status === 'completed' ? 'green' : status === 'pending' ? 'yellow' : 'blue'}-100 text-${status === 'completed' ? 'green' : status === 'pending' ? 'yellow' : 'blue'}-800">${status}</span>
+                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-${status === 'completed' ? 'green' : status === 'pending' ? 'yellow' : 'blue'}-100 text-${status === 'completed' ? 'green' : status === 'pending' ? 'yellow' : 'blue'}-800">${esc(status)}</span>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Customer</p>
-                        <p class="font-medium text-gray-800">${order.user?.fullName || order.user?.name || 'N/A'}</p>
+                        <p class="font-medium text-gray-800">${esc(order.user?.fullName || order.user?.name || 'N/A')}</p>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Network</p>
-                        <p class="font-medium text-gray-800">${order.network || 'N/A'}</p>
+                        <p class="font-medium text-gray-800">${esc(order.network || 'N/A')}</p>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 mb-1">Amount</p>
@@ -1758,8 +1758,8 @@
                         <div class="bg-gray-50 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
                             ${items.length > 0 ? items.map(item => `
                                 <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">${item.phone} - ${item.packageName}</span>
-                                    <span class="font-medium">GH₵ ${item.price}</span>
+                                    <span class="text-gray-600">${esc(item.phone)} - ${esc(item.packageName)}</span>
+                                    <span class="font-medium">GH₵ ${parseFloat(item.price || 0).toFixed(2)}</span>
                                 </div>
                             `).join('') : '<p class="text-gray-400 text-sm">No items</p>'}
                         </div>

@@ -9,6 +9,14 @@
     const { Storage, Toast, EventBus } = DataEasyUtils;
     const { Format } = DataEasyUtils;
 
+    // XSS Protection
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
+
     // ==========================================
     // ADMIN CONFIGURATION
     // ==========================================
@@ -525,16 +533,16 @@
                                 </tr>
                             ` : recent.map(order => `
                                 <tr class="hover:bg-gray-700/50 transition">
-                                    <td class="px-4 py-3 text-white font-mono text-sm">#${order.id}</td>
-                                    <td class="px-4 py-3 text-gray-300 text-sm">${order.userName || order.userEmail}</td>
+                                    <td class="px-4 py-3 text-white font-mono text-sm">#${escapeHtml(order.id)}</td>
+                                    <td class="px-4 py-3 text-gray-300 text-sm">${escapeHtml(order.userName || order.userEmail)}</td>
                                     <td class="px-4 py-3">
-                                        <span class="px-2 py-1 rounded text-xs font-medium ${getNetworkClass(order.network)}">${order.network || 'N/A'}</span>
+                                        <span class="px-2 py-1 rounded text-xs font-medium ${getNetworkClass(order.network)}">${escapeHtml(order.network || 'N/A')}</span>
                                     </td>
                                     <td class="px-4 py-3 text-white font-medium">GH₵${order.total.toFixed(2)}</td>
                                     <td class="px-4 py-3">
-                                        <span class="px-2 py-1 rounded text-xs font-medium ${getStatusClass(order.deliveryStatus)}">${order.deliveryStatus || 'Processing'}</span>
+                                        <span class="px-2 py-1 rounded text-xs font-medium ${getStatusClass(order.deliveryStatus)}">${escapeHtml(order.deliveryStatus || 'Processing')}</span>
                                     </td>
-                                    <td class="px-4 py-3 text-gray-400 text-sm">${formatDate(order.createdAt)}</td>
+                                    <td class="px-4 py-3 text-gray-400 text-sm">${escapeHtml(formatDate(order.createdAt))}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -866,15 +874,15 @@
             const orderCount = user.orderCount !== undefined ? user.orderCount : (Storage.get(`orders_${user.email}`) || []).length;
             
             return `
-                <div class="user-card bg-gray-800 rounded-xl p-5 border border-gray-700" data-user-id="${user.id || user._id}" data-name="${(user.name || '').toLowerCase()}" data-email="${(user.email || '').toLowerCase()}">
+                <div class="user-card bg-gray-800 rounded-xl p-5 border border-gray-700" data-user-id="${user.id || user._id}" data-name="${escapeHtml((user.name || '').toLowerCase())}" data-email="${escapeHtml((user.email || '').toLowerCase())}">
                     <div class="flex items-start gap-4 mb-4">
                         <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span class="text-white font-bold text-lg">${(user.name || 'U').charAt(0).toUpperCase()}</span>
+                            <span class="text-white font-bold text-lg">${escapeHtml((user.name || 'U').charAt(0).toUpperCase())}</span>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-white font-semibold truncate">${user.name || 'Unknown'}</h3>
-                            <p class="text-gray-400 text-sm truncate">${user.email || ''}</p>
-                            <p class="text-gray-500 text-xs">${user.phone || 'No phone'}</p>
+                            <h3 class="text-white font-semibold truncate">${escapeHtml(user.name || 'Unknown')}</h3>
+                            <p class="text-gray-400 text-sm truncate">${escapeHtml(user.email || '')}</p>
+                            <p class="text-gray-500 text-xs">${escapeHtml(user.phone || 'No phone')}</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3 mb-4">

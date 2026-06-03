@@ -1,0 +1,2 @@
+- [XSS audit coverage](xss-audit.md) — which files were fully escaped and which patterns to watch across the frontend
+- [Settings query batching](settings-batching.md) — N+1 fix: getMultiple() batch method on Setting model, all config loaders refactored
