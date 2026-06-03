@@ -806,7 +806,7 @@ const DataEasyCart = (function() {
                     // Use cached data immediately
                     for (const [network, pkgList] of Object.entries(cached.packages)) {
                         if (Array.isArray(pkgList)) {
-                            packages[network] = pkgList;
+                            packages[network] = pkgList.map(p => ({ ...p, network }));
                         }
                     }
                     if (cached.networkAvailability) {
@@ -835,7 +835,7 @@ const DataEasyCart = (function() {
                     // Update packages with API data (database prices)
                     for (const [network, pkgList] of Object.entries(data.packages)) {
                         if (Array.isArray(pkgList)) {
-                            packages[network] = pkgList;
+                            packages[network] = pkgList.map(p => ({ ...p, network }));
                         }
                     }
                     
@@ -890,7 +890,7 @@ const DataEasyCart = (function() {
                 // Update packages with API data (database prices)
                 for (const [network, pkgList] of Object.entries(data.packages)) {
                     if (Array.isArray(pkgList)) {
-                        packages[network] = pkgList;
+                        packages[network] = pkgList.map(p => ({ ...p, network }));
                     }
                 }
                 
