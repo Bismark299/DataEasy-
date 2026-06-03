@@ -13,6 +13,18 @@ const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 
 // ==========================================
+// HELPER: resolve store by UUID or agentCode
+// ==========================================
+async function findStoreByRef(ref, includeOwner = false) {
+    const include = includeOwner ? [{ model: User, as: 'owner', attributes: ['role'] }] : [];
+    const byId = await Store.findByPk(ref, { include });
+    if (byId) return byId;
+    const user = await User.findOne({ where: { agentCode: ref }, attributes: ['id'] });
+    if (!user) return null;
+    return Store.findOne({ where: { userId: user.id }, include });
+}
+
+// ==========================================
 // STORE MANAGEMENT
 // ==========================================
 
@@ -954,7 +966,7 @@ exports.getDashboard = async (req, res) => {
  */
 exports.getPublicStore = async (req, res) => {
     try {
-        const store = await Store.findByPk(req.params.storeId);
+        const store = await findStoreByRef(req.params.storeId);
         if (!store || !store.isActive) {
             return res.status(404).json({ error: 'Store not found' });
         }
@@ -981,9 +993,7 @@ exports.getPublicStore = async (req, res) => {
  */
 exports.getPublicPackages = async (req, res) => {
     try {
-        const store = await Store.findByPk(req.params.storeId, {
-            include: [{ model: User, as: 'owner', attributes: ['role'] }]
-        });
+        const store = await findStoreByRef(req.params.storeId, true);
         if (!store || !store.isActive) {
             return res.status(404).json({ error: 'Store not found' });
         }
@@ -1032,9 +1042,7 @@ exports.getPublicPackages = async (req, res) => {
  */
 exports.createPublicOrder = async (req, res) => {
     try {
-        const store = await Store.findByPk(req.params.storeId, {
-            include: [{ model: User, as: 'owner', attributes: ['role'] }]
-        });
+        const store = await findStoreByRef(req.params.storeId, true);
         if (!store || !store.isActive) {
             return res.status(404).json({ error: 'Store not found' });
         }

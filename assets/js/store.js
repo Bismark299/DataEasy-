@@ -100,8 +100,11 @@ const StoreApp = (function() {
             const sidebarName = document.getElementById('sidebarStoreName');
             if (sidebarName && store.name) sidebarName.textContent = store.name;
 
-            // Populate dashboard store info banner
-            const storeUrl = store.id ? `${window.location.origin}/store/shop.html?store=${store.id}` : '';
+            // Build store URL using agentCode (clean) with UUID fallback
+            let storeRef = '';
+            try { const u = JSON.parse(localStorage.getItem('dataeasy_user') || '{}'); storeRef = u.agentCode || ''; } catch(e) {}
+            if (!storeRef) storeRef = store.id;
+            const storeUrl = storeRef ? `${window.location.origin}/store/shop.html?store=${storeRef}` : '';
             const banner = document.getElementById('storeInfoBanner');
             if (banner) {
                 const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || ''; };
