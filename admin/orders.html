@@ -223,6 +223,14 @@
                     <i class="fas fa-filter text-gray-500"></i>
                 </div>
                 <div class="p-4">
+                    <!-- Quick Date Range Buttons -->
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        <span class="text-sm text-gray-500 self-center mr-1">Quick Range:</span>
+                        <button onclick="setDateRange('today')" id="qr-today" class="quick-range-btn px-3 py-1.5 rounded-lg text-sm font-medium border transition bg-sidebar text-white border-sidebar">Today</button>
+                        <button onclick="setDateRange('7')" id="qr-7" class="quick-range-btn px-3 py-1.5 rounded-lg text-sm font-medium border transition bg-white text-gray-600 border-gray-300 hover:bg-gray-50">Last 7 Days</button>
+                        <button onclick="setDateRange('30')" id="qr-30" class="quick-range-btn px-3 py-1.5 rounded-lg text-sm font-medium border transition bg-white text-gray-600 border-gray-300 hover:bg-gray-50">Last 30 Days</button>
+                        <button onclick="setDateRange('all')" id="qr-all" class="quick-range-btn px-3 py-1.5 rounded-lg text-sm font-medium border transition bg-white text-gray-600 border-gray-300 hover:bg-gray-50">All Orders</button>
+                    </div>
                     <!-- Date Range Row -->
                     <div class="flex flex-wrap items-end gap-4 mb-4">
                         <div>
@@ -708,6 +716,55 @@
             return `${day}${suffix(day)} ${month} ${year}`;
         }
 
+        function setDateRange(range) {
+            const today = getGhanaDateString();
+            const fromEl = document.getElementById('dateFromFilter');
+            const toEl = document.getElementById('dateToFilter');
+
+            if (range === 'today') {
+                fromEl.value = today;
+                toEl.value = today;
+            } else if (range === 'all') {
+                fromEl.value = '';
+                toEl.value = '';
+            } else {
+                const days = parseInt(range);
+                const from = new Date();
+                from.setDate(from.getDate() - (days - 1));
+                fromEl.value = from.toISOString().slice(0, 10);
+                toEl.value = today;
+            }
+
+            updateQuickRangeButtons();
+            filterOrders();
+            updateDateDisplay();
+        }
+
+        function updateQuickRangeButtons() {
+            const from = document.getElementById('dateFromFilter').value;
+            const to = document.getElementById('dateToFilter').value;
+            const today = getGhanaDateString();
+
+            const days7From = new Date(); days7From.setDate(days7From.getDate() - 6);
+            const days30From = new Date(); days30From.setDate(days30From.getDate() - 29);
+
+            let which = null;
+            if (from === today && to === today) which = 'today';
+            else if (!from && !to) which = 'all';
+            else if (from === days7From.toISOString().slice(0, 10) && to === today) which = '7';
+            else if (from === days30From.toISOString().slice(0, 10) && to === today) which = '30';
+
+            ['today', '7', '30', 'all'].forEach(id => {
+                const btn = document.getElementById(`qr-${id}`);
+                if (!btn) return;
+                const isActive = which === id;
+                btn.style.backgroundColor = isActive ? 'var(--color-sidebar, #1e3a5f)' : '';
+                btn.style.color = isActive ? '#fff' : '';
+                btn.style.borderColor = isActive ? 'var(--color-sidebar, #1e3a5f)' : '#d1d5db';
+                btn.style.fontWeight = isActive ? '600' : '500';
+            });
+        }
+
         function initFilters() {
             // Set today's date as default for both date filters using Ghana time (GMT+0)
             const today = getGhanaDateString();
@@ -721,10 +778,12 @@
             document.getElementById('orderNoFilter').addEventListener('input', debounce(filterOrders, 300));
             document.getElementById('phoneFilter').addEventListener('input', debounce(filterOrders, 300));
             document.getElementById('dateFromFilter').addEventListener('change', () => {
+                updateQuickRangeButtons();
                 filterOrders();
                 updateDateDisplay();
             });
             document.getElementById('dateToFilter').addEventListener('change', () => {
+                updateQuickRangeButtons();
                 filterOrders();
                 updateDateDisplay();
             });
@@ -733,6 +792,7 @@
             document.getElementById('paymentFilter').addEventListener('change', filterOrders);
             document.getElementById('agentFilter').addEventListener('change', filterOrders);
             populateAgentFilter();
+            updateQuickRangeButtons();
         }
         
         function updateDateDisplay() {
@@ -740,12 +800,16 @@
             const toDate = document.getElementById('dateToFilter').value;
             const today = getGhanaDateString();
             
-            if (fromDate === today && toDate === today) {
+            if (!fromDate && !toDate) {
+                document.getElementById('ordersDateDisplay').textContent = 'All Orders';
+            } else if (fromDate === today && toDate === today) {
                 document.getElementById('ordersDateDisplay').textContent = `Today's Orders (${formatDateDisplay(today)})`;
-            } else if (fromDate === toDate) {
+            } else if (fromDate && fromDate === toDate) {
                 document.getElementById('ordersDateDisplay').textContent = `Orders for ${formatDateDisplay(fromDate)}`;
             } else {
-                document.getElementById('ordersDateDisplay').textContent = `Orders: ${formatDateDisplay(fromDate)} to ${formatDateDisplay(toDate)}`;
+                const from = fromDate ? formatDateDisplay(fromDate) : 'All time';
+                const to = toDate ? formatDateDisplay(toDate) : 'now';
+                document.getElementById('ordersDateDisplay').textContent = `Orders: ${from} to ${to}`;
             }
         }
 
@@ -1283,6 +1347,8 @@
             document.getElementById('paymentFilter').value = '';
             document.getElementById('agentFilter').value = '';
             currentPage = 1;
+            updateQuickRangeButtons();
+            updateDateDisplay();
             filterOrders();
         }
 
