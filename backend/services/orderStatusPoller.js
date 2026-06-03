@@ -545,7 +545,7 @@ async function recoverPendingOrders() {
         // Find stuck orders — oldest first (FIFO)
         const pendingOrders = await Order.findAll({
             where: {
-                deliveryStatus: { [Op.in]: ['Pending', 'Processing'] },
+                deliveryStatus: { [Op.in]: ['Pending', 'Processing', 'Partially Delivered'] },
                 paymentStatus: 'Completed',
                 createdAt: { 
                     [Op.gte]: cutoffDate,
