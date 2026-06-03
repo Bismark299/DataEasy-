@@ -256,8 +256,8 @@ const DataEasyApp = (function() {
         if (!pkg) return;
 
         state.selectedPackage = pkg;
-        const network = packageId.startsWith('mtn-') ? 'MTN' : 
-                        packageId.startsWith('at-') ? 'AirtelTigo' : 'Telecel';
+        const network = pkg.network || (packageId.startsWith('mtn-') ? 'MTN' : 
+                        packageId.startsWith('at-') ? 'AirtelTigo' : 'Telecel');
 
         const modal = document.getElementById('package-modal');
         if (!modal) return;
@@ -338,8 +338,9 @@ const DataEasyApp = (function() {
         }
 
         // Check network matches
-        const packageNetwork = state.selectedPackage.id.startsWith('mtn-') ? 'MTN' :
-                               state.selectedPackage.id.startsWith('at-') ? 'AirtelTigo' : 'Telecel';
+        const packageNetwork = state.selectedPackage.network || 
+                              (state.selectedPackage.id.startsWith('mtn-') ? 'MTN' :
+                               state.selectedPackage.id.startsWith('at-') ? 'AirtelTigo' : 'Telecel');
         if (validation.network !== packageNetwork) {
             Toast.error(`This number is ${validation.network}, but you selected a ${packageNetwork} package`);
             DOM.shake(phoneInput);

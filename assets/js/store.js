@@ -100,10 +100,32 @@ const StoreApp = (function() {
             const sidebarName = document.getElementById('sidebarStoreName');
             if (sidebarName && store.name) sidebarName.textContent = store.name;
 
-            // Show store link
+            // Populate dashboard store info banner
+            const storeUrl = store.id ? `${window.location.origin}/store/shop.html?store=${store.id}` : '';
+            const banner = document.getElementById('storeInfoBanner');
+            if (banner) {
+                const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || ''; };
+                set('bannerStoreName', store.name);
+                set('bannerStoreDesc', store.description);
+                set('bannerStoreLocText', store.location);
+                set('bannerStorePhoneText', store.phone);
+                set('bannerStoreLink', storeUrl);
+                const loc = document.getElementById('bannerStoreLoc');
+                const ph = document.getElementById('bannerStorePhone');
+                if (loc) loc.style.display = store.location ? '' : 'none';
+                if (ph) ph.style.display = store.phone ? '' : 'none';
+                const openLink = document.getElementById('bannerOpenLink');
+                if (openLink && storeUrl) openLink.href = storeUrl;
+                const copyBtn = document.getElementById('bannerCopyLink');
+                if (copyBtn) copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(storeUrl).then(() => toast('Store link copied!', 'success')).catch(() => toast('Copy failed', 'error'));
+                };
+                banner.classList.remove('hidden');
+            }
+
+            // Show store link (packages tab)
             const linkSection = document.getElementById('storeLinkSection');
-            if (linkSection && store.id) {
-                const storeUrl = `${window.location.origin}/store/shop.html?store=${store.id}`;
+            if (linkSection && storeUrl) {
                 document.getElementById('storeLinkUrl').textContent = storeUrl;
                 linkSection.classList.remove('hidden');
             }
