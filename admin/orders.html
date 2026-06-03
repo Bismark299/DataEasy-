@@ -937,7 +937,7 @@
 
         function renderOrders(orders, phoneFilter) {
             const tbody = document.getElementById('ordersTableBody');
-            const perPage = 50;
+            const perPage = 200;
             
             // Expand orders into individual items - each item becomes a row
             let expandedItems = [];
@@ -977,6 +977,9 @@
                     return itemPhone.includes(phoneFilter);
                 });
             }
+
+            // Update the orders count card to reflect what's actually in the table
+            document.getElementById('totalOrdersCount').textContent = expandedItems.length;
             
             const start = (currentPage - 1) * perPage;
             const end = start + perPage;
