@@ -404,7 +404,9 @@ let recoveryInterval = null;
 const BACKGROUND_SYNC_INTERVAL = 5 * 60 * 1000; // Every 5 minutes
 const RECOVERY_INTERVAL = 3 * 60 * 1000; // Every 3 minutes — retry pending orders
 const MIN_ORDER_AGE = 60 * 1000; // Don't retry orders less than 60 seconds old (let initial attempt finish)
-const MAX_RECOVERY_AGE = 7 * 24 * 60 * 60 * 1000; // Stop retrying orders older than 7 days
+const MAX_RECOVERY_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days — covers all historic orders
+const MAX_SYNC_ITEMS_PER_CYCLE = 100; // Cap background sync to avoid multi-hour runs
+const MAX_PHASE1_ITEMS_PER_CYCLE = 30; // Cap Phase 1 re-checks per recovery cycle so Phase 2 isn't blocked
 
 async function startBackgroundSync() {
     if (backgroundSyncInterval) {
@@ -452,6 +454,8 @@ async function syncProcessingOrders() {
 
         logger.info('Background sync: checking processing orders', { count: processingOrders.length });
 
+        let syncItemCount = 0;
+        outerSync:
         for (const order of processingOrders) {
             for (let i = 0; i < order.items.length; i++) {
                 const item = order.items[i];
@@ -464,6 +468,14 @@ async function syncProcessingOrders() {
                 // Skip if this item is being actively polled
                 if (isPolling(order.id, i)) {
                     continue;
+                }
+
+                // Cap items checked per cycle so this never runs for hours
+                if (syncItemCount >= MAX_SYNC_ITEMS_PER_CYCLE) {
+                    logger.info('Background sync: reached per-cycle cap, deferring rest to next cycle', {
+                        checked: syncItemCount, remaining: processingOrders.length
+                    });
+                    break outerSync;
                 }
 
                 try {
@@ -487,6 +499,7 @@ async function syncProcessingOrders() {
                         logger.info('Background sync: order marked failed', { orderId: order.orderId, itemIndex: i, reason });
                     }
 
+                    syncItemCount++;
                     // Delay between API calls — queue already throttles but add extra gap
                     await new Promise(resolve => setTimeout(resolve, 1500));
                 } catch (error) {
@@ -495,6 +508,7 @@ async function syncProcessingOrders() {
                         itemIndex: i,
                         error: error.message
                     });
+                    syncItemCount++;
                 }
             }
         }
@@ -547,69 +561,9 @@ async function recoverPendingOrders() {
 
         logger.info('Recovery sweep: checking stuck orders', { count: pendingOrders.length });
 
-        // ── PHASE 1: Re-check status of items that HAVE a providerReference ──
-        // These were already sent to MCBIS but their poller may have died (e.g., server restart)
-        // Safe: we only check status, never re-send
-        for (const order of pendingOrders) {
-            const items = order.items || [];
-            let itemsUpdated = false;
-            const updatedItems = [...items];
-
-            for (let i = 0; i < items.length; i++) {
-                const item = items[i];
-
-                if (item.deliveryStatus === 'Delivered' || item.deliveryStatus === 'Failed') continue;
-                if (isPolling(order.id, i)) continue;
-                if (!item.providerReference) continue; // Phase 2 handles these
-
-                try {
-                    const statusResult = await mcbisProvider.checkOrderStatus(item.providerReference);
-                    const mcbisStatus = (statusResult.status || '').toLowerCase().trim();
-
-                    if (mcbisStatus === 'success' || mcbisStatus === 'completed' ||
-                        mcbisStatus === 'delivered' || mcbisStatus === 'successful') {
-                        await updateOrderItemStatus(order.id, i, 'Delivered', item.providerReference);
-                        logger.info('Recovery: item delivered (status re-check)', {
-                            orderId: order.orderId, itemIndex: i, reference: item.providerReference
-                        });
-                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'not_found') {
-                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)' : 'Failed by provider';
-                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, reason);
-                        logger.info('Recovery: item failed (status re-check)', {
-                            orderId: order.orderId, itemIndex: i, reason
-                        });
-                    } else {
-                        // Still processing — re-launch poller to keep tracking
-                        startPolling({
-                            orderId: order.id, itemIndex: i,
-                            reference: item.providerReference, displayOrderId: order.orderId
-                        });
-                        logger.info('Recovery: re-launched poller for processing item', {
-                            orderId: order.orderId, itemIndex: i, reference: item.providerReference
-                        });
-                    }
-                } catch (err) {
-                    const httpStatus = err.response?.status || err.httpStatus;
-                    if (httpStatus === 404 || err.notFound === true) {
-                        // MCBIS doesn't know this reference — mark as Failed and stop
-                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, 'Order reference not found on provider (404)')
-                            .catch(e => logger.error('Recovery: failed to mark 404 item as failed', { error: e.message }));
-                        logger.warn('Recovery: 404 from MCBIS, marked as Failed', {
-                            orderId: order.orderId, itemIndex: i, reference: item.providerReference
-                        });
-                    } else {
-                        logger.error('Recovery: status check failed', {
-                            orderId: order.orderId, itemIndex: i, error: err.message
-                        });
-                    }
-                }
-                await new Promise(resolve => setTimeout(resolve, 1500));
-            }
-        }
-
-        // ── PHASE 2: Send items that were NEVER sent to MCBIS ──
-        // These have no providerReference and no sentToProviderAt
-        // Check balance ONCE upfront, then process oldest first, STOP when balance runs out
+        // ── PHASE 2 (runs FIRST): Send items that were NEVER sent to MCBIS ──
+        // Priority: dispatch unsent Pending items before re-checking old Processing ones.
+        // These have no providerReference — check balance ONCE, then process oldest first.
 
         // Collect all unsent items across all orders (oldest order first)
         const unsentItems = [];
@@ -629,32 +583,30 @@ async function recoverPendingOrders() {
             }
         }
 
-        if (unsentItems.length === 0) {
-            return;
-        }
-
         // Check MCBIS wallet balance ONCE before processing the batch
         let currentBalance = 0;
-        try {
-            const balanceResult = await mcbisProvider.getWalletBalance();
-            if (!balanceResult.success || !balanceResult.configured) {
-                logger.warn('Recovery: MCBIS not configured or balance check failed, skipping unsent items');
-                return;
+        let mcbisAvailable = false;
+        if (unsentItems.length > 0) {
+            try {
+                const balanceResult = await mcbisProvider.getWalletBalance();
+                if (balanceResult.success && balanceResult.configured) {
+                    currentBalance = parseFloat(balanceResult.balance || 0);
+                    mcbisAvailable = currentBalance >= 1;
+                    logger.info('Recovery: MCBIS balance check', { currentBalance, unsentItemCount: unsentItems.length });
+                    if (!mcbisAvailable) {
+                        logger.info('Recovery: MCBIS balance too low, skipping unsent dispatch', { currentBalance });
+                    }
+                } else {
+                    logger.warn('Recovery: MCBIS not configured or balance check failed, skipping unsent items');
+                }
+            } catch (err) {
+                logger.error('Recovery: balance check error', { error: err.message });
             }
-            currentBalance = parseFloat(balanceResult.balance || 0);
-            logger.info('Recovery: MCBIS balance check', { currentBalance, unsentItemCount: unsentItems.length });
-
-            if (currentBalance < 1) {
-                logger.info('Recovery: MCBIS balance too low, waiting for top-up', { currentBalance });
-                return;
-            }
-        } catch (err) {
-            logger.error('Recovery: balance check error', { error: err.message });
-            return;
         }
 
         // Process unsent items — oldest first, stop when balance runs out
         let recovered = 0;
+        if (mcbisAvailable) {
         for (const { order, itemIndex, item } of unsentItems) {
             // Check if MCBIS is enabled for this network
             const shouldDeliver = await Setting.shouldDeliverViaMcbis(order.network);
@@ -748,9 +700,76 @@ async function recoverPendingOrders() {
             // Small delay between MCBIS API calls
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
+        } // end if (mcbisAvailable)
 
         if (recovered > 0) {
             logger.info('Recovery sweep completed', { recovered, totalUnsent: unsentItems.length });
+        }
+
+        // ── PHASE 1 (runs AFTER dispatch): Re-check items that HAVE a providerReference ──
+        // Capped at MAX_PHASE1_ITEMS_PER_CYCLE to never block Phase 2 (Pending dispatch).
+        // Items sent to MCBIS but whose poller died (e.g., server restart) get re-launched here.
+        let phase1Count = 0;
+        outerPhase1:
+        for (const order of pendingOrders) {
+            const items = order.items || [];
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+
+                if (item.deliveryStatus === 'Delivered' || item.deliveryStatus === 'Failed') continue;
+                if (isPolling(order.id, i)) continue;
+                if (!item.providerReference) continue; // Phase 2 handled these
+
+                if (phase1Count >= MAX_PHASE1_ITEMS_PER_CYCLE) {
+                    logger.info('Recovery: Phase 1 cap reached, deferring remaining to next cycle', {
+                        checked: phase1Count
+                    });
+                    break outerPhase1;
+                }
+
+                try {
+                    const statusResult = await mcbisProvider.checkOrderStatus(item.providerReference);
+                    const mcbisStatus = (statusResult.status || '').toLowerCase().trim();
+
+                    if (mcbisStatus === 'success' || mcbisStatus === 'completed' ||
+                        mcbisStatus === 'delivered' || mcbisStatus === 'successful') {
+                        await updateOrderItemStatus(order.id, i, 'Delivered', item.providerReference);
+                        logger.info('Recovery: item delivered (status re-check)', {
+                            orderId: order.orderId, itemIndex: i, reference: item.providerReference
+                        });
+                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'not_found') {
+                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)' : 'Failed by provider';
+                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, reason);
+                        logger.info('Recovery: item failed (status re-check)', {
+                            orderId: order.orderId, itemIndex: i, reason
+                        });
+                    } else {
+                        // Still processing — re-launch poller to keep tracking
+                        startPolling({
+                            orderId: order.id, itemIndex: i,
+                            reference: item.providerReference, displayOrderId: order.orderId
+                        });
+                        logger.info('Recovery: re-launched poller for processing item', {
+                            orderId: order.orderId, itemIndex: i, reference: item.providerReference
+                        });
+                    }
+                } catch (err) {
+                    const httpStatus = err.response?.status || err.httpStatus;
+                    if (httpStatus === 404 || err.notFound === true) {
+                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, 'Order reference not found on provider (404)')
+                            .catch(e => logger.error('Recovery: failed to mark 404 item as failed', { error: e.message }));
+                        logger.warn('Recovery: 404 from MCBIS, marked as Failed', {
+                            orderId: order.orderId, itemIndex: i, reference: item.providerReference
+                        });
+                    } else {
+                        logger.error('Recovery: status check failed', {
+                            orderId: order.orderId, itemIndex: i, error: err.message
+                        });
+                    }
+                }
+                phase1Count++;
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
         }
     } catch (error) {
         logger.error('Recovery sweep error', { error: error.message });

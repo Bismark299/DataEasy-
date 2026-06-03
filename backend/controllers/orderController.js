@@ -369,6 +369,29 @@ exports.createOrder = async (req, res) => {
                 logger.info('Auto-delivery enabled, sending to MCBIS in background', { network, orderId: order.orderId, itemCount: orderItems.length });
                 const provider = getMcbisProvider();
                 const poller = getOrderStatusPoller();
+
+                // Check MCBIS balance ONCE for the whole batch — avoids N concurrent balance API calls
+                let batchBalanceOk = true;
+                try {
+                    const balanceResult = await provider.getWalletBalance();
+                    const bal = parseFloat(balanceResult.balance || 0);
+                    if (balanceResult.balanceParsed && bal < 1) {
+                        batchBalanceOk = false;
+                        logger.warn('Auto-delivery: MCBIS balance too low, marking all items Pending', {
+                            orderId: order.orderId, balance: bal
+                        });
+                        orderItems.forEach((_, i) => {
+                            orderItems[i].deliveryStatus = 'Pending';
+                            orderItems[i].deliveryError = `MCBIS balance too low: ₵${bal.toFixed(2)}`;
+                        });
+                        await order.update({ items: orderItems, deliveryStatus: 'Pending' });
+                        return;
+                    }
+                } catch (balErr) {
+                    logger.warn('Auto-delivery: balance pre-check failed, proceeding anyway', {
+                        orderId: order.orderId, error: balErr.message
+                    });
+                }
                 
                 // Send all items to MCBIS concurrently for speed
                 const deliveryPromises = orderItems.map(async (item, i) => {
@@ -381,7 +404,7 @@ exports.createOrder = async (req, res) => {
                             dataAmount: item.data,
                             price: item.costPrice || item.price,
                             existingReference: item.providerReference
-                        });
+                        }, { skipBalanceCheck: true }); // Balance already checked above
                         
                         orderItems[i].deliveryStatus = 'Processing';
                         orderItems[i].providerReference = deliveryResult.reference;
