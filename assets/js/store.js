@@ -100,10 +100,9 @@ const StoreApp = (function() {
             const sidebarName = document.getElementById('sidebarStoreName');
             if (sidebarName && store.name) sidebarName.textContent = store.name;
 
-            // Build store URL using agentCode (clean) with UUID fallback
-            let storeRef = '';
-            try { const u = JSON.parse(localStorage.getItem('dataeasy_user') || '{}'); storeRef = u.agentCode || ''; } catch(e) {}
-            if (!storeRef) storeRef = store.id;
+            // Build store URL using slugified store name, fallback to UUID
+            const slugify = s => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            const storeRef = store.name ? slugify(store.name) : store.id;
             const storeUrl = storeRef ? `${window.location.origin}/store/shop.html?store=${storeRef}` : '';
             const banner = document.getElementById('storeInfoBanner');
             if (banner) {

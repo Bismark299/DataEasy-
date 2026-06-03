@@ -15,13 +15,24 @@ const { Op } = require('sequelize');
 // ==========================================
 // HELPER: resolve store by UUID or agentCode
 // ==========================================
+function slugify(name) {
+    return String(name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 async function findStoreByRef(ref, includeOwner = false) {
     const include = includeOwner ? [{ model: User, as: 'owner', attributes: ['role'] }] : [];
+    // Try UUID first
     const byId = await Store.findByPk(ref, { include });
     if (byId) return byId;
+    // Try agentCode
     const user = await User.findOne({ where: { agentCode: ref }, attributes: ['id'] });
-    if (!user) return null;
-    return Store.findOne({ where: { userId: user.id }, include });
+    if (user) {
+        const byAgent = await Store.findOne({ where: { userId: user.id }, include });
+        if (byAgent) return byAgent;
+    }
+    // Try store name slug
+    const allStores = await Store.findAll({ where: { isActive: true }, include });
+    return allStores.find(s => slugify(s.name) === ref) || null;
 }
 
 // ==========================================
