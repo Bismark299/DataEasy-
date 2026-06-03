@@ -179,10 +179,27 @@ exports.createOrder = async (req, res) => {
         // Get user's role for pricing
         const userRole = req.user.role || 'agent';
 
-        // Validate all items belong to same network
-        const itemNetworks = items.map(item => getNetworkFromPackageId(item.packageId));
+        // Fetch all packages from DB upfront (authoritative network + price source)
+        const fetchedPackages = await Promise.all(
+            items.map(item => findPackage(item.packageId, userRole))
+        );
+
+        // FAIL CLOSED: every item must resolve to a real DB package
+        for (let i = 0; i < items.length; i++) {
+            if (!fetchedPackages[i]) {
+                await t.rollback();
+                logger.error('Order rejected: Package not found in database', {
+                    packageId: items[i].packageId,
+                    userId: req.user.id
+                });
+                return res.status(400).json({ error: `Invalid package: ${items[i].packageId}` });
+            }
+        }
+
+        // Validate all items belong to same network (use DB network field, not ID prefix)
+        const itemNetworks = fetchedPackages.map(pkg => pkg.network);
         const uniqueNetworks = [...new Set(itemNetworks)];
-        
+
         if (uniqueNetworks.length > 1) {
             await t.rollback();
             return res.status(400).json({ error: 'All items must be from the same network' });
@@ -197,20 +214,10 @@ exports.createOrder = async (req, res) => {
         const orderItems = [];
         let subtotal = 0;
 
-        for (const item of items) {
-            // CRITICAL: findPackage fetches from DATABASE ONLY
-            // Pass user role for role-based pricing
-            const pkg = await findPackage(item.packageId, userRole);
-            
-            // FAIL CLOSED: No package = No order
-            if (!pkg) {
-                await t.rollback();
-                logger.error('Order rejected: Package not found in database', {
-                    packageId: item.packageId,
-                    userId: req.user.id
-                });
-                return res.status(400).json({ error: `Invalid package: ${item.packageId}` });
-            }
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            // Reuse already-fetched package (from DB)
+            const pkg = fetchedPackages[i];
 
             // DEFENSIVE CHECK: Validate price source
             if (pkg.priceSource !== 'database') {
