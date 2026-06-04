@@ -309,178 +309,158 @@ exports.createOrder = async (req, res) => {
         // Debit wallet atomically (within transaction)
         await wallet.debit(total, { transaction: t });
 
-        // Generate sequential order ID within transaction with row locking
-        const orderId = await generateOrderId(t);
+        // Create one order per item — each phone number is its own order.
+        // This prevents "Partially Delivered" from ever occurring and makes
+        // every order visible individually on the admin dashboard.
+        const createdOrders = [];
+        for (const item of orderItems) {
+            const oid = await generateOrderId(t);
+            const singleOrder = await Order.create({
+                orderId: oid,
+                userId: req.user.id,
+                items: [item],
+                network,
+                subtotal: Math.round(item.price * 100) / 100,
+                total:    Math.round(item.price * 100) / 100,
+                paymentStatus: 'Completed',
+                paymentMethod: 'wallet',
+                deliveryStatus: 'Processing'
+            }, { transaction: t });
+            createdOrders.push(singleOrder);
+        }
 
-        // Create order (within transaction)
-        const order = await Order.create({
-            orderId: orderId,
-            userId: req.user.id,
-            items: orderItems,
-            network,
-            subtotal,
-            total,
-            paymentStatus: 'Completed',
-            paymentMethod: 'wallet',
-            deliveryStatus: 'Processing'
-        }, { transaction: t });
-
-        // Create transaction record (within transaction)
+        // One wallet transaction for the full batch amount
+        const orderIdList = createdOrders.map(o => `#${o.orderId}`).join(', ');
         await Transaction.create({
             userId: req.user.id,
             type: 'debit',
             amount: total,
             balanceBefore,
             balanceAfter: wallet.balance,
-            description: `Order #${order.orderId} - ${orderItems.length} item(s)`,
-            reference: `ORDER-${order.orderId}`,
+            description: `Order${createdOrders.length > 1 ? 's' : ''} ${orderIdList} - ${createdOrders.length} item(s)`,
+            reference: `ORDER-${createdOrders[0].orderId}`,
             paymentMethod: 'order',
             status: 'completed',
-            orderId: order.id
+            orderId: createdOrders[0].id
         }, { transaction: t });
 
         // Commit the transaction - all operations succeed together
         await t.commit();
 
-        // Respond to client immediately - order is created and paid
+        // Respond to client immediately
         res.status(201).json({
             success: true,
             message: 'Order placed successfully',
             order: {
-                orderId: order.orderId,
-                items: order.items.length,
-                total: order.total,
-                network: order.network,
-                deliveryStatus: order.deliveryStatus
+                orderId: createdOrders[0].orderId,
+                items: createdOrders.length,
+                total,
+                network,
+                deliveryStatus: 'Processing'
             },
+            orders: createdOrders.map(o => ({
+                orderId: o.orderId,
+                total: o.total,
+                network: o.network,
+                deliveryStatus: o.deliveryStatus,
+                item: o.items[0]
+            })),
             newBalance: wallet.balance
         });
 
         // ===== AUTO-DELIVERY VIA MCBIS (background, after response) =====
-        // Fire-and-forget: send items to MCBIS without blocking the client
         (async () => {
             try {
                 const shouldAutoDeliver = await Setting.shouldDeliverViaMcbis(network);
-                
                 if (!shouldAutoDeliver) {
                     logger.info('Auto-delivery not enabled for network', { network });
                     return;
                 }
 
-                logger.info('Auto-delivery enabled, sending to MCBIS in background', { network, orderId: order.orderId, itemCount: orderItems.length });
                 const provider = getMcbisProvider();
                 const poller = getOrderStatusPoller();
 
-                // Check MCBIS balance ONCE for the whole batch — avoids N concurrent balance API calls
+                // Check MCBIS balance ONCE before the batch
                 let batchBalanceOk = true;
                 try {
                     const balanceResult = await provider.getWalletBalance();
                     const bal = parseFloat(balanceResult.balance || 0);
                     if (balanceResult.balanceParsed && bal < 1) {
                         batchBalanceOk = false;
-                        logger.warn('Auto-delivery: MCBIS balance too low, marking all items Pending', {
-                            orderId: order.orderId, balance: bal
-                        });
-                        orderItems.forEach((_, i) => {
-                            orderItems[i].deliveryStatus = 'Pending';
-                            orderItems[i].deliveryError = `MCBIS balance too low: ₵${bal.toFixed(2)}`;
-                        });
-                        await order.update({ items: orderItems, deliveryStatus: 'Pending' });
+                        logger.warn('Auto-delivery: MCBIS balance too low, marking all orders Pending', { balance: bal });
+                        for (const ord of createdOrders) {
+                            const it = ord.items[0];
+                            await ord.update({
+                                items: [{ ...it, deliveryStatus: 'Pending', deliveryError: `MCBIS balance too low: ₵${bal.toFixed(2)}` }],
+                                deliveryStatus: 'Pending'
+                            });
+                        }
                         return;
                     }
                 } catch (balErr) {
-                    logger.warn('Auto-delivery: balance pre-check failed, proceeding anyway', {
-                        orderId: order.orderId, error: balErr.message
-                    });
+                    logger.warn('Auto-delivery: balance pre-check failed, proceeding anyway', { error: balErr.message });
                 }
-                
-                // Send items to MCBIS sequentially to respect rate limits
-                for (let i = 0; i < orderItems.length; i++) {
-                    const item = orderItems[i];
 
-                    // Claim exclusive dispatch rights — prevents recovery sweep from
-                    // sending the same item concurrently while this loop is awaiting
-                    if (!dispatchLock.claim(order.id, i)) {
-                        logger.warn('Dispatch lock already held for item, skipping', {
-                            orderId: order.orderId, itemIndex: i
-                        });
-                        // Mark Processing so recovery sweep won't pick it up
-                        orderItems[i].deliveryStatus = 'Processing';
+                // Dispatch each order sequentially — one item each, 500ms apart
+                for (let i = 0; i < createdOrders.length; i++) {
+                    const ord = createdOrders[i];
+                    const item = ord.items[0];
+
+                    if (!dispatchLock.claim(ord.id, 0)) {
+                        logger.warn('Dispatch lock already held for order, skipping', { orderId: ord.orderId });
                         continue;
                     }
 
                     try {
                         const deliveryResult = await provider.deliverBundle({
-                            orderId: order.id,
-                            itemIndex: i,
-                            network: network,
+                            orderId: ord.id,
+                            itemIndex: 0,
+                            network,
                             phoneNumber: item.phoneNumber,
                             dataAmount: item.data,
                             price: item.costPrice || item.price,
                             existingReference: item.providerReference
-                        }, { skipBalanceCheck: true }); // Balance already checked above
+                        }, { skipBalanceCheck: batchBalanceOk });
 
+                        let updatedItem, updatedStatus;
                         if (deliveryResult.status === 'InsufficientBalance' || deliveryResult.status === 'BalanceCheckFailed') {
-                            // MCBIS rejected — keep as Pending so recovery sweep retries later
-                            orderItems[i].deliveryStatus = 'Pending';
-                            orderItems[i].deliveryError = deliveryResult.error;
-                            logger.warn('Insufficient MCBIS balance, item stays Pending', {
-                                orderId: order.orderId, itemIndex: i, error: deliveryResult.error
-                            });
+                            updatedItem = { ...item, deliveryStatus: 'Pending', deliveryError: deliveryResult.error };
+                            updatedStatus = 'Pending';
+                            logger.warn('Insufficient MCBIS balance, order stays Pending', { orderId: ord.orderId });
                         } else if (deliveryResult.reference && deliveryResult.status !== 'Failed') {
-                            // MCBIS accepted — mark Processing and start poller
-                            orderItems[i].deliveryStatus = 'Processing';
-                            orderItems[i].providerReference = deliveryResult.reference;
-                            orderItems[i].sentToProviderAt = new Date().toISOString();
-                            poller.startPolling({
-                                orderId: order.id,
-                                itemIndex: i,
-                                reference: deliveryResult.reference,
-                                displayOrderId: order.orderId
-                            });
+                            updatedItem = { ...item, deliveryStatus: 'Processing', providerReference: deliveryResult.reference, sentToProviderAt: new Date().toISOString() };
+                            updatedStatus = 'Processing';
+                            poller.startPolling({ orderId: ord.id, itemIndex: 0, reference: deliveryResult.reference, displayOrderId: ord.orderId });
                         } else {
-                            // MCBIS failed or returned no reference — mark Failed so it's visible
-                            orderItems[i].deliveryStatus = 'Failed';
-                            orderItems[i].deliveryError = deliveryResult.error || 'MCBIS dispatch returned no reference';
+                            updatedItem = { ...item, deliveryStatus: 'Failed', deliveryError: deliveryResult.error || 'MCBIS dispatch returned no reference' };
+                            updatedStatus = 'Failed';
                         }
 
-                        logger.info('Sent to MCBIS', {
-                            orderId: order.orderId, itemIndex: i,
-                            reference: deliveryResult.reference, status: deliveryResult.status
-                        });
+                        await ord.update({ items: [updatedItem], deliveryStatus: updatedStatus });
+                        logger.info('Sent to MCBIS', { orderId: ord.orderId, reference: deliveryResult.reference, status: deliveryResult.status });
                     } catch (itemError) {
-                        logger.error('Failed to send item to MCBIS', {
-                            orderId: order.orderId, itemIndex: i, error: itemError.message
+                        logger.error('Failed to send order to MCBIS', { orderId: ord.orderId, error: itemError.message });
+                        const it = ord.items[0];
+                        await ord.update({
+                            items: [{ ...it, deliveryStatus: 'Failed', deliveryError: itemError.message }],
+                            deliveryStatus: 'Failed'
                         });
-                        orderItems[i].deliveryStatus = 'Failed';
-                        orderItems[i].deliveryError = itemError.message;
                     } finally {
-                        dispatchLock.release(order.id, i);
+                        dispatchLock.release(ord.id, 0);
                     }
 
-                    // 500ms gap between placeOrder calls to respect MCBIS rate limit
-                    if (i < orderItems.length - 1) {
+                    if (i < createdOrders.length - 1) {
                         await new Promise(r => setTimeout(r, 500));
                     }
                 }
-                
-                // Update order with delivery statuses
-                const anyProcessing = orderItems.some(i => i.deliveryStatus === 'Processing');
-                const allPending = orderItems.every(i => i.deliveryStatus === 'Pending');
-                await order.update({
-                    items: orderItems,
-                    deliveryStatus: allPending ? 'Pending' : anyProcessing ? 'Processing' : 'Pending'
-                });
-                
+
                 logger.info('Background MCBIS delivery complete', {
-                    orderId: order.orderId,
-                    processing: orderItems.filter(i => i.deliveryStatus === 'Processing').length,
-                    failed: orderItems.filter(i => i.deliveryStatus === 'Failed').length
+                    orderCount: createdOrders.length,
+                    network,
+                    processing: createdOrders.filter(o => o.deliveryStatus === 'Processing').length
                 });
             } catch (deliveryError) {
-                logger.error('Background auto-delivery process failed', {
-                    orderId: order.orderId, error: deliveryError.message
-                });
+                logger.error('Background auto-delivery process failed', { error: deliveryError.message });
             }
         })();
     } catch (error) {

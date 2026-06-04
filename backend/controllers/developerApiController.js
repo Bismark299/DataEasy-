@@ -228,32 +228,39 @@ exports.createOrder = async (req, res) => {
             const balanceBefore = wallet.balance;
             await wallet.debit(total, { transaction: t });
 
-            const orderId = await generateOrderId(t);
+            // Create one order per item — each phone number is its own independent order.
+            // This prevents "Partially Delivered" from ever occurring.
+            const createdOrders = [];
+            for (const item of orderItems) {
+                const oid = await generateOrderId(t);
+                const singleOrder = await Order.create({
+                    orderId: oid,
+                    userId: req.user.id,
+                    items: [item],
+                    network,
+                    subtotal: Math.round(item.price * 100) / 100,
+                    total:    Math.round(item.price * 100) / 100,
+                    paymentStatus: 'Completed',
+                    paymentMethod: 'wallet',
+                    deliveryStatus: 'Processing',
+                    callbackUrl: callbackUrl || null
+                }, { transaction: t });
+                createdOrders.push(singleOrder);
+            }
 
-            const order = await Order.create({
-                orderId,
-                userId: req.user.id,
-                items: orderItems,
-                network,
-                subtotal,
-                total,
-                paymentStatus: 'Completed',
-                paymentMethod: 'wallet',
-                deliveryStatus: 'Processing',
-                callbackUrl: callbackUrl || null
-            }, { transaction: t });
-
+            // One wallet transaction for the full batch amount
+            const orderIdList = createdOrders.map(o => `#${o.orderId}`).join(', ');
             await Transaction.create({
                 userId: req.user.id,
                 type: 'debit',
                 amount: total,
                 balanceBefore,
                 balanceAfter: wallet.balance,
-                description: `API Order #${order.orderId} - ${orderItems.length} item(s)`,
-                reference: `ORDER-${order.orderId}`,
+                description: `API Order${createdOrders.length > 1 ? 's' : ''} ${orderIdList} - ${createdOrders.length} item(s)`,
+                reference: `ORDER-${createdOrders[0].orderId}`,
                 paymentMethod: 'order',
                 status: 'completed',
-                orderId: order.id
+                orderId: createdOrders[0].id
             }, { transaction: t });
 
             await t.commit();
@@ -267,119 +274,115 @@ exports.createOrder = async (req, res) => {
                     const provider = getMcbisProvider();
                     const poller = getOrderStatusPoller();
 
-                    // Pre-check MCBIS balance once for the whole batch
-                    let batchSkipBalanceCheck = false;
+                    // Check MCBIS balance ONCE before the batch
+                    let batchBalanceOk = true;
                     try {
                         const balResult = await provider.getWalletBalance();
                         const bal = parseFloat(balResult.balance || 0);
                         if (balResult.balanceParsed && bal < 1) {
-                            // Balance too low — mark all items Pending and bail out
-                            const pendingItems = orderItems.map(it => ({ ...it, deliveryStatus: 'Pending', deliveryError: `MCBIS balance too low: ₵${bal.toFixed(2)}` }));
-                            await order.update({ items: pendingItems, deliveryStatus: 'Pending' });
-                            logger.warn('API order: MCBIS balance too low, all items marked Pending', { orderId: order.orderId, balance: bal });
+                            batchBalanceOk = false;
+                            logger.warn('API order: MCBIS balance too low, all orders marked Pending', { balance: bal });
+                            for (const ord of createdOrders) {
+                                const it = ord.items[0];
+                                await ord.update({
+                                    items: [{ ...it, deliveryStatus: 'Pending', deliveryError: `MCBIS balance too low: ₵${bal.toFixed(2)}` }],
+                                    deliveryStatus: 'Pending'
+                                });
+                            }
                             return;
                         }
-                        batchSkipBalanceCheck = true; // Balance confirmed OK, skip per-item checks
                     } catch (balErr) {
-                        logger.warn('API order: balance pre-check failed, proceeding anyway', { orderId: order.orderId, error: balErr.message });
+                        logger.warn('API order: balance pre-check failed, proceeding anyway', { error: balErr.message });
                     }
 
-                    // Dispatch items sequentially to respect MCBIS rate limit
-                    const dispatched = [...orderItems];
-                    for (let i = 0; i < orderItems.length; i++) {
-                        const item = orderItems[i];
+                    // Dispatch each order sequentially
+                    for (let i = 0; i < createdOrders.length; i++) {
+                        const ord = createdOrders[i];
+                        const item = ord.items[0];
 
-                        // Claim exclusive dispatch rights for this item
-                        if (!dispatchLock.claim(order.id, i)) {
-                            logger.warn('API dispatch: lock already held for item, skipping', {
-                                orderId: order.orderId, itemIndex: i
-                            });
-                            dispatched[i] = { ...dispatched[i], deliveryStatus: 'Processing' };
+                        if (!dispatchLock.claim(ord.id, 0)) {
+                            logger.warn('API dispatch: lock already held for order, skipping', { orderId: ord.orderId });
                             continue;
                         }
 
                         try {
                             const deliveryResult = await provider.deliverBundle({
-                                orderId: order.id,
-                                itemIndex: i,
+                                orderId: ord.id,
+                                itemIndex: 0,
                                 network,
                                 phoneNumber: item.phoneNumber,
                                 dataAmount: item.data,
                                 price: item.costPrice || item.price,
                                 existingReference: item.providerReference || null
-                            }, { skipBalanceCheck: batchSkipBalanceCheck });
+                            }, { skipBalanceCheck: batchBalanceOk });
 
+                            let updatedItem, updatedStatus;
                             if (deliveryResult.status === 'InsufficientBalance') {
-                                dispatched[i] = { ...dispatched[i], deliveryStatus: 'Pending', deliveryError: deliveryResult.error };
+                                updatedItem = { ...item, deliveryStatus: 'Pending', deliveryError: deliveryResult.error };
+                                updatedStatus = 'Pending';
                             } else if (deliveryResult.status === 'Failed' || !deliveryResult.reference) {
-                                dispatched[i] = { ...dispatched[i], deliveryStatus: 'Failed', deliveryError: deliveryResult.error };
+                                updatedItem = { ...item, deliveryStatus: 'Failed', deliveryError: deliveryResult.error };
+                                updatedStatus = 'Failed';
                             } else {
-                                // Successfully submitted — mark Processing and start poller
-                                dispatched[i] = {
-                                    ...dispatched[i],
-                                    deliveryStatus: 'Processing',
-                                    providerReference: deliveryResult.reference,
-                                    sentToProviderAt: new Date().toISOString()
-                                };
-                                poller.startPolling({
-                                    orderId: order.id,
-                                    itemIndex: i,
-                                    reference: deliveryResult.reference,
-                                    displayOrderId: order.orderId
-                                });
+                                updatedItem = { ...item, deliveryStatus: 'Processing', providerReference: deliveryResult.reference, sentToProviderAt: new Date().toISOString() };
+                                updatedStatus = 'Processing';
+                                poller.startPolling({ orderId: ord.id, itemIndex: 0, reference: deliveryResult.reference, displayOrderId: ord.orderId });
+                            }
+
+                            await ord.update({ items: [updatedItem], deliveryStatus: updatedStatus });
+
+                            // Fire webhook for this individual order if callback is set
+                            if (callbackUrl && (updatedStatus === 'Delivered' || updatedStatus === 'Failed')) {
+                                const { fireItemWebhook } = require('../services/webhookDelivery');
+                                fireItemWebhook(callbackUrl, { orderId: ord.orderId, orderUuid: ord.id, itemIndex: 0, item: updatedItem, overallStatus: updatedStatus });
                             }
                         } catch (itemErr) {
-                            logger.error('API order auto-delivery failed for item', { orderId: order.orderId, itemIndex: i, error: itemErr.message });
-                            dispatched[i] = { ...dispatched[i], deliveryStatus: 'Failed', deliveryError: itemErr.message };
+                            logger.error('API order auto-delivery failed', { orderId: ord.orderId, error: itemErr.message });
+                            const it = ord.items[0];
+                            await ord.update({
+                                items: [{ ...it, deliveryStatus: 'Failed', deliveryError: itemErr.message }],
+                                deliveryStatus: 'Failed'
+                            });
                         } finally {
-                            dispatchLock.release(order.id, i);
+                            dispatchLock.release(ord.id, 0);
                         }
 
-                        // 500ms gap between placeOrder calls to respect MCBIS rate limit
-                        if (i < orderItems.length - 1) {
+                        if (i < createdOrders.length - 1) {
                             await new Promise(r => setTimeout(r, 500));
                         }
                     }
 
-                    // Write updated item statuses back to DB
-                    const anyProcessing = dispatched.some(it => it.deliveryStatus === 'Processing');
-                    const allPending = dispatched.every(it => it.deliveryStatus === 'Pending');
-                    const allFailed = dispatched.every(it => it.deliveryStatus === 'Failed');
-                    await order.update({
-                        items: dispatched,
-                        deliveryStatus: anyProcessing ? 'Processing' : allPending ? 'Pending' : allFailed ? 'Failed' : 'Processing'
-                    });
-
                     logger.info('API order dispatch complete', {
-                        orderId: order.orderId,
-                        processing: dispatched.filter(it => it.deliveryStatus === 'Processing').length,
-                        pending: dispatched.filter(it => it.deliveryStatus === 'Pending').length,
-                        failed: dispatched.filter(it => it.deliveryStatus === 'Failed').length
+                        orderCount: createdOrders.length,
+                        processing: createdOrders.filter(o => o.deliveryStatus === 'Processing').length,
+                        pending: createdOrders.filter(o => o.deliveryStatus === 'Pending').length,
+                        failed: createdOrders.filter(o => o.deliveryStatus === 'Failed').length
                     });
                 } catch (autoDeliveryError) {
-                    logger.error('API order auto-delivery error', { orderId: order.orderId, error: autoDeliveryError.message });
+                    logger.error('API order auto-delivery error', { error: autoDeliveryError.message });
                 }
             })();
 
             return res.status(201).json({
                 success: true,
-                order: {
-                    id: order.id,
-                    orderId: order.orderId,
+                orders: createdOrders.map(ord => ({
+                    id: ord.id,
+                    orderId: ord.orderId,
                     network,
-                    items: orderItems.map(item => ({
-                        packageId: item.packageId,
-                        packageName: item.packageName,
-                        data: item.data,
-                        price: item.price,
-                        phoneNumber: item.phoneNumber,
-                        deliveryStatus: item.deliveryStatus
-                    })),
-                    total,
+                    item: {
+                        packageId: ord.items[0].packageId,
+                        packageName: ord.items[0].packageName,
+                        data: ord.items[0].data,
+                        price: ord.items[0].price,
+                        phoneNumber: ord.items[0].phoneNumber,
+                        deliveryStatus: ord.items[0].deliveryStatus
+                    },
+                    total: ord.total,
                     paymentStatus: 'Completed',
-                    deliveryStatus: 'Processing',
-                    createdAt: order.createdAt
-                },
+                    deliveryStatus: ord.deliveryStatus,
+                    createdAt: ord.createdAt
+                })),
+                count: createdOrders.length,
                 walletBalance: parseFloat(wallet.balance)
             });
         } catch (error) {
