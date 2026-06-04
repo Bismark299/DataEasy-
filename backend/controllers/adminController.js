@@ -156,7 +156,7 @@ exports.getDashboard = async (req, res) => {
         const [totalUsers, todayOrders, pendingDeliveries, todayRevenue, recentOrders, statusStats] = await Promise.all([
             User.count(),
             Order.count({ where: { createdAt: { [Op.gte]: today } } }),
-            Order.count({ where: { deliveryStatus: { [Op.in]: ['Pending', 'Processing'] } } }),
+            Order.count({ where: { deliveryStatus: { [Op.in]: ['Pending', 'Processing', 'Partially Delivered'] } } }),
             Order.sum('total', { where: { createdAt: { [Op.gte]: today } } }),
             Order.findAll({
                 include: [{ model: User, as: 'user', attributes: ['fullName', 'email', 'agentCode'] }],
@@ -1851,7 +1851,19 @@ exports.updateNetworkAvailability = async (req, res) => {
 exports.getMcbisSettings = async (req, res) => {
     try {
         const settings = await Setting.getMcbisSettings();
-        res.json({ success: true, settings });
+
+        // Count orders that would be auto-dispatched if MCBIS were enabled right now
+        // (same filter as recoverPendingOrders: Pending/Partially Delivered, ≤7 days, paid)
+        const cutoffDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const pendingQueueCount = await Order.count({
+            where: {
+                deliveryStatus: { [Op.in]: ['Pending', 'Partially Delivered'] },
+                paymentStatus: 'Completed',
+                createdAt: { [Op.gte]: cutoffDate }
+            }
+        });
+
+        res.json({ success: true, settings, pendingQueueCount });
     } catch (error) {
         logger.error('Get MCBIS settings error', { error: error.message });
         res.status(500).json({ success: false, error: 'Failed to get MCBIS settings' });

@@ -417,7 +417,7 @@ let recoveryInterval = null;
 const BACKGROUND_SYNC_INTERVAL = 5 * 60 * 1000; // Every 5 minutes
 const RECOVERY_INTERVAL = 60 * 1000; // Every 60 seconds — retry pending orders faster after top-up
 const MIN_ORDER_AGE = 60 * 1000; // Don't retry orders less than 60 seconds old (let initial attempt finish)
-const MAX_RECOVERY_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days — covers all historic orders
+const MAX_RECOVERY_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days — orders older than this are NOT auto-dispatched; handle manually
 const MAX_SYNC_ITEMS_PER_CYCLE = 100; // Cap background sync to avoid multi-hour runs
 const MAX_PHASE1_ITEMS_PER_CYCLE = 30; // Cap Phase 1 re-checks per recovery cycle so Phase 2 isn't blocked
 

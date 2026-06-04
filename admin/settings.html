@@ -1412,7 +1412,26 @@
             // MCBIS Master Toggle
             const mcbisEnabled = document.getElementById('mcbisEnabled');
             if (mcbisEnabled) {
-                mcbisEnabled.addEventListener('change', function() {
+                mcbisEnabled.addEventListener('change', async function() {
+                    if (this.checked) {
+                        // Warn the user how many orders will be auto-dispatched
+                        let queueMsg = '';
+                        try {
+                            const r = await DataEasyAPI.admin.getMcbisSettings();
+                            const n = r.pendingQueueCount || 0;
+                            queueMsg = n > 0
+                                ? `\n\n⚠️  There are ${n} pending/partially-delivered order(s) (last 7 days) that will be auto-dispatched immediately.`
+                                : '\n\nNo pending orders are queued for dispatch right now.';
+                        } catch (_) {}
+
+                        const confirmed = window.confirm(
+                            `Enable the MCBIS API?${queueMsg}\n\nMake sure you have reviewed all pending orders before proceeding.`
+                        );
+                        if (!confirmed) {
+                            this.checked = false;
+                            return;
+                        }
+                    }
                     const status = this.checked ? 'ENABLED' : 'DISABLED';
                     showToast(this.checked ? 'success' : 'warning', 'MCBIS API', `MCBIS API has been ${status}`);
                     saveMcbisSettings();
