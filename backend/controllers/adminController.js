@@ -534,21 +534,25 @@ exports.bulkUpdateItemStatus = async (req, res) => {
             return res.status(400).json({ error: 'No items provided' });
         }
 
-        // Group items by orderId to minimize DB queries
+        // Group items by orderId
         const byOrder = {};
         for (const item of items) {
             if (!byOrder[item.orderId]) byOrder[item.orderId] = [];
             byOrder[item.orderId].push(parseInt(item.itemIndex));
         }
 
+        const orderIds = Object.keys(byOrder);
+
+        // Fetch all orders in one query instead of N individual lookups
+        const orders = await Order.findAll({ where: { id: orderIds } });
+
         let updated = 0;
         let failed = 0;
 
-        for (const [orderId, indices] of Object.entries(byOrder)) {
+        // Update all orders in parallel
+        await Promise.all(orders.map(async (order) => {
+            const indices = byOrder[order.id] || [];
             try {
-                const order = await Order.findByPk(orderId);
-                if (!order) { failed += indices.length; continue; }
-
                 const orderItems = [...order.items];
                 for (const idx of indices) {
                     if (idx >= 0 && idx < orderItems.length) {
@@ -563,14 +567,16 @@ exports.bulkUpdateItemStatus = async (req, res) => {
                         failed++;
                     }
                 }
-
                 order.items = orderItems;
                 await order.updateDeliveryStatus();
             } catch (err) {
-                console.error('Bulk update error for order', orderId, err);
+                console.error('Bulk update error for order', order.id, err);
                 failed += indices.length;
             }
-        }
+        }));
+
+        // Count orders not found
+        failed += orderIds.length - orders.length;
 
         res.json({ success: true, updated, failed });
     } catch (error) {

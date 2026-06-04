@@ -1089,13 +1089,11 @@
         }
 
         async function copyPendingOrdersForNetwork(network) {
-            // Get pending items for this network from filtered orders (today by default)
             let pendingItems = [];
             let itemsToUpdate = [];
 
             filteredOrders.forEach(order => {
                 if (order.network !== network) return;
-
                 const items = order.items || [];
                 items.forEach((item, itemIndex) => {
                     const itemStatus = (item.deliveryStatus || order.deliveryStatus || 'Pending').toLowerCase();
@@ -1107,7 +1105,6 @@
                             dataSize = dataMatch[2].toUpperCase() === 'GB' ? dataMatch[1] : (parseFloat(dataMatch[1]) / 1024).toFixed(1);
                         }
                         if (phone && dataSize) {
-                            // Tab separator for Excel/portal column format
                             pendingItems.push(`${phone}\t${dataSize}`);
                             itemsToUpdate.push({ orderId: order.id, itemIndex });
                         }
@@ -1125,13 +1122,28 @@
                 await navigator.clipboard.writeText(text);
                 showToast('success', 'Copied!', `${pendingItems.length} pending ${network} orders copied to clipboard`);
 
-                // Fire-and-forget: update statuses to Processing in the background.
-                // The recovery service will NOT auto-send these to any API — Processing items
-                // with no providerReference are treated as manually handled by the admin.
+                // Optimistic update — immediately mark items as Processing in local data
+                // so the UI reflects the change without waiting for the server round-trip.
+                itemsToUpdate.forEach(({ orderId, itemIndex }) => {
+                    const updateItem = (orderList) => {
+                        const o = orderList.find(x => x.id === orderId);
+                        if (o && o.items && o.items[itemIndex]) {
+                            o.items[itemIndex].deliveryStatus = 'Processing';
+                            if (!o.items.some(i => (i.deliveryStatus || '').toLowerCase() === 'pending')) {
+                                o.deliveryStatus = 'Processing';
+                            }
+                        }
+                    };
+                    updateItem(filteredOrders);
+                    if (typeof allOrders !== 'undefined') updateItem(allOrders);
+                });
+                calculateStats();
+                renderOrdersTable();
+
+                // Persist to DB in background — processing items with no providerReference
+                // are treated as manually handled and won't be auto-retried by the poller.
                 DataEasyAPI.admin.bulkUpdateItemStatus(itemsToUpdate, 'Processing')
-                    .then(result => {
-                        if (result.updated > 0) loadOrders();
-                    })
+                    .then(() => loadOrders())
                     .catch(err => console.error('Status update after copy failed:', err));
             } catch (err) {
                 console.error(err);
