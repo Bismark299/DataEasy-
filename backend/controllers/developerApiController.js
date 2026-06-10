@@ -248,16 +248,20 @@ exports.createOrder = async (req, res) => {
                 createdOrders.push(singleOrder);
             }
 
-            // One wallet transaction for the full batch amount
+            // One wallet transaction for the full batch amount.
+            // Use the internal UUID (createdOrders[0].id) — not the sequential orderId —
+            // so the reference is always unique even after pending orders are purged and
+            // the sequence is reset by the generateOrderId init block.
             const orderIdList = createdOrders.map(o => `#${o.orderId}`).join(', ');
+            const descriptionText = `API Order${createdOrders.length > 1 ? 's' : ''} ${orderIdList} - ${createdOrders.length} item(s)`;
             await Transaction.create({
                 userId: req.user.id,
                 type: 'debit',
                 amount: total,
                 balanceBefore,
                 balanceAfter: wallet.balance,
-                description: `API Order${createdOrders.length > 1 ? 's' : ''} ${orderIdList} - ${createdOrders.length} item(s)`,
-                reference: `ORDER-${createdOrders[0].orderId}`,
+                description: descriptionText.substring(0, 255),
+                reference: `ORDER-${createdOrders[0].id}`,
                 paymentMethod: 'order',
                 status: 'completed',
                 orderId: createdOrders[0].id

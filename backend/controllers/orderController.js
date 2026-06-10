@@ -471,7 +471,13 @@ exports.createOrder = async (req, res) => {
         // Rollback on any error - all operations fail together
         await t.rollback();
         
-        console.error('Create order error:', error);
+        logger.error('Create order error', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+            sql: error.sql,
+            constraint: error.parent?.constraint || error.original?.constraint
+        });
         
         // Handle optimistic lock error
         if (error.message.includes('modified by another transaction')) {
