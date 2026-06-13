@@ -2,3 +2,4 @@
 - [Settings query batching](settings-batching.md) — N+1 fix: getMultiple() batch method on Setting model, all config loaders refactored
 - [Developer API — Idempotency & Webhooks](dev-api-idempotency-webhooks.md) — idempotency already existed; webhooks added via callbackUrl + webhookDelivery.js service
 - [Order transaction references](order-transaction-references.md) — transaction.reference must use order UUID not sequential orderId; sequence rewind after purge causes unique-constraint 500s.
+- [findByPk UUID fallback trap](uuid-findbypk-fallback-trap.md) — Sequelize findByPk on a UUID PK throws on non-UUID input; guard with a UUID regex before lookup or fallback strategies never run.

@@ -21,9 +21,13 @@ function slugify(name) {
 
 async function findStoreByRef(ref, includeOwner = false) {
     const include = includeOwner ? [{ model: User, as: 'owner', attributes: ['role'] }] : [];
-    // Try UUID first
-    const byId = await Store.findByPk(ref, { include });
-    if (byId) return byId;
+    // Try UUID first — but only if ref is a valid UUID, otherwise Postgres throws
+    // "invalid input syntax for type uuid" and the slug/agentCode fallbacks never run.
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(ref));
+    if (isUuid) {
+        const byId = await Store.findByPk(ref, { include });
+        if (byId) return byId;
+    }
     // Try agentCode
     const user = await User.findOne({ where: { agentCode: ref }, attributes: ['id'] });
     if (user) {
