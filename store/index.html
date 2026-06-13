@@ -307,7 +307,6 @@
                             <option value="all">All status</option>
                             <option value="pending">Pending</option>
                             <option value="paid">Paid</option>
-                            <option value="fulfilled">Fulfilled</option>
                             <option value="completed">Completed</option>
                             <option value="cancelled">Cancelled</option>
                         </select>
@@ -315,9 +314,6 @@
                         <input type="date" id="orderEndDate" class="input-field" style="padding: 6px 10px; font-size: 13px;">
                         <button id="ordersTodayBtn" class="order-filter">Today</button>
                         <button id="ordersClearBtn" class="order-filter">Clear</button>
-                        <button id="newOrderBtn" class="btn-primary" style="padding: 7px 14px; border-radius: 9999px; font-size: 13px;">
-                            <i class="fas fa-plus" style="font-size: 11px;"></i> New Order
-                        </button>
                     </div>
                 </div>
                 <div style="overflow-x: auto;">
@@ -333,11 +329,10 @@
                                 <th style="text-align: left;">Payment</th>
                                 <th style="text-align: left;">Status</th>
                                 <th style="text-align: left;">Date</th>
-                                <th style="text-align: left;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="ordersList">
-                            <tr><td colspan="10" class="text-center" style="padding: 32px; color: #475569;">Loading orders…</td></tr>
+                            <tr><td colspan="9" class="text-center" style="padding: 32px; color: #475569;">Loading orders…</td></tr>
                         </tbody>
                     </table>
                 </div>

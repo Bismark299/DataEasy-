@@ -464,7 +464,7 @@ const StoreApp = (function() {
             allOrders = data.orders || [];
             applyOrderFilters();
         } catch (e) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center" style="padding:32px; color:#475569;">Failed to load orders.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding:32px; color:#475569;">Failed to load orders.</td></tr>';
         }
     }
 
@@ -475,6 +475,11 @@ const StoreApp = (function() {
     function orderPhone(o) {
         const it = orderPrimaryItem(o);
         return it.phoneNumber || it.phone || o.customerPhone || '';
+    }
+    // Bundle delivery status (as set on the admin side). 'fulfilled' is shown as 'completed'.
+    function normOrderStatus(s) {
+        s = (s || '').toLowerCase();
+        return s === 'fulfilled' ? 'completed' : s;
     }
 
     function applyOrderFilters() {
@@ -489,7 +494,7 @@ const StoreApp = (function() {
 
         let rows = allOrders.slice();
         if (phone) rows = rows.filter(o => orderPhone(o).toLowerCase().includes(phone));
-        if (status && status !== 'all') rows = rows.filter(o => (o.status || '').toLowerCase() === status);
+        if (status && status !== 'all') rows = rows.filter(o => normOrderStatus(o.status) === status);
         if (start) { const s = new Date(start + 'T00:00:00'); rows = rows.filter(o => new Date(o.createdAt) >= s); }
         if (end) { const e = new Date(end + 'T23:59:59'); rows = rows.filter(o => new Date(o.createdAt) <= e); }
         renderOrders(rows);
@@ -501,7 +506,7 @@ const StoreApp = (function() {
         if (!tbody) return;
 
         if (!orders.length) {
-            tbody.innerHTML = '<tr><td colspan="10" class="text-center" style="padding:32px; color:#475569;">No orders found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding:32px; color:#475569;">No orders found.</td></tr>';
             if (meta) meta.textContent = '0 orders';
             return;
         }
@@ -525,16 +530,9 @@ const StoreApp = (function() {
             const dataLabel = item.data || (item.productName || '').replace(/\s*Data$/i, '').replace(new RegExp('^' + net + '\\s*', 'i'), '') || item.productName || 'Bundle';
             const phone = orderPhone(o);
             const profit = typeof o.profit === 'number' ? o.profit : ((o.subtotal || 0) - (o.totalCost || 0));
-            const status = (o.status || '').toLowerCase();
+            const status = normOrderStatus(o.status);
             const num = (String(o.orderId || '').match(/(\d+)\s*$/) || [])[1];
-            const isPaid = !!o.paidAt || paidStates.includes(status);
-
-            let actions = '<span style="color:#475569;">—</span>';
-            if (status === 'pending' && o.paymentReference) {
-                actions = `<button data-action="verify-payment" data-ref="${escapeHtml(o.paymentReference)}" class="order-filter" style="padding:4px 11px; font-size:12px; background:#1d4ed8; color:#fff;">Verify</button>`;
-            } else if (status === 'paid') {
-                actions = `<button data-action="fulfill-order" data-order-id="${escapeHtml(o.orderId)}" class="order-filter" style="padding:4px 11px; font-size:12px; background:#16a34a; color:#fff;">Fulfill</button>`;
-            }
+            const isPaid = !!o.paidAt || paidStates.includes((o.status || '').toLowerCase());
 
             return `
             <tr>
@@ -545,9 +543,8 @@ const StoreApp = (function() {
                 <td class="text-white" style="font-weight:600;">${money(o.subtotal)}</td>
                 <td style="color:#22c55e; font-weight:600;">+${money(profit)}</td>
                 <td><span class="badge ${isPaid ? 'badge-success' : 'badge-warning'}">${isPaid ? 'Paid' : 'Unpaid'}</span></td>
-                <td><span class="status-badge ${statusClass[status] || 'st-info'}">${escapeHtml(o.status || '')}</span></td>
+                <td><span class="status-badge ${statusClass[status] || 'st-info'}">${escapeHtml(status)}</span></td>
                 <td style="color:#64748b; white-space:nowrap;">${fmtDateTime(o.createdAt)}</td>
-                <td>${actions}</td>
             </tr>`;
         }).join('');
     }
