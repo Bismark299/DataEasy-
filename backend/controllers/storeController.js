@@ -442,6 +442,14 @@ exports.verifyOrderPayment = async (req, res) => {
 
         const updatedOrder = await StoreOrder.findByPk(order.id);
         res.json({ success: true, message: 'Payment verified and recorded', order: updatedOrder });
+
+        // Auto-deliver the bundle(s) via MCBIS in the background (mirrors normal bundle flow)
+        try {
+            const { dispatchStoreOrder } = require('../services/storeOrderDelivery');
+            dispatchStoreOrder(order.id).catch(err => logger.error('Store auto-delivery dispatch error', { orderId: order.orderId, error: err.message }));
+        } catch (e) {
+            logger.error('Store auto-delivery hook failed', { error: e.message });
+        }
     } catch (error) {
         logger.error('Verify store payment error', { error: error.message });
         res.status(500).json({ error: 'Failed to verify payment' });
@@ -1227,6 +1235,14 @@ exports.verifyPublicPayment = async (req, res) => {
         });
 
         res.json({ success: true, message: 'Payment successful! Your data will be delivered shortly.', status: 'paid' });
+
+        // Auto-deliver the bundle(s) via MCBIS in the background (mirrors normal bundle flow)
+        try {
+            const { dispatchStoreOrder } = require('../services/storeOrderDelivery');
+            dispatchStoreOrder(order.id).catch(err => logger.error('Store auto-delivery dispatch error', { orderId: order.orderId, error: err.message }));
+        } catch (e) {
+            logger.error('Store auto-delivery hook failed', { error: e.message });
+        }
     } catch (error) {
         logger.error('Verify public payment error', { error: error.message });
         res.status(500).json({ error: 'Failed to verify payment' });

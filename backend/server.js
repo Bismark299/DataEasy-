@@ -545,6 +545,15 @@ const startServer = async () => {
             console.error('⚠️ Background sync start error:', error.message);
         }
 
+        // Start store-order auto-delivery sweep (delivers paid store orders via MCBIS)
+        try {
+            const { startStoreDeliverySweep } = require('./services/storeOrderDelivery');
+            startStoreDeliverySweep();
+            console.log('✅ Store-order delivery sweep started');
+        } catch (error) {
+            console.error('⚠️ Store delivery sweep start error:', error.message);
+        }
+
         // Start pending deposit cleaner service
         try {
             const pendingDepositCleaner = require('./services/pendingDepositCleaner');

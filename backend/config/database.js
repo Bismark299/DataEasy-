@@ -348,6 +348,11 @@ const fixMissingColumns = async () => {
 
         // Orders table - webhook callback URL for developer API orders
         `ALTER TABLE orders ADD COLUMN IF NOT EXISTS "callbackUrl" TEXT`,
+
+        // Store orders table - bundle delivery lifecycle (auto-delivery via MCBIS)
+        `ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS "deliveryStatus" VARCHAR(30) DEFAULT 'Pending'`,
+        // Backfill: previously-fulfilled store orders are treated as delivered
+        `UPDATE store_orders SET "deliveryStatus" = 'Delivered' WHERE status = 'fulfilled' AND ("deliveryStatus" IS NULL OR "deliveryStatus" = 'Pending')`,
     ];
     
     // lookup_users is no longer used — auth moved to LOOKUP_PASSWORD env var.

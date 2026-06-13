@@ -229,7 +229,7 @@ const StoreApp = (function() {
 
         const statusClass = {
             sent: 'st-success', fulfilled: 'st-success', completed: 'st-success', paid: 'st-info',
-            processing: 'st-info', pending: 'st-warning', failed: 'st-error', cancelled: 'st-error', refunded: 'st-error'
+            processing: 'st-info', pending: 'st-warning', partial: 'st-warning', failed: 'st-error', cancelled: 'st-error', refunded: 'st-error'
         };
 
         container.innerHTML = orders.map(o => {
@@ -239,7 +239,7 @@ const StoreApp = (function() {
             const phone = item.phoneNumber || item.phone || o.customerPhone || '';
             const title = phone ? `${escapeHtml(dataLabel)} — ${escapeHtml(phone)}` : escapeHtml(dataLabel);
             const profit = typeof o.profit === 'number' ? o.profit : ((o.subtotal || 0) - (o.totalCost || 0));
-            const status = (o.status || '').toLowerCase();
+            const status = orderDisplayStatus(o);
 
             return `
             <div class="order-row">
@@ -476,10 +476,22 @@ const StoreApp = (function() {
         const it = orderPrimaryItem(o);
         return it.phoneNumber || it.phone || o.customerPhone || '';
     }
-    // Bundle delivery status (as set on the admin side). 'fulfilled' is shown as 'completed'.
-    function normOrderStatus(s) {
-        s = (s || '').toLowerCase();
-        return s === 'fulfilled' ? 'completed' : s;
+    // Display status for the Orders table.
+    // Payment lifecycle (status) takes priority; once paid, the bundle delivery
+    // status (deliveryStatus) drives what the customer/agent sees, mirroring the
+    // normal bundle flow: paid → processing → completed (or failed).
+    function orderDisplayStatus(o) {
+        const pay = (o.status || '').toLowerCase();
+        if (pay === 'pending') return 'pending';
+        if (pay === 'cancelled') return 'cancelled';
+        if (pay === 'refunded') return 'refunded';
+        if (pay === 'fulfilled') return 'completed';
+        // paid → reflect the bundle delivery lifecycle
+        const d = (o.deliveryStatus || '').toLowerCase();
+        if (d === 'delivered') return 'completed';
+        if (d === 'failed') return 'failed';
+        if (d === 'partially delivered') return 'partial';
+        return 'processing';
     }
 
     function applyOrderFilters() {
@@ -494,7 +506,7 @@ const StoreApp = (function() {
 
         let rows = allOrders.slice();
         if (phone) rows = rows.filter(o => orderPhone(o).toLowerCase().includes(phone));
-        if (status && status !== 'all') rows = rows.filter(o => normOrderStatus(o.status) === status);
+        if (status && status !== 'all') rows = rows.filter(o => orderDisplayStatus(o) === status);
         if (start) { const s = new Date(start + 'T00:00:00'); rows = rows.filter(o => new Date(o.createdAt) >= s); }
         if (end) { const e = new Date(end + 'T23:59:59'); rows = rows.filter(o => new Date(o.createdAt) <= e); }
         renderOrders(rows);
@@ -530,7 +542,7 @@ const StoreApp = (function() {
             const dataLabel = item.data || (item.productName || '').replace(/\s*Data$/i, '').replace(new RegExp('^' + net + '\\s*', 'i'), '') || item.productName || 'Bundle';
             const phone = orderPhone(o);
             const profit = typeof o.profit === 'number' ? o.profit : ((o.subtotal || 0) - (o.totalCost || 0));
-            const status = normOrderStatus(o.status);
+            const status = orderDisplayStatus(o);
             const num = (String(o.orderId || '').match(/(\d+)\s*$/) || [])[1];
             const isPaid = !!o.paidAt || paidStates.includes((o.status || '').toLowerCase());
 

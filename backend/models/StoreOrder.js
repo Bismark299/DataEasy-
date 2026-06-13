@@ -97,6 +97,12 @@ const StoreOrder = sequelize.define('StoreOrder', {
         type: DataTypes.ENUM('pending', 'paid', 'fulfilled', 'cancelled', 'refunded'),
         defaultValue: 'pending'
     },
+    deliveryStatus: {
+        type: DataTypes.STRING(30),
+        allowNull: false,
+        defaultValue: 'Pending',
+        comment: 'Bundle delivery lifecycle (MCBIS): Pending/Processing/Delivered/Failed/Partially Delivered'
+    },
     paidAt: {
         type: DataTypes.DATE,
         allowNull: true

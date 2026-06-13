@@ -1,6 +1,1 @@
-- [XSS audit coverage](xss-audit.md) — which files were fully escaped and which patterns to watch across the frontend
-- [Settings query batching](settings-batching.md) — N+1 fix: getMultiple() batch method on Setting model, all config loaders refactored
-- [Developer API — Idempotency & Webhooks](dev-api-idempotency-webhooks.md) — idempotency already existed; webhooks added via callbackUrl + webhookDelivery.js service
-- [Order transaction references](order-transaction-references.md) — transaction.reference must use order UUID not sequential orderId; sequence rewind after purge causes unique-constraint 500s.
-- [findByPk UUID fallback trap](uuid-findbypk-fallback-trap.md) — Sequelize findByPk on a UUID PK throws on non-UUID input; guard with a UUID regex before lookup or fallback strategies never run.
-- [Screenshot tool can't verify authed pages](screenshot-auth-pages.md) — app-preview screenshots of store/admin routes redirect to login; verify via server logs (200 API responses) instead.
+- [Store order auto-delivery design](store-order-delivery.md) — paid store orders delivered by a separate service that deliberately mirrors the normal-order pipeline's recovery semantics (7-day cutoff, ref-after-send); change both together.
