@@ -430,6 +430,15 @@ app.get('/store/:page', (req, res) => {
     });
 });
 
+// Short public store link: /s/:slug -> public storefront
+app.get('/s/:slug', (req, res) => {
+    const slug = req.params.slug;
+    if (!/^[a-zA-Z0-9_-]+$/.test(slug)) {
+        return res.status(400).send('Invalid store link');
+    }
+    res.redirect(302, '/store/shop.html?store=' + encodeURIComponent(slug));
+});
+
 // Fallback to index.html for SPA-style routing (if needed)
 app.get('*', (req, res, next) => {
     // Skip API routes

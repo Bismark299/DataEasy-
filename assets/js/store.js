@@ -11,13 +11,8 @@ const StoreApp = (function() {
     let packages = { MTN: [], AirtelTigo: [], Telecel: [] };
     let currentNetwork = 'MTN';
     let orderNetwork = 'MTN';
-    let currentTab = 'dashboard';
-    let currentFinTab = 'income';
+    let currentTab = 'overview';
     let orderFilter = 'all';
-    let dashOrders = [];
-    let dashPage = 1;
-    let dashPerPage = 20;
-    let dashTotalPages = 1;
 
     // ==========================================
     // AUTH & HTTP
@@ -87,57 +82,55 @@ const StoreApp = (function() {
         await loadStore();
     }
 
+    function slugify(s) {
+        return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+
+    function storeRef() {
+        if (!store) return '';
+        return (store.name && slugify(store.name)) || store.id || '';
+    }
+
+    function getStoreUrl() {
+        const ref = storeRef();
+        return ref ? `${window.location.origin}/s/${ref}` : '';
+    }
+
     async function loadStore() {
         try {
             const data = await apiRequest('/store');
             store = data.store;
             document.getElementById('noStoreSection').classList.add('hidden');
-            document.querySelectorAll('.tab-content').forEach(el => {
-                if (el.id === `tab-${currentTab}`) el.classList.remove('hidden');
-            });
+            const shell = document.getElementById('storeShell');
+            if (shell) shell.classList.remove('hidden');
 
-            // Populate sidebar store name
-            const sidebarName = document.getElementById('sidebarStoreName');
-            if (sidebarName && store.name) sidebarName.textContent = store.name;
+            // Banner
+            const slug = storeRef();
+            const storeUrl = getStoreUrl();
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || ''; };
+            set('storeName', store.name || 'My Store');
+            set('storeCode', store.id ? String(store.id).slice(0, 5) : '');
+            set('publicLinkText', '/s/' + slug);
 
-            // Build store URL using slugified store name, fallback to UUID
-            const slugify = s => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-            const storeRef = store.name ? slugify(store.name) : store.id;
-            const storeUrl = storeRef ? `${window.location.origin}/store/shop.html?store=${storeRef}` : '';
-            const banner = document.getElementById('storeInfoBanner');
-            if (banner) {
-                const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || ''; };
-                set('bannerStoreName', store.name);
-                set('bannerStoreDesc', store.description);
-                set('bannerStoreLocText', store.location);
-                set('bannerStorePhoneText', store.phone);
-                set('bannerStoreLink', storeUrl);
-                const loc = document.getElementById('bannerStoreLoc');
-                const ph = document.getElementById('bannerStorePhone');
-                if (loc) loc.style.display = store.location ? '' : 'none';
-                if (ph) ph.style.display = store.phone ? '' : 'none';
-                const openLink = document.getElementById('bannerOpenLink');
-                if (openLink && storeUrl) openLink.href = storeUrl;
-                const copyBtn = document.getElementById('bannerCopyLink');
-                if (copyBtn) copyBtn.onclick = () => {
-                    navigator.clipboard.writeText(storeUrl).then(() => toast('Store link copied!', 'success')).catch(() => toast('Copy failed', 'error'));
-                };
-                banner.classList.remove('hidden');
-            }
-
-            // Show store link (packages tab)
-            const linkSection = document.getElementById('storeLinkSection');
-            if (linkSection && storeUrl) {
-                document.getElementById('storeLinkUrl').textContent = storeUrl;
-                linkSection.classList.remove('hidden');
-            }
+            const pill = document.getElementById('publicLinkPill');
+            if (pill && storeUrl) pill.href = storeUrl;
+            const viewBtn = document.getElementById('viewStoreBtn');
+            if (viewBtn && storeUrl) viewBtn.href = storeUrl;
+            const copyBtn = document.getElementById('copyLinkBtn');
+            if (copyBtn) copyBtn.onclick = () => {
+                if (!storeUrl) return;
+                navigator.clipboard.writeText(storeUrl)
+                    .then(() => toast('Store link copied!', 'success'))
+                    .catch(() => prompt('Copy your store link:', storeUrl));
+            };
 
             loadDashboard();
             loadPackages();
         } catch (e) {
             if (e.message.includes('not found') || e.message.includes('Create a store')) {
                 document.getElementById('noStoreSection').classList.remove('hidden');
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+                const shell = document.getElementById('storeShell');
+                if (shell) shell.classList.add('hidden');
             } else {
                 toast(e.message, 'error');
             }
@@ -158,15 +151,10 @@ const StoreApp = (function() {
             if (btn.dataset.tab === tab) btn.classList.add('active');
         });
 
-        const titles = { dashboard: 'Dashboard', packages: 'Packages & Pricing', orders: 'Store Orders', payouts: 'Payouts', financials: 'Financials', settings: 'Settings' };
-        const titleEl = document.getElementById('pageTitle');
-        if (titleEl) titleEl.textContent = titles[tab] || 'Store';
-
-        if (tab === 'dashboard') loadDashboard();
-        else if (tab === 'packages') loadPackages();
+        if (tab === 'overview') loadDashboard();
+        else if (tab === 'bundles') loadPackages();
         else if (tab === 'orders') loadOrders();
-        else if (tab === 'payouts') loadPayouts();
-        else if (tab === 'financials') loadFinancials();
+        else if (tab === 'earnings') loadPayouts();
         else if (tab === 'settings') loadSettings();
     }
 
@@ -178,114 +166,73 @@ const StoreApp = (function() {
             const data = await apiRequest('/store/dashboard');
             const d = data.dashboard;
             const s = d.settlement;
+            const totalProfit = (s.totalRevenue || 0) - (s.totalCostOfGoods || 0);
 
-            document.getElementById('availableBalance').textContent = `₵${s.availableBalance.toFixed(2)}`;
-            document.getElementById('ledgerBalance').textContent = `₵${s.ledgerBalance.toFixed(2)}`;
-            document.getElementById('todaySales').textContent = `₵${d.today.salesTotal.toFixed(2)}`;
-            document.getElementById('todayCount').textContent = d.today.salesCount;
-            document.getElementById('totalRevenue').textContent = `₵${s.totalRevenue.toFixed(2)}`;
-            document.getElementById('totalCommission').textContent = `₵${s.totalCommissionPaid.toFixed(2)}`;
-            document.getElementById('totalPayouts').textContent = `₵${s.totalPayouts.toFixed(2)}`;
-            document.getElementById('pendingPayoutsCount').textContent = d.pendingPayouts;
-            document.getElementById('totalOrders').textContent = d.totalOrders;
-            document.getElementById('activePackages').textContent = d.activePackages;
-            document.getElementById('holdAmount').textContent = `₵${s.holdAmount.toFixed(2)}`;
-            // Update sidebar balance
-            const sb = document.getElementById('sidebarBalance');
-            if (sb) sb.textContent = `₵${s.availableBalance.toFixed(2)}`;
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            set('statTotalSales', d.totalOrders);
+            set('statTotalRevenue', money(s.totalRevenue));
+            set('statTotalProfit', money(totalProfit));
+            set('statWithdrawable', money(s.availableBalance));
+            set('profitBalanceAmount', money(s.availableBalance));
+            set('bundlesListedCount', d.activePackages);
         } catch (e) {
             toast('Failed to load dashboard', 'error');
         }
 
-        loadDashboardOrders();
+        loadRecentOrders();
     }
 
-    async function loadDashboardOrders() {
-        const dateEl = document.getElementById('dashOrderDate');
-        if (dateEl && !dateEl.value) {
-            dateEl.value = new Date().toISOString().split('T')[0];
-        }
+    async function loadRecentOrders() {
+        const container = document.getElementById('recentOrdersList');
         try {
-            const params = new URLSearchParams({ limit: dashPerPage, page: dashPage });
-            const dateVal = dateEl ? dateEl.value : '';
-            if (dateVal) params.set('date', dateVal);
-            const data = await apiRequest('/store/orders?' + params.toString());
-            dashOrders = data.orders || [];
-            dashTotalPages = (data.pagination && data.pagination.pages) || 1;
-            filterAndRenderDashOrders();
+            const data = await apiRequest('/store/orders?limit=10&page=1');
+            const orders = data.orders || [];
+            const total = (data.pagination && (data.pagination.total != null ? data.pagination.total : data.pagination.count)) || orders.length;
+            const totalEl = document.getElementById('recentOrdersTotal');
+            if (totalEl) totalEl.textContent = total;
+            renderRecentOrders(orders);
         } catch (e) {
-            const tbody = document.getElementById('dashOrdersBody');
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500 py-8">Failed to load orders.</td></tr>';
+            if (container) container.innerHTML = '<p class="text-center py-10" style="color:#475569;">Failed to load orders.</p>';
         }
     }
 
-    function filterAndRenderDashOrders() {
-        const statusVal = (document.getElementById('dashOrderStatus') || {}).value || '';
-        const searchVal = ((document.getElementById('dashOrderSearch') || {}).value || '').trim();
-
-        let filtered = dashOrders;
-        if (statusVal) filtered = filtered.filter(o => (o.status || '').toLowerCase() === statusVal.toLowerCase());
-        if (searchVal) filtered = filtered.filter(o =>
-            (o.items || []).some(i => (i.phoneNumber || i.phone || '').includes(searchVal)) ||
-            (o.customerPhone || '').includes(searchVal)
-        );
-
-        renderDashboardOrders(filtered);
-    }
-
-    function renderDashboardOrders(orders) {
-        const tbody = document.getElementById('dashOrdersBody');
-        if (!tbody) return;
+    function renderRecentOrders(orders) {
+        const container = document.getElementById('recentOrdersList');
+        if (!container) return;
 
         if (!orders.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500 py-8">No orders found.</td></tr>';
+            container.innerHTML = '<p class="text-center py-10" style="color:#475569;">No orders yet.</p>';
             return;
         }
 
-        const statusColors = { sent: 'badge-success', processing: 'badge-info', pending: 'badge-warning', failed: 'badge-error' };
+        const statusClass = {
+            sent: 'st-success', fulfilled: 'st-success', completed: 'st-success', paid: 'st-info',
+            processing: 'st-info', pending: 'st-warning', failed: 'st-error', cancelled: 'st-error', refunded: 'st-error'
+        };
 
-        tbody.innerHTML = orders.map(o => {
-            const phone = (o.items || []).map(i => i.phoneNumber || i.phone || '').filter(Boolean).join(', ') || o.customerPhone || '—';
-            const dataSize = (o.items || []).map(i => `${i.quantity || 1}x ${escapeHtml(i.data || i.productName || '')}`).join(', ') || '—';
-            const profit = typeof o.profit === 'number' ? o.profit.toFixed(2) : ((o.subtotal || 0) - (o.totalCost || 0)).toFixed(2);
+        container.innerHTML = orders.map(o => {
+            const item = (o.items && o.items[0]) || {};
+            const net = item.network || detectNetwork(item.productName || item.data || '');
+            const dataLabel = item.data || (item.productName || '').replace(/\s*Data$/i, '').replace(new RegExp('^' + net + '\\s*', 'i'), '') || item.productName || 'Bundle';
+            const phone = item.phoneNumber || item.phone || o.customerPhone || '';
+            const title = phone ? `${escapeHtml(dataLabel)} — ${escapeHtml(phone)}` : escapeHtml(dataLabel);
+            const profit = typeof o.profit === 'number' ? o.profit : ((o.subtotal || 0) - (o.totalCost || 0));
+            const status = (o.status || '').toLowerCase();
+
             return `
-            <tr class="border-b border-[#374151] hover:bg-[#1f2937]/50">
-                <td class="py-3 px-4 text-gray-400 text-xs">${new Date(o.createdAt).toLocaleDateString()}</td>
-                <td class="py-3 px-4 text-white text-xs font-mono">${escapeHtml(o.orderId)}</td>
-                <td class="py-3 px-4 text-gray-300 text-xs">${escapeHtml(phone)}</td>
-                <td class="py-3 px-4 text-gray-300 text-xs">${dataSize}</td>
-                <td class="py-3 px-4 text-green-400 font-semibold text-xs">₵${(o.subtotal || 0).toFixed(2)}</td>
-                <td class="py-3 px-4"><span class="text-[10px] px-2 py-0.5 rounded-full ${statusColors[(o.status || '').toLowerCase()] || 'badge-info'}">${escapeHtml(o.status || '')}</span></td>
-                <td class="py-3 px-4 text-green-400 text-xs">₵${profit}</td>
-            </tr>`;
+            <div class="order-row">
+                <span class="net-badge ${netClass(net)}">${escapeHtml(net)}</span>
+                <div class="order-info">
+                    <div class="order-title">${title}</div>
+                    <div class="order-date">${fmtDateTime(o.createdAt)}</div>
+                </div>
+                <div class="order-money">
+                    <div class="order-amount">${money(o.subtotal)}</div>
+                    <div class="order-profit">+${money(profit)}</div>
+                </div>
+                <span class="status-badge ${statusClass[status] || 'st-info'}">${escapeHtml(o.status || '')}</span>
+            </div>`;
         }).join('');
-
-        // Info text
-        const infoEl = document.getElementById('dashOrderInfo');
-        if (infoEl) infoEl.textContent = `Page ${dashPage} of ${dashTotalPages}`;
-
-        // Pagination
-        const pagDiv = document.getElementById('dashPagination');
-        if (pagDiv) {
-            if (dashTotalPages <= 1) { pagDiv.innerHTML = ''; return; }
-            let html = `<button class="dash-page-btn px-3 py-1 rounded text-xs ${dashPage <= 1 ? 'text-gray-600 cursor-not-allowed' : 'text-indigo-400 hover:bg-[#374151]'}" data-page="${dashPage - 1}" ${dashPage <= 1 ? 'disabled' : ''}>&laquo; Prev</button>`;
-            const start = Math.max(1, dashPage - 2);
-            const end = Math.min(dashTotalPages, dashPage + 2);
-            for (let i = start; i <= end; i++) {
-                html += `<button class="dash-page-btn px-3 py-1 rounded text-xs ${i === dashPage ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-[#374151]'}" data-page="${i}">${i}</button>`;
-            }
-            html += `<button class="dash-page-btn px-3 py-1 rounded text-xs ${dashPage >= dashTotalPages ? 'text-gray-600 cursor-not-allowed' : 'text-indigo-400 hover:bg-[#374151]'}" data-page="${dashPage + 1}" ${dashPage >= dashTotalPages ? 'disabled' : ''}>Next &raquo;</button>`;
-            pagDiv.innerHTML = html;
-            pagDiv.querySelectorAll('.dash-page-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const p = parseInt(btn.dataset.page);
-                    if (p >= 1 && p <= dashTotalPages && p !== dashPage) {
-                        dashPage = p;
-                        loadDashboardOrders();
-                    }
-                });
-            });
-        }
     }
 
     // ==========================================
@@ -339,7 +286,7 @@ const StoreApp = (function() {
 
             pkgs.forEach(p => {
                 const hasPrice = p.sellingPrice !== null && p.sellingPrice !== undefined;
-                const displayPrice = hasPrice ? '₵' + Number(p.sellingPrice).toFixed(2) : '—';
+                const displayPrice = hasPrice ? 'GH₵' + Number(p.sellingPrice).toFixed(2) : '—';
                 const profit = hasPrice ? (p.sellingPrice - p.costPrice).toFixed(2) : '—';
                 const profitColor = hasPrice && p.sellingPrice > p.costPrice ? 'text-green-400' : (hasPrice && p.sellingPrice < p.costPrice ? 'text-red-400' : 'text-gray-500');
 
@@ -349,7 +296,7 @@ const StoreApp = (function() {
                                     <span class="text-white font-medium text-sm">${escapeHtml(p.data)}</span>
                                     <span class="text-gray-500 text-xs ml-2">${escapeHtml(p.validity || '')}</span>
                                 </td>
-                                <td class="py-3 px-5 text-right text-gray-400 text-sm tabular-nums">₵${p.costPrice.toFixed(2)}</td>
+                                <td class="py-3 px-5 text-right text-gray-400 text-sm tabular-nums">GH₵${p.costPrice.toFixed(2)}</td>
                                 <td class="py-3 px-5 text-center">
                                     <div class="pkg-price-cell inline-flex items-center gap-2" data-pkg-id="${escapeHtml(p.id)}" data-cost="${p.costPrice}" data-current="${hasPrice ? p.sellingPrice : ''}">
                                         <span class="pkg-price-display text-green-400 font-semibold text-sm tabular-nums">${displayPrice}</span>
@@ -368,7 +315,7 @@ const StoreApp = (function() {
                                     </div>
                                 </td>
                                 <td class="py-3 px-5 text-right">
-                                    <span class="pkg-profit ${profitColor} text-sm font-semibold tabular-nums" data-pkg-id="${escapeHtml(p.id)}">${profit !== '—' ? '₵' + profit : '—'}</span>
+                                    <span class="pkg-profit ${profitColor} text-sm font-semibold tabular-nums" data-pkg-id="${escapeHtml(p.id)}">${profit !== '—' ? 'GH₵' + profit : '—'}</span>
                                 </td>
                             </tr>`;
             });
@@ -419,7 +366,7 @@ const StoreApp = (function() {
             function updateProfit(val) {
                 if (profitEl) {
                     if (!isNaN(val) && val >= cost) {
-                        profitEl.textContent = '₵' + (val - cost).toFixed(2);
+                        profitEl.textContent = 'GH₵' + (val - cost).toFixed(2);
                         profitEl.className = 'pkg-profit text-green-400 text-sm font-semibold tabular-nums';
                     } else if (!isNaN(val)) {
                         profitEl.textContent = 'Too low';
@@ -453,7 +400,7 @@ const StoreApp = (function() {
     async function saveSinglePrice(pkgId, input, display, cell, cost, profitEl, exitEdit) {
         const val = parseFloat(input.value);
         if (isNaN(val) || val < cost) {
-            toast('Selling price must be at least ₵' + cost.toFixed(2), 'warning');
+            toast('Selling price must be at least GH₵' + cost.toFixed(2), 'warning');
             return;
         }
 
@@ -473,10 +420,10 @@ const StoreApp = (function() {
                 const pkg = (packages[net] || []).find(pk => String(pk.id) === String(pkgId));
                 if (pkg) pkg.sellingPrice = val;
             });
-            display.textContent = '₵' + val.toFixed(2);
+            display.textContent = 'GH₵' + val.toFixed(2);
             cell.dataset.current = val;
             if (profitEl) {
-                profitEl.textContent = '₵' + (val - cost).toFixed(2);
+                profitEl.textContent = 'GH₵' + (val - cost).toFixed(2);
                 profitEl.className = 'pkg-profit text-green-400 text-sm font-semibold tabular-nums';
             }
             exitEdit();
@@ -514,7 +461,7 @@ const StoreApp = (function() {
                         <span class="text-white font-semibold text-sm">${escapeHtml(o.orderId)}</span>
                         <span class="text-xs px-2 py-0.5 rounded-full ml-2 ${statusColors[o.status] || 'badge-info'}">${o.status}</span>
                     </div>
-                    <span class="text-green-400 font-bold">₵${o.subtotal.toFixed(2)}</span>
+                    <span class="text-green-400 font-bold">GH₵${o.subtotal.toFixed(2)}</span>
                 </div>
                 <div class="flex items-center justify-between text-sm">
                     <span class="text-gray-400"><i class="fas fa-user mr-1"></i>${escapeHtml(o.customerName)}</span>
@@ -554,8 +501,8 @@ const StoreApp = (function() {
                         <span class="text-gray-500 text-xs ml-1">${escapeHtml(p.validity)}</span>
                     </div>
                     <div class="text-right">
-                        <span class="text-green-400 text-sm font-semibold">₵${p.sellingPrice.toFixed(2)}</span>
-                        <span class="text-gray-600 text-[10px] block">cost ₵${p.costPrice.toFixed(2)}</span>
+                        <span class="text-green-400 text-sm font-semibold">GH₵${p.sellingPrice.toFixed(2)}</span>
+                        <span class="text-gray-600 text-[10px] block">cost GH₵${p.costPrice.toFixed(2)}</span>
                     </div>
                     <input type="number" min="1" value="1" class="order-pkg-qty input-field w-16 px-2 py-1 rounded text-xs text-center hidden" data-package-id="${escapeHtml(p.id)}">
                 </label>
@@ -593,11 +540,11 @@ const StoreApp = (function() {
             const qty = parseInt(document.querySelector(`.order-pkg-qty[data-package-id="${cb.dataset.packageId}"]`).value) || 1;
             const lineTotal = qty * parseFloat(cb.dataset.price);
             total += lineTotal;
-            html += `<div class="flex justify-between text-sm text-gray-300"><span>${qty}x ${cb.dataset.name}</span><span>₵${lineTotal.toFixed(2)}</span></div>`;
+            html += `<div class="flex justify-between text-sm text-gray-300"><span>${qty}x ${cb.dataset.name}</span><span>GH₵${lineTotal.toFixed(2)}</span></div>`;
         });
 
         listDiv.innerHTML = html;
-        totalSpan.textContent = `₵${total.toFixed(2)}`;
+        totalSpan.textContent = `GH₵${total.toFixed(2)}`;
     }
 
     async function createOrder(e) {
@@ -687,9 +634,9 @@ const StoreApp = (function() {
             store = storeData.store;
             const settlement = store.settlementAccount;
 
-            document.getElementById('withdrawableBalance').textContent = `₵${settlement.availableBalance.toFixed(2)}`;
-            document.getElementById('payoutHoldAmount').textContent = `₵${settlement.holdAmount.toFixed(2)}`;
-            document.getElementById('payoutAvailable').textContent = `₵${settlement.availableBalance.toFixed(2)}`;
+            document.getElementById('withdrawableBalance').textContent = `GH₵${settlement.availableBalance.toFixed(2)}`;
+            document.getElementById('payoutHoldAmount').textContent = `GH₵${settlement.holdAmount.toFixed(2)}`;
+            document.getElementById('payoutAvailable').textContent = `GH₵${settlement.availableBalance.toFixed(2)}`;
 
             renderPayouts(payoutsData.payouts);
         } catch (e) {
@@ -713,7 +660,7 @@ const StoreApp = (function() {
                         <span class="text-white font-semibold text-sm">${escapeHtml(p.payoutId)}</span>
                         <span class="text-xs px-2 py-0.5 rounded-full ml-2 ${statusColors[p.status]}">${p.status}</span>
                     </div>
-                    <span class="text-green-400 font-bold">₵${p.amount.toFixed(2)}</span>
+                    <span class="text-green-400 font-bold">GH₵${p.amount.toFixed(2)}</span>
                 </div>
                 <div class="flex items-center justify-between text-xs text-gray-500">
                     <span><i class="fas fa-${p.method === 'bank_transfer' ? 'university' : 'mobile-alt'} mr-1"></i>${p.method === 'bank_transfer' ? 'Bank Transfer' : 'Mobile Money'}</span>
@@ -726,7 +673,7 @@ const StoreApp = (function() {
 
     function showPayoutModal() {
         if (store && store.settlementAccount) {
-            document.getElementById('payoutAvailable').textContent = `₵${store.settlementAccount.availableBalance.toFixed(2)}`;
+            document.getElementById('payoutAvailable').textContent = `GH₵${store.settlementAccount.availableBalance.toFixed(2)}`;
         }
         document.getElementById('payoutForm').reset();
         document.getElementById('payoutDestination').classList.add('hidden');
@@ -754,180 +701,6 @@ const StoreApp = (function() {
             loadDashboard();
         } catch (e) {
             toast(e.message, 'error');
-        }
-    }
-
-    // ==========================================
-    // FINANCIALS
-    // ==========================================
-    async function loadFinancials() {
-        const startDate = document.getElementById('finStartDate').value;
-        const endDate = document.getElementById('finEndDate').value;
-        const params = [];
-        if (startDate) params.push(`startDate=${startDate}`);
-        if (endDate) params.push(`endDate=${endDate}`);
-        const qs = params.length ? `?${params.join('&')}` : '';
-
-        if (currentFinTab === 'income') loadIncomeStatement(qs);
-        else if (currentFinTab === 'balance') loadBalanceSheet();
-        else if (currentFinTab === 'cashflow') loadCashFlow(qs);
-        else if (currentFinTab === 'ledger') loadLedger();
-    }
-
-    async function loadIncomeStatement(qs) {
-        try {
-            const data = await apiRequest(`/store/financials/income-statement${qs}`);
-            const d = data.data;
-            document.getElementById('financialContent').innerHTML = `
-                <h3 class="text-lg font-bold text-white mb-4"><i class="fas fa-file-invoice-dollar mr-2 text-indigo-400"></i>Income Statement (Profit & Loss)</h3>
-                <p class="text-gray-500 text-xs mb-4">Period: ${escapeHtml(data.period.startDate)} to ${escapeHtml(data.period.endDate)}</p>
-                <div class="space-y-3">
-                    <div class="flex justify-between py-2 border-b border-[#374151]">
-                        <span class="text-gray-300">Gross Revenue</span>
-                        <span class="text-white font-semibold">₵${d.grossRevenue.toFixed(2)}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-[#374151]">
-                        <span class="text-gray-400 pl-4">Less: Cost of Goods Sold</span>
-                        <span class="text-red-400">(₵${d.costOfGoodsSold.toFixed(2)})</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-[#374151] bg-[#111827] px-3 rounded">
-                        <span class="text-white font-bold">Gross Profit</span>
-                        <span class="text-green-400 font-bold">₵${d.grossProfit.toFixed(2)}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-[#374151]">
-                        <span class="text-gray-400 pl-4">Less: Platform Commissions</span>
-                        <span class="text-red-400">(₵${d.expenses.platformCommissions.toFixed(2)})</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-[#374151]">
-                        <span class="text-gray-400 pl-4">Less: Refunds</span>
-                        <span class="text-red-400">(₵${d.expenses.refunds.toFixed(2)})</span>
-                    </div>
-                    <div class="flex justify-between py-3 bg-gradient-to-r from-[#111827] to-[#1f2937] px-3 rounded-lg">
-                        <span class="text-white font-bold text-lg">Net Profit</span>
-                        <span class="text-xl font-bold ${d.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}">₵${d.netProfit.toFixed(2)}</span>
-                    </div>
-                </div>
-            `;
-        } catch (e) {
-            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${escapeHtml(e.message)}</p>`;
-        }
-    }
-
-    async function loadBalanceSheet() {
-        try {
-            const data = await apiRequest('/store/financials/balance-sheet');
-            const d = data.data;
-            document.getElementById('financialContent').innerHTML = `
-                <h3 class="text-lg font-bold text-white mb-4"><i class="fas fa-balance-scale mr-2 text-purple-400"></i>Balance Sheet</h3>
-                <p class="text-gray-500 text-xs mb-4">As of ${new Date(data.date).toLocaleString()}</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h4 class="text-indigo-400 font-semibold mb-3 border-b border-[#374151] pb-1">ASSETS</h4>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-sm"><span class="text-gray-300">Cash & Equivalents</span><span class="text-white">₵${d.assets.cashAndEquivalents.toFixed(2)}</span></div>
-                            <div class="flex justify-between text-sm"><span class="text-gray-300">Held Funds</span><span class="text-white">₵${d.assets.heldFunds.toFixed(2)}</span></div>
-                            <div class="flex justify-between text-sm"><span class="text-gray-300">Inventory Value</span><span class="text-white">₵${d.assets.inventoryValue.toFixed(2)}</span></div>
-                            <div class="flex justify-between text-sm"><span class="text-gray-300">Accounts Receivable</span><span class="text-white">₵${d.assets.accountsReceivable.toFixed(2)}</span></div>
-                            <div class="flex justify-between text-sm font-bold border-t border-[#374151] pt-2"><span class="text-white">Total Assets</span><span class="text-green-400">₵${d.assets.totalAssets.toFixed(2)}</span></div>
-                        </div>
-                    </div>
-                    <div>
-                        <h4 class="text-red-400 font-semibold mb-3 border-b border-[#374151] pb-1">LIABILITIES & EQUITY</h4>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-sm"><span class="text-gray-300">Pending Payouts</span><span class="text-white">₵${d.liabilities.pendingPayouts.toFixed(2)}</span></div>
-                            <div class="flex justify-between text-sm"><span class="text-gray-300">Funds on Hold</span><span class="text-white">₵${d.liabilities.fundsOnHold.toFixed(2)}</span></div>
-                            <div class="flex justify-between text-sm font-bold border-t border-[#374151] pt-2"><span class="text-white">Total Liabilities</span><span class="text-red-400">₵${d.liabilities.totalLiabilities.toFixed(2)}</span></div>
-                            <div class="flex justify-between text-sm font-bold mt-4 border-t border-[#374151] pt-2"><span class="text-white">Equity (Retained Earnings)</span><span class="text-purple-400">₵${d.equity.totalEquity.toFixed(2)}</span></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } catch (e) {
-            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${escapeHtml(e.message)}</p>`;
-        }
-    }
-
-    async function loadCashFlow(qs) {
-        try {
-            const data = await apiRequest(`/store/financials/cash-flow${qs}`);
-            const d = data.data;
-            document.getElementById('financialContent').innerHTML = `
-                <h3 class="text-lg font-bold text-white mb-4"><i class="fas fa-exchange-alt mr-2 text-green-400"></i>Cash Flow Statement</h3>
-                <p class="text-gray-500 text-xs mb-4">Period: ${escapeHtml(data.period.startDate)} to ${escapeHtml(data.period.endDate)}</p>
-                <div class="space-y-3">
-                    <h4 class="text-green-400 font-semibold">INFLOWS</h4>
-                    <div class="flex justify-between py-2 border-b border-[#374151]">
-                        <span class="text-gray-300 pl-4">Customer Payments</span>
-                        <span class="text-green-400">+₵${d.inflows.customerPayments.toFixed(2)}</span>
-                    </div>
-                    <div class="flex justify-between py-2 bg-[#111827] px-3 rounded">
-                        <span class="text-white font-semibold">Total Inflows</span>
-                        <span class="text-green-400 font-bold">₵${d.inflows.totalInflows.toFixed(2)}</span>
-                    </div>
-                    <h4 class="text-red-400 font-semibold mt-4">OUTFLOWS</h4>
-                    <div class="flex justify-between py-2 border-b border-[#374151]">
-                        <span class="text-gray-300 pl-4">Payouts to Agent</span>
-                        <span class="text-red-400">-₵${d.outflows.payoutsToAgent.toFixed(2)}</span>
-                    </div>
-                    <div class="flex justify-between py-2 border-b border-[#374151]">
-                        <span class="text-gray-300 pl-4">Refunds Issued</span>
-                        <span class="text-red-400">-₵${d.outflows.refundsIssued.toFixed(2)}</span>
-                    </div>
-                    <div class="flex justify-between py-2 bg-[#111827] px-3 rounded">
-                        <span class="text-white font-semibold">Total Outflows</span>
-                        <span class="text-red-400 font-bold">₵${d.outflows.totalOutflows.toFixed(2)}</span>
-                    </div>
-                    <div class="flex justify-between py-3 bg-gradient-to-r from-[#111827] to-[#1f2937] px-3 rounded-lg mt-4">
-                        <span class="text-white font-bold text-lg">Net Cash Flow</span>
-                        <span class="text-xl font-bold ${d.netCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}">₵${d.netCashFlow.toFixed(2)}</span>
-                    </div>
-                </div>
-            `;
-        } catch (e) {
-            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${escapeHtml(e.message)}</p>`;
-        }
-    }
-
-    async function loadLedger() {
-        try {
-            const data = await apiRequest('/store/financials/ledger?limit=100');
-            const entries = data.entries;
-            if (!entries.length) {
-                document.getElementById('financialContent').innerHTML = '<p class="text-gray-500 text-center py-8">No ledger entries yet.</p>';
-                return;
-            }
-
-            document.getElementById('financialContent').innerHTML = `
-                <h3 class="text-lg font-bold text-white mb-4"><i class="fas fa-book mr-2 text-yellow-400"></i>Ledger (Transaction Log)</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-gray-400 text-xs border-b border-[#374151]">
-                                <th class="py-2 text-left">Date</th>
-                                <th class="py-2 text-left">Description</th>
-                                <th class="py-2 text-left">Account</th>
-                                <th class="py-2 text-right">Debit</th>
-                                <th class="py-2 text-right">Credit</th>
-                                <th class="py-2 text-right">Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${entries.map(e => `
-                                <tr class="border-b border-[#374151]/50 hover:bg-[#111827]">
-                                    <td class="py-2 text-gray-500 text-xs">${new Date(e.createdAt).toLocaleDateString()}</td>
-                                    <td class="py-2 text-gray-300">${escapeHtml(e.description)}</td>
-                                    <td class="py-2"><span class="text-xs px-2 py-0.5 rounded bg-[#374151] text-gray-300">${e.account}</span></td>
-                                    <td class="py-2 text-right ${e.type === 'debit' ? 'text-red-400' : 'text-gray-600'}">${e.type === 'debit' ? `₵${e.amount.toFixed(2)}` : '-'}</td>
-                                    <td class="py-2 text-right ${e.type === 'credit' ? 'text-green-400' : 'text-gray-600'}">${e.type === 'credit' ? `₵${e.amount.toFixed(2)}` : '-'}</td>
-                                    <td class="py-2 text-right text-white">₵${e.balanceAfter.toFixed(2)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        } catch (e) {
-            document.getElementById('financialContent').innerHTML = `<p class="text-red-400">${escapeHtml(e.message)}</p>`;
         }
     }
 
@@ -998,6 +771,38 @@ const StoreApp = (function() {
         return div.innerHTML;
     }
 
+    function money(n) {
+        return 'GH₵' + (Number(n) || 0).toFixed(2);
+    }
+
+    function fmtDateTime(d) {
+        if (!d) return '';
+        const dt = new Date(d);
+        if (isNaN(dt.getTime())) return '';
+        const day = dt.getDate();
+        const mon = dt.toLocaleString('en-US', { month: 'short' });
+        const year = dt.getFullYear();
+        let h = dt.getHours();
+        const m = String(dt.getMinutes()).padStart(2, '0');
+        const ap = h >= 12 ? 'pm' : 'am';
+        h = h % 12 || 12;
+        return `${day} ${mon} ${year}, ${String(h).padStart(2, '0')}:${m} ${ap}`;
+    }
+
+    function detectNetwork(str) {
+        const s = String(str || '').toLowerCase();
+        if (s.includes('airtel') || s.includes('tigo')) return 'AirtelTigo';
+        if (s.includes('telecel') || s.includes('vodafone')) return 'Telecel';
+        return 'MTN';
+    }
+
+    function netClass(net) {
+        const k = String(net || '').toLowerCase();
+        if (k.includes('airtel') || k.includes('tigo')) return 'net-airteltigo';
+        if (k.includes('telecel') || k.includes('vodafone')) return 'net-telecel';
+        return 'net-mtn';
+    }
+
     // ==========================================
     // EVENT LISTENERS
     // ==========================================
@@ -1013,8 +818,7 @@ const StoreApp = (function() {
             if (actionBtn) {
                 const action = actionBtn.dataset.action;
                 if (action === 'goto-orders') showTab('orders');
-                else if (action === 'goto-payouts') showTab('payouts');
-                else if (action === 'refresh-financials') loadFinancials();
+                else if (action === 'goto-earnings') showTab('earnings');
                 else if (action === 'verify-payment') verifyPayment(actionBtn.dataset.ref);
                 else if (action === 'fulfill-order') fulfillOrder(actionBtn.dataset.orderId);
                 return;
@@ -1025,30 +829,12 @@ const StoreApp = (function() {
             }
         });
 
-        // Financial sub-tabs
-        document.querySelectorAll('.fin-tab').forEach(btn => {
-            btn.addEventListener('click', () => {
-                currentFinTab = btn.dataset.fin;
-                document.querySelectorAll('.fin-tab').forEach(b => {
-                    b.classList.remove('bg-indigo-600', 'text-white');
-                    b.classList.add('bg-[#374151]', 'text-gray-300');
-                });
-                btn.classList.remove('bg-[#374151]', 'text-gray-300');
-                btn.classList.add('bg-indigo-600', 'text-white');
-                loadFinancials();
-            });
-        });
-
         // Order filters
         document.querySelectorAll('.order-filter').forEach(btn => {
             btn.addEventListener('click', () => {
                 orderFilter = btn.dataset.filter;
-                document.querySelectorAll('.order-filter').forEach(b => {
-                    b.classList.remove('bg-indigo-600', 'text-white');
-                    b.classList.add('bg-[#374151]', 'text-gray-300');
-                });
-                btn.classList.remove('bg-[#374151]', 'text-gray-300');
-                btn.classList.add('bg-indigo-600', 'text-white');
+                document.querySelectorAll('.order-filter').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
                 loadOrders();
             });
         });
@@ -1060,18 +846,10 @@ const StoreApp = (function() {
         document.getElementById('storeSettingsForm').addEventListener('submit', saveSettings);
 
         // Buttons
-        document.getElementById('newOrderBtn').addEventListener('click', showNewOrder);
-        document.getElementById('requestPayoutBtn').addEventListener('click', showPayoutModal);
-        document.getElementById('copyStoreLinkBtn').addEventListener('click', function() {
-            const url = document.getElementById('storeLinkUrl').textContent;
-            if (url) {
-                navigator.clipboard.writeText(url).then(() => toast('Store link copied!', 'success')).catch(() => {
-                    prompt('Copy your store link:', url);
-                });
-            }
-        });
-
-
+        const newOrderBtn = document.getElementById('newOrderBtn');
+        if (newOrderBtn) newOrderBtn.addEventListener('click', showNewOrder);
+        const reqPayoutBtn = document.getElementById('requestPayoutBtn');
+        if (reqPayoutBtn) reqPayoutBtn.addEventListener('click', showPayoutModal);
 
         // Network tabs inside order modal
         document.querySelectorAll('.order-network-tab').forEach(btn => {
@@ -1087,22 +865,6 @@ const StoreApp = (function() {
                 renderOrderPackages();
             });
         });
-
-        // Dashboard order filters
-        const dashStatusEl = document.getElementById('dashOrderStatus');
-        if (dashStatusEl) dashStatusEl.addEventListener('change', filterAndRenderDashOrders);
-        const dashDateEl = document.getElementById('dashOrderDate');
-        if (dashDateEl) dashDateEl.addEventListener('change', () => { dashPage = 1; loadDashboardOrders(); });
-        const dashPerPageEl = document.getElementById('dashPerPage');
-        if (dashPerPageEl) dashPerPageEl.addEventListener('change', () => { dashPerPage = parseInt(dashPerPageEl.value) || 20; dashPage = 1; loadDashboardOrders(); });
-        const dashSearch = document.getElementById('dashOrderSearch');
-        if (dashSearch) {
-            let debounce;
-            dashSearch.addEventListener('input', () => {
-                clearTimeout(debounce);
-                debounce = setTimeout(filterAndRenderDashOrders, 300);
-            });
-        }
 
         // Payout method change -> show destination
         document.getElementById('payoutMethod').addEventListener('change', function() {
@@ -1120,17 +882,6 @@ const StoreApp = (function() {
             }
         });
 
-        // Set agent code + avatar initials
-        try {
-            const user = JSON.parse(localStorage.getItem('dataeasy_user') || '{}');
-            document.getElementById('agentCode').textContent = user.agentCode || '';
-            const avatar = document.getElementById('agentAvatarInitials');
-            if (avatar && user.fullName) {
-                const parts = (user.fullName || '').split(' ').filter(Boolean);
-                avatar.textContent = parts.length >= 2 ? parts[0][0] + parts[1][0] : (parts[0] || 'SA').slice(0, 2);
-                avatar.textContent = avatar.textContent.toUpperCase();
-            }
-        } catch (e) {}
     }
 
     // ==========================================
@@ -1141,7 +892,6 @@ const StoreApp = (function() {
         showTab,
         verifyPayment,
         fulfillOrder,
-        loadFinancials,
         closeModal,
         openModal
     };
