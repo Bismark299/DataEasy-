@@ -135,6 +135,16 @@ exports.updateStore = async (req, res) => {
             }
         }
 
+        // Merge whitelisted metadata (e.g. color theme) without clobbering existing keys
+        if (req.body.metadata && typeof req.body.metadata === 'object') {
+            const VALID_THEMES = ['blue', 'amber', 'red', 'green', 'purple', 'orange', 'teal'];
+            const merged = { ...(store.metadata || {}) };
+            if (VALID_THEMES.includes(req.body.metadata.theme)) {
+                merged.theme = req.body.metadata.theme;
+            }
+            updates.metadata = merged;
+        }
+
         await store.update(updates);
         const updated = await Store.findByPk(store.id, {
             include: [{ model: SettlementAccount, as: 'settlementAccount' }]

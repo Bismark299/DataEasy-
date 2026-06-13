@@ -144,6 +144,19 @@
         .order-filter:not(.active) { background: #1a2030; color: #64748b; }
         .order-filter:not(.active):hover { background: #232b3c; color: #94a3b8; }
 
+        /* Orders filter row */
+        .orders-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        input[type="date"].input-field, select.input-field { color-scheme: dark; }
+
+        /* Color theme picker */
+        .theme-swatch { width: 30px; height: 30px; border-radius: 9999px; border: 2px solid transparent; cursor: pointer; transition: transform 0.12s; padding: 0; }
+        .theme-swatch:hover { transform: scale(1.12); }
+        .theme-swatch.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.25); }
+
+        /* Store link box */
+        .link-box { display: flex; align-items: center; gap: 9px; padding: 11px 13px; border-radius: 9px; background: #0c111b; border: 1px solid #1e2433; }
+        .link-box span { font-family: ui-monospace, monospace; font-size: 12.5px; color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
         /* Table (bundles) */
         .data-table { width: 100%; }
         .data-table th { font-size: 10.5px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; padding: 11px 20px; background: rgba(12,17,27,0.5); white-space: nowrap; }
@@ -282,20 +295,52 @@
 
         <!-- ===== ORDERS TAB ===== -->
         <div id="tab-orders" class="tab-content hidden">
-            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-                <h2 class="text-xl font-bold text-white">Store Orders</h2>
-                <button id="newOrderBtn" class="btn-primary px-4 py-2 rounded-full text-sm">
-                    <i class="fas fa-plus" style="font-size: 11px;"></i> New Order
-                </button>
-            </div>
-            <div class="flex gap-2 mb-4 overflow-x-auto">
-                <button class="order-filter active" data-filter="all">All</button>
-                <button class="order-filter" data-filter="pending">Pending</button>
-                <button class="order-filter" data-filter="paid">Paid</button>
-                <button class="order-filter" data-filter="fulfilled">Fulfilled</button>
-            </div>
-            <div id="ordersList" class="space-y-3">
-                <p class="text-center py-8" style="color: #475569;">Loading orders...</p>
+            <div class="card">
+                <div class="section-head" style="flex-wrap: wrap; gap: 14px;">
+                    <div>
+                        <div class="section-title">Store Sales</div>
+                        <div class="section-meta" id="ordersMeta">Loading…</div>
+                    </div>
+                    <div class="orders-filters">
+                        <input type="text" id="orderPhoneFilter" class="input-field" placeholder="Filter by phone…" style="padding: 7px 12px; font-size: 13px; width: 150px;">
+                        <select id="orderStatusFilter" class="input-field" style="padding: 7px 10px; font-size: 13px;">
+                            <option value="all">All status</option>
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                            <option value="fulfilled">Fulfilled</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <input type="date" id="orderStartDate" class="input-field" style="padding: 6px 10px; font-size: 13px;">
+                        <input type="date" id="orderEndDate" class="input-field" style="padding: 6px 10px; font-size: 13px;">
+                        <button id="ordersTodayBtn" class="order-filter">Today</button>
+                        <button id="ordersClearBtn" class="order-filter">Clear</button>
+                        <button id="newOrderBtn" class="btn-primary" style="padding: 7px 14px; border-radius: 9999px; font-size: 13px;">
+                            <i class="fas fa-plus" style="font-size: 11px;"></i> New Order
+                        </button>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left;">#</th>
+                                <th style="text-align: left;">Data</th>
+                                <th style="text-align: left;">Network</th>
+                                <th style="text-align: left;">Phone</th>
+                                <th style="text-align: left;">Revenue</th>
+                                <th style="text-align: left;">Profit</th>
+                                <th style="text-align: left;">Payment</th>
+                                <th style="text-align: left;">Status</th>
+                                <th style="text-align: left;">Date</th>
+                                <th style="text-align: left;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersList">
+                            <tr><td colspan="10" class="text-center" style="padding: 32px; color: #475569;">Loading orders…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -328,7 +373,8 @@
         <!-- ===== SETTINGS TAB ===== -->
         <div id="tab-settings" class="tab-content hidden">
             <h2 class="text-xl font-bold text-white mb-5">Store Settings</h2>
-            <form id="storeSettingsForm" class="card p-6 space-y-4" style="max-width: 640px;">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <form id="storeSettingsForm" class="card p-6 space-y-4 lg:col-span-2">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="text-sm mb-1 block" style="color: #94a3b8;">Store Name</label>
@@ -377,10 +423,40 @@
                         </select>
                     </div>
                 </div>
+                <div class="pt-4" style="border-top: 1px solid rgba(30,36,51,0.8);">
+                    <label class="text-sm mb-2 block" style="color: #94a3b8;">Color Theme</label>
+                    <div id="themePicker" class="flex items-center gap-3 flex-wrap">
+                        <button type="button" class="theme-swatch" data-theme="amber" style="background: #f59e0b;" title="Amber"></button>
+                        <button type="button" class="theme-swatch" data-theme="red" style="background: #ef4444;" title="Red"></button>
+                        <button type="button" class="theme-swatch" data-theme="blue" style="background: #3b82f6;" title="Blue"></button>
+                        <button type="button" class="theme-swatch" data-theme="green" style="background: #22c55e;" title="Green"></button>
+                        <button type="button" class="theme-swatch" data-theme="purple" style="background: #a855f7;" title="Purple"></button>
+                        <button type="button" class="theme-swatch" data-theme="orange" style="background: #f97316;" title="Orange"></button>
+                        <button type="button" class="theme-swatch" data-theme="teal" style="background: #14b8a6;" title="Teal"></button>
+                    </div>
+                </div>
                 <button type="submit" class="btn-primary px-6 py-2 rounded-lg font-semibold">
                     <i class="fas fa-save"></i> Save Changes
                 </button>
             </form>
+
+            <div class="card p-6 h-max">
+                <h3 class="text-white font-semibold mb-1">Your Store Link</h3>
+                <p class="text-sm mb-4" style="color: #64748b;">Share this link with your customers.</p>
+                <div class="link-box mb-3">
+                    <i class="fas fa-globe" style="color: #60a5fa; font-size: 13px; flex-shrink: 0;"></i>
+                    <span id="settStoreLink">—</span>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" id="settCopyLinkBtn" class="btn-outline px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <a id="settOpenLinkBtn" href="#" target="_blank" rel="noopener" class="btn-outline px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-external-link-alt"></i> Open
+                    </a>
+                </div>
+            </div>
+            </div>
         </div>
 
     </div><!-- /storeShell -->

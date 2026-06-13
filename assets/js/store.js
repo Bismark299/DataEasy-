@@ -12,7 +12,7 @@ const StoreApp = (function() {
     let currentNetwork = 'MTN';
     let orderNetwork = 'MTN';
     let currentTab = 'overview';
-    let orderFilter = 'all';
+    let allOrders = [];
 
     // ==========================================
     // AUTH & HTTP
@@ -91,6 +91,26 @@ const StoreApp = (function() {
         return (store.name && slugify(store.name)) || store.id || '';
     }
 
+    const THEMES = {
+        blue:   ['#1e40af', '#2563eb', '#3b82f6'],
+        amber:  ['#b45309', '#d97706', '#f59e0b'],
+        red:    ['#991b1b', '#dc2626', '#ef4444'],
+        green:  ['#15803d', '#16a34a', '#22c55e'],
+        purple: ['#6b21a8', '#9333ea', '#a855f7'],
+        orange: ['#c2410c', '#ea580c', '#f97316'],
+        teal:   ['#0f766e', '#0d9488', '#14b8a6']
+    };
+
+    function storeTheme() {
+        return (store && store.metadata && store.metadata.theme) || 'blue';
+    }
+
+    function applyBannerTheme(theme) {
+        const c = THEMES[theme] || THEMES.blue;
+        const banner = document.querySelector('.store-banner');
+        if (banner) banner.style.background = `linear-gradient(120deg, ${c[0]} 0%, ${c[1]} 55%, ${c[2]} 100%)`;
+    }
+
     function getStoreUrl() {
         const ref = storeRef();
         return ref ? `${window.location.origin}/s/${ref}` : '';
@@ -123,6 +143,8 @@ const StoreApp = (function() {
                     .then(() => toast('Store link copied!', 'success'))
                     .catch(() => prompt('Copy your store link:', storeUrl));
             };
+
+            applyBannerTheme(storeTheme());
 
             loadDashboard();
             loadPackages();
@@ -436,46 +458,98 @@ const StoreApp = (function() {
     // ORDERS
     // ==========================================
     async function loadOrders() {
+        const tbody = document.getElementById('ordersList');
         try {
-            const status = orderFilter === 'all' ? '' : `&status=${orderFilter}`;
-            const data = await apiRequest(`/store/orders?limit=50${status}`);
-            renderOrders(data.orders);
+            const data = await apiRequest('/store/orders?limit=200&page=1');
+            allOrders = data.orders || [];
+            applyOrderFilters();
         } catch (e) {
-            toast('Failed to load orders', 'error');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center" style="padding:32px; color:#475569;">Failed to load orders.</td></tr>';
         }
     }
 
+    function orderPrimaryItem(o) {
+        return (o.items && o.items[0]) || {};
+    }
+
+    function orderPhone(o) {
+        const it = orderPrimaryItem(o);
+        return it.phoneNumber || it.phone || o.customerPhone || '';
+    }
+
+    function applyOrderFilters() {
+        const phoneEl = document.getElementById('orderPhoneFilter');
+        const statusEl = document.getElementById('orderStatusFilter');
+        const startEl = document.getElementById('orderStartDate');
+        const endEl = document.getElementById('orderEndDate');
+        const phone = (phoneEl ? phoneEl.value : '').trim().toLowerCase();
+        const status = statusEl ? statusEl.value : 'all';
+        const start = startEl ? startEl.value : '';
+        const end = endEl ? endEl.value : '';
+
+        let rows = allOrders.slice();
+        if (phone) rows = rows.filter(o => orderPhone(o).toLowerCase().includes(phone));
+        if (status && status !== 'all') rows = rows.filter(o => (o.status || '').toLowerCase() === status);
+        if (start) { const s = new Date(start + 'T00:00:00'); rows = rows.filter(o => new Date(o.createdAt) >= s); }
+        if (end) { const e = new Date(end + 'T23:59:59'); rows = rows.filter(o => new Date(o.createdAt) <= e); }
+        renderOrders(rows);
+    }
+
     function renderOrders(orders) {
-        const container = document.getElementById('ordersList');
+        const tbody = document.getElementById('ordersList');
+        const meta = document.getElementById('ordersMeta');
+        if (!tbody) return;
+
         if (!orders.length) {
-            container.innerHTML = '<p class="text-gray-500 text-center py-8">No orders found.</p>';
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center" style="padding:32px; color:#475569;">No orders found.</td></tr>';
+            if (meta) meta.textContent = '0 orders';
             return;
         }
 
-        const statusColors = { pending: 'badge-warning', paid: 'badge-info', fulfilled: 'badge-success', cancelled: 'badge-error', refunded: 'badge-error' };
+        if (meta) {
+            const sorted = orders.map(o => new Date(o.createdAt)).filter(d => !isNaN(d)).sort((a, b) => a - b);
+            const fmtD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const range = sorted.length ? `${fmtD(sorted[0])} → ${fmtD(sorted[sorted.length - 1])} · ` : '';
+            meta.textContent = `${range}${orders.length} order${orders.length > 1 ? 's' : ''}`;
+        }
 
-        container.innerHTML = orders.map(o => `
-            <div class="card p-4">
-                <div class="flex items-center justify-between mb-2">
-                    <div>
-                        <span class="text-white font-semibold text-sm">${escapeHtml(o.orderId)}</span>
-                        <span class="text-xs px-2 py-0.5 rounded-full ml-2 ${statusColors[o.status] || 'badge-info'}">${o.status}</span>
-                    </div>
-                    <span class="text-green-400 font-bold">GH₵${o.subtotal.toFixed(2)}</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-gray-400"><i class="fas fa-user mr-1"></i>${escapeHtml(o.customerName)}</span>
-                    <span class="text-gray-500 text-xs">${new Date(o.createdAt).toLocaleDateString()}</span>
-                </div>
-                <div class="text-xs text-gray-500 mt-1">
-                    ${o.items.map(i => `${i.quantity}x ${escapeHtml(i.productName)}`).join(', ')}
-                </div>
-                <div class="flex gap-2 mt-3">
-                    ${o.status === 'pending' ? `<button data-action="verify-payment" data-ref="${escapeHtml(o.paymentReference)}" class="text-xs bg-indigo-600 text-white px-3 py-1 rounded">Verify Payment</button>` : ''}
-                    ${o.status === 'paid' ? `<button data-action="fulfill-order" data-order-id="${escapeHtml(o.orderId)}" class="text-xs bg-green-600 text-white px-3 py-1 rounded">Mark Fulfilled</button>` : ''}
-                </div>
-            </div>
-        `).join('');
+        const statusClass = {
+            sent: 'st-success', fulfilled: 'st-success', completed: 'st-success', paid: 'st-info',
+            processing: 'st-info', pending: 'st-warning', failed: 'st-error', cancelled: 'st-error', refunded: 'st-error'
+        };
+        const paidStates = ['paid', 'fulfilled', 'completed', 'sent'];
+
+        tbody.innerHTML = orders.map(o => {
+            const item = orderPrimaryItem(o);
+            const net = item.network || detectNetwork(item.productName || item.data || '');
+            const dataLabel = item.data || (item.productName || '').replace(/\s*Data$/i, '').replace(new RegExp('^' + net + '\\s*', 'i'), '') || item.productName || 'Bundle';
+            const phone = orderPhone(o);
+            const profit = typeof o.profit === 'number' ? o.profit : ((o.subtotal || 0) - (o.totalCost || 0));
+            const status = (o.status || '').toLowerCase();
+            const num = (String(o.orderId || '').match(/(\d+)\s*$/) || [])[1];
+            const isPaid = !!o.paidAt || paidStates.includes(status);
+
+            let actions = '<span style="color:#475569;">—</span>';
+            if (status === 'pending' && o.paymentReference) {
+                actions = `<button data-action="verify-payment" data-ref="${escapeHtml(o.paymentReference)}" class="order-filter" style="padding:4px 11px; font-size:12px; background:#1d4ed8; color:#fff;">Verify</button>`;
+            } else if (status === 'paid') {
+                actions = `<button data-action="fulfill-order" data-order-id="${escapeHtml(o.orderId)}" class="order-filter" style="padding:4px 11px; font-size:12px; background:#16a34a; color:#fff;">Fulfill</button>`;
+            }
+
+            return `
+            <tr>
+                <td style="color:#64748b;">#${escapeHtml(num || o.orderId || '')}</td>
+                <td class="text-white" style="font-weight:600;">${escapeHtml(dataLabel)}</td>
+                <td><span class="net-badge ${netClass(net)}">${escapeHtml(net)}</span></td>
+                <td style="color:#94a3b8; font-family:ui-monospace,monospace;">${escapeHtml(phone)}</td>
+                <td class="text-white" style="font-weight:600;">${money(o.subtotal)}</td>
+                <td style="color:#22c55e; font-weight:600;">+${money(profit)}</td>
+                <td><span class="badge ${isPaid ? 'badge-success' : 'badge-warning'}">${isPaid ? 'Paid' : 'Unpaid'}</span></td>
+                <td><span class="status-badge ${statusClass[status] || 'st-info'}">${escapeHtml(o.status || '')}</span></td>
+                <td style="color:#64748b; white-space:nowrap;">${fmtDateTime(o.createdAt)}</td>
+                <td>${actions}</td>
+            </tr>`;
+        }).join('');
     }
 
     function showNewOrder() {
@@ -718,11 +792,22 @@ const StoreApp = (function() {
         document.getElementById('settBankAcctName').value = store.bankAccountName || '';
         document.getElementById('settMomoNum').value = store.momoNumber || '';
         document.getElementById('settMomoProv').value = store.momoProvider || '';
+
+        const theme = storeTheme();
+        document.querySelectorAll('.theme-swatch').forEach(s => s.classList.toggle('active', s.dataset.theme === theme));
+
+        const url = getStoreUrl();
+        const linkEl = document.getElementById('settStoreLink');
+        if (linkEl) linkEl.textContent = url || '—';
+        const openBtn = document.getElementById('settOpenLinkBtn');
+        if (openBtn && url) openBtn.href = url;
     }
 
     async function saveSettings(e) {
         e.preventDefault();
         try {
+            const activeSwatch = document.querySelector('.theme-swatch.active');
+            const theme = activeSwatch ? activeSwatch.dataset.theme : 'blue';
             const body = {
                 name: document.getElementById('settStoreName').value,
                 phone: document.getElementById('settStorePhone').value,
@@ -732,10 +817,12 @@ const StoreApp = (function() {
                 bankAccountNumber: document.getElementById('settBankAcct').value,
                 bankAccountName: document.getElementById('settBankAcctName').value,
                 momoNumber: document.getElementById('settMomoNum').value,
-                momoProvider: document.getElementById('settMomoProv').value
+                momoProvider: document.getElementById('settMomoProv').value,
+                metadata: { theme }
             };
             const data = await apiRequest('/store', { method: 'PUT', body: JSON.stringify(body) });
             store = data.store;
+            applyBannerTheme(theme);
             toast('Store settings updated', 'success');
         } catch (e) {
             toast(e.message, 'error');
@@ -829,14 +916,46 @@ const StoreApp = (function() {
             }
         });
 
-        // Order filters
-        document.querySelectorAll('.order-filter').forEach(btn => {
-            btn.addEventListener('click', () => {
-                orderFilter = btn.dataset.filter;
-                document.querySelectorAll('.order-filter').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                loadOrders();
+        // Order filters (client-side)
+        const phoneFilter = document.getElementById('orderPhoneFilter');
+        if (phoneFilter) phoneFilter.addEventListener('input', applyOrderFilters);
+        ['orderStatusFilter', 'orderStartDate', 'orderEndDate'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', applyOrderFilters);
+        });
+        const todayBtn = document.getElementById('ordersTodayBtn');
+        if (todayBtn) todayBtn.addEventListener('click', () => {
+            const t = new Date();
+            const d = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+            document.getElementById('orderStartDate').value = d;
+            document.getElementById('orderEndDate').value = d;
+            applyOrderFilters();
+        });
+        const clearBtn = document.getElementById('ordersClearBtn');
+        if (clearBtn) clearBtn.addEventListener('click', () => {
+            if (phoneFilter) phoneFilter.value = '';
+            document.getElementById('orderStatusFilter').value = 'all';
+            document.getElementById('orderStartDate').value = '';
+            document.getElementById('orderEndDate').value = '';
+            applyOrderFilters();
+        });
+
+        // Color theme picker
+        document.querySelectorAll('.theme-swatch').forEach(s => {
+            s.addEventListener('click', () => {
+                document.querySelectorAll('.theme-swatch').forEach(x => x.classList.remove('active'));
+                s.classList.add('active');
             });
+        });
+
+        // Settings store link copy
+        const settCopyBtn = document.getElementById('settCopyLinkBtn');
+        if (settCopyBtn) settCopyBtn.addEventListener('click', () => {
+            const url = getStoreUrl();
+            if (!url) return;
+            navigator.clipboard.writeText(url)
+                .then(() => toast('Store link copied!', 'success'))
+                .catch(() => prompt('Copy your store link:', url));
         });
 
         // Forms
