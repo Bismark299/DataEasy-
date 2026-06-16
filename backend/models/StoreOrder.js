@@ -17,7 +17,12 @@ const StoreOrder = sequelize.define('StoreOrder', {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true,
-        comment: 'Human-readable order ID e.g. SO-1234567890'
+        comment: 'Store reference e.g. SO-1234567890 (shown only on the admin stores page)'
+    },
+    orderNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Sequential order number shared with platform orders; shown on the main admin orders page. Assigned at payment time.'
     },
     storeId: {
         type: DataTypes.UUID,

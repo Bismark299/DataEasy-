@@ -395,6 +395,24 @@ exports.createOrder = async (req, res) => {
  * Verify store order payment
  * GET /api/store/orders/:reference/verify
  */
+// Store orders keep their SO- orderId as the store reference (shown only on the
+// admin stores page), but also receive a sequential orderNumber drawn from the
+// SAME sequence as platform orders so they continue the normal order-number
+// system everywhere else (e.g. the main admin orders page). Assigned at payment
+// time so abandoned/unpaid orders don't create gaps in the shared sequence.
+async function assignStoreOrderNumber(order) {
+    if (!order || order.orderNumber) return order ? order.orderNumber : null;
+    try {
+        const { generateOrderId } = require('./orderController');
+        const num = await generateOrderId();
+        await order.update({ orderNumber: num });
+        return num;
+    } catch (e) {
+        logger.error('Failed to assign store order number', { orderId: order.orderId, error: e.message });
+        return null;
+    }
+}
+
 exports.verifyOrderPayment = async (req, res) => {
     try {
         const { reference } = req.params;
@@ -427,6 +445,7 @@ exports.verifyOrderPayment = async (req, res) => {
         // Mark as paid only. Profit/settlement is credited later, once the
         // order is actually delivered/fulfilled (see recordSale on fulfillment).
         await order.update({ status: 'paid', paidAt: new Date() });
+        await assignStoreOrderNumber(order);
 
         const updatedOrder = await StoreOrder.findByPk(order.id);
         res.json({ success: true, message: 'Payment verified and recorded', order: updatedOrder });
@@ -1264,6 +1283,7 @@ exports.verifyPublicPayment = async (req, res) => {
         // Mark as paid only. Profit/settlement is credited later, once the
         // order is actually delivered/fulfilled (see recordSale on fulfillment).
         await order.update({ status: 'paid', paidAt: new Date(), paymentMethod: 'paystack' });
+        await assignStoreOrderNumber(order);
 
         res.json({ success: true, message: 'Payment successful! Your data will be delivered shortly.', status: 'paid' });
 

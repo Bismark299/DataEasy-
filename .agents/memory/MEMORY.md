@@ -4,3 +4,5 @@
 - [Store profit recognition timing](store-profit-recognition.md) — profit credited at paid→fulfilled (not payment); recordSale once under row lock; reports recognize revenue+COGS at fulfillment.
 - [Admin orders store-merge](admin-orders-store-merge.md) — admin orders page paginates client-side (limit:9999), so store orders are merged into getAllOrders tagged source:'store'; guard store rows from platform mutation endpoints.
 - [Admin actions on store orders](admin-store-order-actions.md) — store orders reuse platform admin order endpoints via StoreOrder fallback; status changes MUST go through storeOrderDelivery.updateItem for ledger consistency.
+- [Store order numbering](store-order-numbering.md) — SO- orderId is the immutable ledger/tracking ref (stores page only); orderNumber is a shared-sequence display number assigned at payment, shown everywhere else.
+- [Dev env gotchas](dev-env-gotchas.md) — sync() doesn't add columns (need idempotent ALTER TABLE in server.js); tailwind `content` must list every top-level dir (store/, admin/...) or arbitrary-value classes get purged.

@@ -287,6 +287,7 @@ exports.getAllOrders = async (req, res) => {
                 if (status && status !== 'all') storeWhere.deliveryStatus = status;
                 if (search) {
                     storeWhere[Op.or] = [
+                        { orderNumber: { [Op.iLike]: `%${search}%` } },
                         { orderId: { [Op.iLike]: `%${search}%` } },
                         { customerPhone: { [Op.iLike]: `%${search}%` } },
                         { customerName: { [Op.iLike]: `%${search}%` } }
@@ -331,7 +332,9 @@ exports.getAllOrders = async (req, res) => {
                     }));
                     return {
                         id: so.id,
-                        orderId: so.orderId,
+                        orderId: so.orderNumber || so.orderId,
+                        orderNumber: so.orderNumber || null,
+                        storeReference: so.orderId,
                         source: 'store',
                         storeName: so.store ? so.store.name : null,
                         user: {
@@ -818,9 +821,28 @@ exports.bulkUpdateItemStatus = async (req, res) => {
             }
         }));
 
-        // Count orders not found
-        failed += orderIds.length - orders.length;
+        // Any orderIds not found in the platform Order table may be store-link
+        // orders (separate table). Without this, copying pending orders that
+        // include store orders silently fails for them, so they revert to
+        // Pending on reload — "pending orders remain pending despite copying".
+        const foundIds = new Set(orders.map(o => o.id));
+        const storeIds = orderIds.filter(id => !foundIds.has(id));
+        for (const sid of storeIds) {
+            const indices = byOrder[sid] || [];
+            const storeOrder = await findStoreOrder(sid);
+            if (!storeOrder) { failed += indices.length; continue; }
+            for (const idx of indices) {
+                try {
+                    const r = await applyStoreItemStatus(storeOrder, idx, status, failureReason);
+                    if (r) updated++; else failed++;
+                } catch (err) {
+                    console.error('Bulk store update error for order', sid, err);
+                    failed++;
+                }
+            }
+        }
 
+        invalidateCache('/admin/orders');
         res.json({ success: true, updated, failed });
     } catch (error) {
         console.error('Bulk item status error:', error);

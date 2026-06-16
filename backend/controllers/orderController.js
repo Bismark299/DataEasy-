@@ -166,6 +166,9 @@ async function generateOrderId(transaction) {
     return String(nextVal[0].next_id).padStart(4, '0');
 }
 
+// Exported so store orders can share the same sequential order-number system.
+exports.generateOrderId = generateOrderId;
+
 /**
  * Create new order with atomic transaction
  * POST /api/orders

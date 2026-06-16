@@ -223,6 +223,10 @@ async function sweepStoreOrders() {
             for (let i = 0; i < count; i++) {
                 const item = order.items[i];
                 if (item.deliveryStatus === 'Delivered' || item.deliveryStatus === 'Failed') continue;
+                // A 'Processing' item with no provider reference was set manually by an
+                // admin (the copy → process → complete flow). Don't auto-dispatch it
+                // (would double-deliver) or reset it to Pending — leave it for the admin.
+                if (item.deliveryStatus === 'Processing' && !item.providerReference) continue;
 
                 if (item.providerReference) {
                     await pollItem(order, i);

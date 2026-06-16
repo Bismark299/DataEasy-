@@ -509,6 +509,12 @@ const startServer = async () => {
                 WHERE "paymentMethod" = 'manual' 
                 AND (description LIKE 'MoMo%' OR reference LIKE 'MOMO-%');
             `).catch(() => {});
+
+            // Store orders: add sequential orderNumber column (shared with platform
+            // orders). The SO- orderId stays as the store reference.
+            await sequelize.query(
+                `ALTER TABLE "store_orders" ADD COLUMN IF NOT EXISTS "orderNumber" VARCHAR(255)`
+            ).catch(() => {});
             
             console.log('✅ Startup migrations completed');
         } catch (error) {
