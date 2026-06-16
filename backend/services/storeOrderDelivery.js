@@ -258,5 +258,7 @@ module.exports = {
     dispatchStoreOrder,
     sweepStoreOrders,
     startStoreDeliverySweep,
-    stopStoreDeliverySweep
+    stopStoreDeliverySweep,
+    updateItem,
+    computeOverall
 };

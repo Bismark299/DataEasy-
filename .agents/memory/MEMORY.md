@@ -3,3 +3,4 @@
 - [Sequelize JSONB mutation not persisted](sequelize-jsonb-mutation.md) — mutating a loaded JSONB object in place then saving is a silent no-op; clone to a new reference first.
 - [Store profit recognition timing](store-profit-recognition.md) — profit credited at paid→fulfilled (not payment); recordSale once under row lock; reports recognize revenue+COGS at fulfillment.
 - [Admin orders store-merge](admin-orders-store-merge.md) — admin orders page paginates client-side (limit:9999), so store orders are merged into getAllOrders tagged source:'store'; guard store rows from platform mutation endpoints.
+- [Admin actions on store orders](admin-store-order-actions.md) — store orders reuse platform admin order endpoints via StoreOrder fallback; status changes MUST go through storeOrderDelivery.updateItem for ledger consistency.

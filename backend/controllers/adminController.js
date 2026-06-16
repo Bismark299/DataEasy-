@@ -10,6 +10,7 @@ const { Op, fn, col, literal } = require('sequelize');
 const { packages, clearPackagesCache } = require('../config/packages');
 const logger = require('../utils/logger');
 const { invalidateCache } = require('../middleware/cache');
+const storeDelivery = require('../services/storeOrderDelivery');
 
 // Configuration constants
 
@@ -320,7 +321,7 @@ exports.getAllOrders = async (req, res) => {
                         phone: so.customerPhone,
                         quantity: it.quantity || 1,
                         price: parseFloat(it.lineTotal != null ? it.lineTotal : (it.unitPrice || 0) * (it.quantity || 1)) || 0,
-                        deliveryStatus: so.deliveryStatus
+                        deliveryStatus: it.deliveryStatus || so.deliveryStatus
                     }));
                     return {
                         id: so.id,
@@ -400,21 +401,101 @@ exports.getOrder = async (req, res) => {
     }
 };
 
+// ---------------------------------------------------------------------------
+// Store-link order (StoreOrder) helpers
+// Store orders are merged into the admin orders page (source: 'store'). The same
+// admin actions (complete / cancel / retry / status change) must work on them.
+// All status changes go through the delivery service's updateItem so the
+// fulfilled -> ledger (commission/settlement) transition stays consistent with
+// automatic delivery.
+// ---------------------------------------------------------------------------
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Accept the loose status values the admin UI sends and normalize to the
+// delivery lifecycle vocabulary shared by Order and StoreOrder.
+function normalizeDeliveryStatus(status) {
+    const map = {
+        completed: 'Delivered', delivered: 'Delivered',
+        cancelled: 'Failed', canceled: 'Failed', failed: 'Failed',
+        processing: 'Processing', pending: 'Pending'
+    };
+    return map[String(status || '').toLowerCase()] || status;
+}
+
+async function findStoreOrder(key) {
+    let order = null;
+    if (UUID_RE.test(key)) order = await StoreOrder.findByPk(key);
+    if (!order) order = await StoreOrder.findOne({ where: { orderId: key } });
+    return order;
+}
+
+// Apply a delivery status to a single store-order item. Returns the new overall
+// delivery status, or null when the store order / item was not found.
+async function applyStoreItemStatus(storeOrder, itemIndex, status, failureReason) {
+    const patch = { deliveryStatus: status };
+    if (status === 'Delivered') { patch.deliveredAt = new Date().toISOString(); patch.deliveryError = null; }
+    else if (status === 'Failed') { patch.deliveryError = failureReason || 'Cancelled by admin'; }
+    else { patch.deliveryError = null; }
+    return await storeDelivery.updateItem(storeOrder.id, itemIndex, patch);
+}
+
+// Apply a delivery status to every item of a store order (order-level action).
+async function applyStoreOrderStatus(storeOrder, status, failureReason) {
+    const items = storeOrder.items || [];
+    if (items.length === 0) {
+        const updates = { deliveryStatus: status };
+        if (status === 'Delivered' && storeOrder.status === 'paid') {
+            updates.status = 'fulfilled';
+            updates.fulfilledAt = new Date();
+        }
+        await storeOrder.update(updates);
+        return status;
+    }
+    let overall = storeOrder.deliveryStatus;
+    for (let i = 0; i < items.length; i++) {
+        const r = await applyStoreItemStatus(storeOrder, i, status, failureReason);
+        if (r) overall = r;
+    }
+    return overall;
+}
+
 /**
  * Update order status (with audit logging)
  * PUT /api/admin/orders/:orderId/status
  */
 exports.updateOrderStatus = async (req, res) => {
     try {
-        const { status } = req.body;
+        const status = normalizeDeliveryStatus(req.body.status);
         const validStatuses = ['Pending', 'Processing', 'Delivered', 'Failed'];
 
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ error: 'Invalid status' });
         }
 
-        const order = await Order.findOne({ where: { orderId: req.params.orderId } });
+        const key = req.params.orderId;
+        let order = null;
+        if (UUID_RE.test(key)) order = await Order.findByPk(key);
+        if (!order) order = await Order.findOne({ where: { orderId: key } });
         if (!order) {
+            // Fall back to store-link orders so the same action works on them.
+            const storeOrder = await findStoreOrder(key);
+            if (storeOrder) {
+                const overall = await applyStoreOrderStatus(storeOrder, status, 'Cancelled by admin');
+                invalidateCache('/admin/orders');
+                await AdminAuditLog.logAction(req, {
+                    action: 'UPDATE_STORE_ORDER_STATUS',
+                    targetType: 'store_order',
+                    targetId: storeOrder.orderId,
+                    newValue: { deliveryStatus: status },
+                    description: `Set store order ${storeOrder.orderId} to ${status}`
+                });
+                return res.json({
+                    success: true,
+                    message: `Order #${storeOrder.orderId} updated to ${status}`,
+                    order: { orderId: storeOrder.orderId, deliveryStatus: overall || status }
+                });
+            }
             return res.status(404).json({ error: 'Order not found' });
         }
 
@@ -483,13 +564,31 @@ exports.updateItemStatus = async (req, res) => {
             return res.status(400).json({ error: 'Invalid status' });
         }
 
+        const idx = parseInt(itemIndex);
+
         // Search by primary key (id) which is a UUID
         const order = await Order.findByPk(orderId);
         if (!order) {
+            // Fall back to store-link orders so per-item actions work on them too.
+            const storeOrder = await findStoreOrder(orderId);
+            if (storeOrder) {
+                if (idx < 0 || idx >= (storeOrder.items || []).length) {
+                    return res.status(404).json({ error: 'Item not found' });
+                }
+                const overall = await applyStoreItemStatus(storeOrder, idx, status, failureReason);
+                invalidateCache('/admin/orders');
+                await AdminAuditLog.logAction(req, {
+                    action: 'UPDATE_STORE_ORDER_ITEM_STATUS',
+                    targetType: 'store_order',
+                    targetId: storeOrder.orderId,
+                    newValue: { itemIndex: idx, deliveryStatus: status },
+                    description: `Set store order ${storeOrder.orderId} item ${idx} to ${status}`
+                });
+                return res.json({ success: true, message: `Item updated to ${status}`, orderStatus: overall || status });
+            }
             return res.status(404).json({ error: 'Order not found' });
         }
 
-        const idx = parseInt(itemIndex);
         if (idx < 0 || idx >= order.items.length) {
             return res.status(404).json({ error: 'Item not found' });
         }
@@ -2788,7 +2887,33 @@ exports.retryFailedItems = async (req, res) => {
     try {
         const { id } = req.params;
         const order = await Order.findByPk(id);
-        if (!order) return res.status(404).json({ error: 'Order not found' });
+        if (!order) {
+            // Fall back to store-link orders: reset failed items and re-dispatch to MCBIS.
+            const storeOrder = await findStoreOrder(id);
+            if (storeOrder) {
+                const sItems = storeOrder.items || [];
+                const sFailed = sItems.reduce((acc, item, i) => {
+                    if (item.deliveryStatus === 'Failed') acc.push(i);
+                    return acc;
+                }, []);
+                if (sFailed.length === 0) {
+                    return res.status(400).json({ error: 'No failed items to retry in this order' });
+                }
+                const reset = sItems.map(item => item.deliveryStatus === 'Failed'
+                    ? { ...item, deliveryStatus: 'Pending', providerReference: null, sentToProviderAt: null, deliveryError: null }
+                    : item);
+                await storeOrder.update({ items: reset, deliveryStatus: storeDelivery.computeOverall(reset) });
+                storeDelivery.dispatchStoreOrder(storeOrder.id)
+                    .catch(err => logger.error('Store retry dispatch error', { orderId: storeOrder.orderId, error: err.message }));
+                invalidateCache('/admin/orders');
+                return res.json({
+                    success: true,
+                    message: `${sFailed.length} failed item(s) queued for retry`,
+                    resetCount: sFailed.length
+                });
+            }
+            return res.status(404).json({ error: 'Order not found' });
+        }
 
         const items = order.items || [];
         const failedIndexes = items.reduce((acc, item, i) => {
