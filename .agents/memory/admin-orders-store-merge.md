@@ -16,6 +16,11 @@ The admin orders list (`admin/orders.html`) fetches `GET /api/admin/orders` with
 - The merge is skipped when a `userId` filter is set (store orders have no platform user).
 - If a future API consumer relies on accurate `pagination.total/pages` from `getAllOrders`, the merge count must be added in.
 
+**Display conventions (product decisions):**
+- Only payment-complete store orders belong on the main admin orders dashboard: the merge filters `StoreOrder.status IN ['paid','fulfilled','refunded']` (excludes unpaid `pending` and `cancelled`). **Why:** unpaid store orders were leaking onto the main dashboard.
+- The main orders page shows the store OWNER's name, NOT the store name: the merge nests `Store -> owner` and maps `user.fullName/name/agentCode` from the owner (fallback `'Store Owner'`/`'STORE'`). The store NAME appears only on the admin **stores** page. The `orders.html` store-link badge tooltip is generic (no store name).
+- Admin **stores** page tables (per-store modal + global list) show a Profit column: `profit = netAmount - totalCost`, badge `Credited` when `status==='fulfilled'` else `Pending`. Mirrors profit recognition timing (see store-profit-recognition.md).
+
 # Public store route ordering
 
 Static public store paths (`/public/orders/:reference/verify`, `/public/track`) MUST be registered before the parameterized `/public/:storeId` in `backend/routes/store.js`, or `:storeId` swallows them. The public order-tracking endpoint (`/public/track?orderId=&phone=`) requires both params and matches phone by last-9-digits to prevent ID enumeration; it returns a single generic 404 for both not-found and mismatch.

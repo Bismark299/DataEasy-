@@ -462,16 +462,22 @@
                             <th class="py-1 text-left">Order ID</th>
                             <th class="py-1 text-left">Customer</th>
                             <th class="py-1 text-right">Amount</th>
+                            <th class="py-1 text-right">Profit</th>
                             <th class="py-1 text-left">Status</th>
                             <th class="py-1 text-left">Date</th>
                         </tr></thead>
-                        <tbody>${data.recentOrders.map(o => `<tr class="border-b border-gray-50">
+                        <tbody>${data.recentOrders.map(o => {
+                            const profit = (parseFloat(o.netAmount || 0) - parseFloat(o.totalCost || 0));
+                            const credited = o.status === 'fulfilled';
+                            return `<tr class="border-b border-gray-50">
                             <td class="py-1 font-mono text-gray-600">${escapeHtml(o.orderId)}</td>
                             <td class="py-1">${escapeHtml(o.customerName || '')}</td>
                             <td class="py-1 text-right font-semibold">₵${parseFloat(o.subtotal || 0).toFixed(2)}</td>
+                            <td class="py-1 text-right"><span class="font-semibold">₵${profit.toFixed(2)}</span> <span class="px-1.5 py-0.5 rounded text-[10px] ${credited ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${credited ? 'Credited' : 'Pending'}</span></td>
                             <td class="py-1"><span class="px-1.5 py-0.5 rounded text-[10px] ${o.status === 'fulfilled' ? 'bg-green-100 text-green-700' : o.status === 'paid' ? 'bg-blue-100 text-blue-700' : o.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}">${o.status}</span></td>
                             <td class="py-1 text-gray-400">${new Date(o.createdAt).toLocaleDateString()}</td>
-                        </tr>`).join('')}</tbody>
+                        </tr>`;
+                        }).join('')}</tbody>
                     </table></div>`
                     : '<p class="text-gray-400 text-xs">No orders yet.</p>';
 
@@ -671,12 +677,15 @@
                     <th class="text-left px-4 py-2">Customer</th>
                     <th class="text-left px-4 py-2">Items</th>
                     <th class="text-right px-4 py-2">Total</th>
+                    <th class="text-right px-4 py-2">Profit</th>
                     <th class="text-center px-4 py-2">Delivery</th>
                     <th class="text-center px-4 py-2">Status</th>
                 </tr></thead>
                 <tbody class="divide-y divide-gray-100">
                 ${orders.map(o => {
                     const items = (o.items || []).map(i => `${escapeHtml(i.network || '')} ${escapeHtml(i.data || '')}${i.quantity > 1 ? ' x' + i.quantity : ''}`).join(', ');
+                    const profit = (parseFloat(o.netAmount || 0) - parseFloat(o.totalCost || 0));
+                    const credited = o.status === 'fulfilled';
                     return `<tr class="hover:bg-gray-50">
                         <td class="px-4 py-2 text-gray-500 whitespace-nowrap">${new Date(o.createdAt).toLocaleString()}</td>
                         <td class="px-4 py-2">${escapeHtml(o.store ? o.store.name : 'N/A')}</td>
@@ -684,6 +693,7 @@
                         <td class="px-4 py-2">${escapeHtml(o.customerName || '')}<br><span class="text-gray-400">${escapeHtml(o.customerPhone || '')}</span></td>
                         <td class="px-4 py-2">${escapeHtml(items)}</td>
                         <td class="px-4 py-2 text-right font-semibold">₵${parseFloat(o.subtotal).toFixed(2)}</td>
+                        <td class="px-4 py-2 text-right"><div class="font-semibold">₵${profit.toFixed(2)}</div><span class="px-1.5 py-0.5 rounded-full text-[10px] ${credited ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${credited ? 'Credited' : 'Pending'}</span></td>
                         <td class="px-4 py-2 text-center text-gray-600">${escapeHtml(o.deliveryStatus || '-')}</td>
                         <td class="px-4 py-2 text-center"><span class="px-2 py-0.5 rounded-full ${statusColors[o.status] || 'bg-gray-100 text-gray-600'}">${escapeHtml(o.status)}</span></td>
                     </tr>`;

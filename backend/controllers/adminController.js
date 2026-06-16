@@ -281,6 +281,9 @@ exports.getAllOrders = async (req, res) => {
         if (includeStoreOrders) {
             try {
                 const storeWhere = {};
+                // Only store orders whose payment is complete belong on the main
+                // admin orders dashboard (exclude unpaid 'pending' and 'cancelled').
+                storeWhere.status = { [Op.in]: ['paid', 'fulfilled', 'refunded'] };
                 if (status && status !== 'all') storeWhere.deliveryStatus = status;
                 if (search) {
                     storeWhere[Op.or] = [
@@ -301,7 +304,10 @@ exports.getAllOrders = async (req, res) => {
 
                 const storeOrders = await StoreOrder.findAll({
                     where: storeWhere,
-                    include: [{ model: Store, as: 'store', attributes: ['id', 'name'] }],
+                    include: [{
+                        model: Store, as: 'store', attributes: ['id', 'name'],
+                        include: [{ model: User, as: 'owner', attributes: ['id', 'fullName', 'agentCode'] }]
+                    }],
                     order: [['createdAt', 'DESC']]
                 });
 
@@ -329,9 +335,9 @@ exports.getAllOrders = async (req, res) => {
                         source: 'store',
                         storeName: so.store ? so.store.name : null,
                         user: {
-                            fullName: so.store ? so.store.name : 'Store',
-                            name: so.store ? so.store.name : 'Store',
-                            agentCode: 'STORE'
+                            fullName: (so.store && so.store.owner) ? so.store.owner.fullName : 'Store Owner',
+                            name: (so.store && so.store.owner) ? so.store.owner.fullName : 'Store Owner',
+                            agentCode: (so.store && so.store.owner && so.store.owner.agentCode) ? so.store.owner.agentCode : 'STORE'
                         },
                         customer: { name: so.customerName, phone: so.customerPhone, email: so.customerEmail },
                         network: items[0] ? items[0].network : null,
