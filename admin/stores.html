@@ -143,6 +143,9 @@
                 <button class="admin-tab px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-600 whitespace-nowrap" data-tab="stores">
                     <i class="fas fa-store mr-1"></i> All Stores
                 </button>
+                <button class="admin-tab px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-600 whitespace-nowrap" data-tab="storeorders">
+                    <i class="fas fa-receipt mr-1"></i> Store Orders
+                </button>
                 <button class="admin-tab px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-600 whitespace-nowrap" data-tab="payouts">
                     <i class="fas fa-money-check-alt mr-1"></i> Payouts
                 </button>
@@ -221,6 +224,23 @@
                 </div>
                 <div id="payoutsList" class="space-y-3">
                     <p class="text-gray-500 text-center py-8">Loading payouts...</p>
+                </div>
+            </div>
+
+            <!-- STORE ORDERS TAB -->
+            <div id="tab-storeorders" class="tab-content hidden">
+                <div class="flex flex-wrap gap-2 mb-4 items-center">
+                    <button class="sorder-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500 text-white" data-status="all">All</button>
+                    <button class="sorder-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600" data-status="pending">Pending</button>
+                    <button class="sorder-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600" data-status="paid">Paid</button>
+                    <button class="sorder-filter px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600" data-status="fulfilled">Fulfilled</button>
+                    <input type="text" id="storeOrderSearch" placeholder="Search order #, name, phone..." class="ml-auto px-3 py-2 border rounded-lg text-sm w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                </div>
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div id="storeOrdersList" class="overflow-x-auto">
+                        <p class="text-gray-500 text-center py-8">Loading store orders...</p>
+                    </div>
+                    <div id="storeOrdersPagination" class="flex items-center justify-between p-4 border-t border-gray-100 text-sm"></div>
                 </div>
             </div>
 
@@ -364,6 +384,7 @@
             });
             if (tab === 'overview') loadStats();
             else if (tab === 'stores') loadAllStores();
+            else if (tab === 'storeorders') loadStoreOrders();
             else if (tab === 'payouts') loadPayouts();
             else if (tab === 'reconciliation') loadReconciliations();
         }
@@ -615,6 +636,69 @@
             } catch (e) { toast(e.message, 'error'); }
         };
 
+        // ========== STORE ORDERS ==========
+        let storeOrderStatus = 'all';
+        let storeOrderPage = 1;
+        let storeOrderQuery = '';
+
+        async function loadStoreOrders() {
+            try {
+                const params = new URLSearchParams({ page: storeOrderPage, limit: 20 });
+                if (storeOrderStatus !== 'all') params.set('status', storeOrderStatus);
+                if (storeOrderQuery) params.set('search', storeOrderQuery);
+                const data = await apiRequest(`/admin/stores/orders?${params.toString()}`);
+                renderStoreOrders(data.orders, data.pagination);
+            } catch (e) {
+                document.getElementById('storeOrdersList').innerHTML = `<p class="text-red-500 text-center py-8">${escapeHtml(e.message)}</p>`;
+                document.getElementById('storeOrdersPagination').innerHTML = '';
+            }
+        }
+
+        function renderStoreOrders(orders, pagination) {
+            const container = document.getElementById('storeOrdersList');
+            const pag = document.getElementById('storeOrdersPagination');
+            if (!orders || !orders.length) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-8">No store orders found.</p>';
+                pag.innerHTML = '';
+                return;
+            }
+            const statusColors = { pending: 'bg-yellow-100 text-yellow-800', paid: 'bg-blue-100 text-blue-800', fulfilled: 'bg-green-100 text-green-800', cancelled: 'bg-red-100 text-red-800', failed: 'bg-red-100 text-red-800' };
+            container.innerHTML = `<table class="w-full text-xs">
+                <thead class="bg-gray-50 text-gray-500"><tr>
+                    <th class="text-left px-4 py-2 whitespace-nowrap">Date</th>
+                    <th class="text-left px-4 py-2">Store</th>
+                    <th class="text-left px-4 py-2">Order #</th>
+                    <th class="text-left px-4 py-2">Customer</th>
+                    <th class="text-left px-4 py-2">Items</th>
+                    <th class="text-right px-4 py-2">Total</th>
+                    <th class="text-center px-4 py-2">Delivery</th>
+                    <th class="text-center px-4 py-2">Status</th>
+                </tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                ${orders.map(o => {
+                    const items = (o.items || []).map(i => `${escapeHtml(i.network || '')} ${escapeHtml(i.data || '')}${i.quantity > 1 ? ' x' + i.quantity : ''}`).join(', ');
+                    return `<tr class="hover:bg-gray-50">
+                        <td class="px-4 py-2 text-gray-500 whitespace-nowrap">${new Date(o.createdAt).toLocaleString()}</td>
+                        <td class="px-4 py-2">${escapeHtml(o.store ? o.store.name : 'N/A')}</td>
+                        <td class="px-4 py-2 font-mono">${escapeHtml(o.orderId)}</td>
+                        <td class="px-4 py-2">${escapeHtml(o.customerName || '')}<br><span class="text-gray-400">${escapeHtml(o.customerPhone || '')}</span></td>
+                        <td class="px-4 py-2">${escapeHtml(items)}</td>
+                        <td class="px-4 py-2 text-right font-semibold">₵${parseFloat(o.subtotal).toFixed(2)}</td>
+                        <td class="px-4 py-2 text-center text-gray-600">${escapeHtml(o.deliveryStatus || '-')}</td>
+                        <td class="px-4 py-2 text-center"><span class="px-2 py-0.5 rounded-full ${statusColors[o.status] || 'bg-gray-100 text-gray-600'}">${escapeHtml(o.status)}</span></td>
+                    </tr>`;
+                }).join('')}
+                </tbody></table>`;
+            const pages = pagination.pages || 1;
+            pag.innerHTML = `<span class="text-gray-500">Page ${pagination.page} of ${pages} · ${pagination.total} orders</span>
+                <span class="flex gap-2">
+                    <button ${pagination.page <= 1 ? 'disabled' : ''} onclick="window._storeOrdersPage(${pagination.page - 1})" class="px-3 py-1 rounded border ${pagination.page <= 1 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'}">Prev</button>
+                    <button ${pagination.page >= pages ? 'disabled' : ''} onclick="window._storeOrdersPage(${pagination.page + 1})" class="px-3 py-1 rounded border ${pagination.page >= pages ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'}">Next</button>
+                </span>`;
+        }
+
+        window._storeOrdersPage = function(p) { storeOrderPage = p; loadStoreOrders(); };
+
         // ========== RECONCILIATION ==========
         async function loadReconciliations() {
             try {
@@ -684,6 +768,33 @@
                     btn.classList.add('bg-blue-500', 'text-white');
                     loadPayouts();
                 });
+            });
+
+            // Store order filters
+            document.querySelectorAll('.sorder-filter').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    storeOrderStatus = btn.dataset.status;
+                    storeOrderPage = 1;
+                    document.querySelectorAll('.sorder-filter').forEach(b => {
+                        b.classList.remove('bg-blue-500', 'text-white');
+                        b.classList.add('bg-gray-200', 'text-gray-600');
+                    });
+                    btn.classList.remove('bg-gray-200', 'text-gray-600');
+                    btn.classList.add('bg-blue-500', 'text-white');
+                    loadStoreOrders();
+                });
+            });
+
+            // Store order search (debounced)
+            let storeOrderSearchTimer = null;
+            document.getElementById('storeOrderSearch').addEventListener('input', function() {
+                const q = this.value.trim();
+                clearTimeout(storeOrderSearchTimer);
+                storeOrderSearchTimer = setTimeout(() => {
+                    storeOrderQuery = q;
+                    storeOrderPage = 1;
+                    loadStoreOrders();
+                }, 350);
             });
 
             // Store search

@@ -96,6 +96,7 @@ router.put('/app-settings', sensitiveAdminLimiter, adminController.updateAppSett
 // STORE MANAGEMENT (Admin)
 // ==========================================
 router.get('/stores/stats', adminStoreController.getStoreStats);
+router.get('/stores/orders', adminStoreController.getAllStoreOrders);
 router.get('/stores/payouts', adminStoreController.getAllPayouts);
 router.put('/stores/payouts/:payoutId/approve', sensitiveAdminLimiter, adminStoreController.approvePayout);
 router.put('/stores/payouts/:payoutId/complete', sensitiveAdminLimiter, adminStoreController.completePayout);

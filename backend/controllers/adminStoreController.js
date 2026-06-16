@@ -137,9 +137,58 @@ exports.updateStoreSettings = async (req, res) => {
 // ==========================================
 
 /**
- * Get all payouts (for admin approval queue)
- * GET /api/admin/stores/payouts
+ * List ALL store-link orders across every store (admin oversight)
+ * GET /api/admin/stores/orders
  */
+exports.getAllStoreOrders = async (req, res) => {
+    try {
+        const { status, search, storeId, dateFrom, dateTo } = req.query;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+        const where = {};
+        if (status) where.status = status;
+        if (storeId) where.storeId = storeId;
+        if (search) {
+            where[Op.or] = [
+                { orderId: { [Op.iLike]: `%${search}%` } },
+                { customerPhone: { [Op.iLike]: `%${search}%` } },
+                { customerName: { [Op.iLike]: `%${search}%` } }
+            ];
+        }
+        if (dateFrom || dateTo) {
+            where.createdAt = {};
+            if (dateFrom) where.createdAt[Op.gte] = new Date(dateFrom);
+            if (dateTo) {
+                const end = new Date(dateTo);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt[Op.lte] = end;
+            }
+        }
+
+        const { count, rows: orders } = await StoreOrder.findAndCountAll({
+            where,
+            include: [{ model: Store, as: 'store', attributes: ['id', 'name'] }],
+            order: [['createdAt', 'DESC']],
+            offset: (parseInt(page) - 1) * parseInt(limit),
+            limit: parseInt(limit)
+        });
+
+        res.json({
+            success: true,
+            orders,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total: count,
+                pages: Math.ceil(count / parseInt(limit))
+            }
+        });
+    } catch (error) {
+        logger.error('Admin get store orders error', { error: error.message });
+        res.status(500).json({ error: 'Failed to get store orders' });
+    }
+};
+
 exports.getAllPayouts = async (req, res) => {
     try {
         const { page = 1, limit = 20, status } = req.query;
