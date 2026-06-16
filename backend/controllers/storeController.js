@@ -212,7 +212,9 @@ exports.savePricing = async (req, res) => {
         }
 
         const userRole = req.user.role || 'agent';
-        const currentPricing = store.pricing || {};
+        // Shallow-clone so Sequelize detects the JSONB change (mutating the
+        // existing reference would be skipped on save).
+        const currentPricing = { ...(store.pricing || {}) };
         const errors = [];
 
         for (const item of pricingUpdates) {
