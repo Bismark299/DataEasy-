@@ -105,15 +105,55 @@ const StoreApp = (function() {
         return (store && store.metadata && store.metadata.theme) || 'blue';
     }
 
-    function applyBannerTheme(theme) {
+    // Drive the whole UI (header band + every accent) from the saved theme by
+    // setting CSS custom properties on :root. All accent styling reads these vars.
+    function applyTheme(theme) {
         const c = THEMES[theme] || THEMES.blue;
-        const banner = document.querySelector('.store-banner');
-        if (banner) banner.style.background = `linear-gradient(120deg, ${c[0]} 0%, ${c[1]} 55%, ${c[2]} 100%)`;
+        const root = document.documentElement;
+        root.style.setProperty('--t1', c[0]);
+        root.style.setProperty('--t2', c[1]);
+        root.style.setProperty('--t3', c[2]);
+        root.style.setProperty('--accent', c[2]);
+        root.style.setProperty('--accent-2', c[1]);
     }
 
     function getStoreUrl() {
         const ref = storeRef();
         return ref ? `${window.location.origin}/s/${ref}` : '';
+    }
+
+    // Copy a URL and flash a 2-second "Copied!" confirmation on the button.
+    function flashCopied(btn) {
+        if (!btn) return;
+        const icon = btn.querySelector('i');
+        const span = btn.querySelector('span');
+        const origLabel = span ? span.textContent : '';
+        const origIcon = icon ? icon.className : '';
+        if (icon) icon.className = 'fas fa-check';
+        if (span) span.textContent = 'Copied!';
+        clearTimeout(btn._copyTimer);
+        btn._copyTimer = setTimeout(() => {
+            if (icon) icon.className = origIcon;
+            if (span) span.textContent = origLabel;
+        }, 2000);
+    }
+
+    function copyLink(url, btn) {
+        if (!url) return;
+        navigator.clipboard.writeText(url)
+            .then(() => flashCopied(btn))
+            .catch(() => prompt('Copy your store link:', url));
+    }
+
+    function updateStoreLinks() {
+        const slug = storeRef();
+        const url = getStoreUrl();
+        const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        setTxt('publicLinkText', '/s/' + slug);
+        const pill = document.getElementById('publicLinkPill'); if (pill && url) pill.href = url;
+        const viewBtn = document.getElementById('viewStoreBtn'); if (viewBtn && url) viewBtn.href = url;
+        const settLink = document.getElementById('settStoreLink'); if (settLink) settLink.textContent = url || '—';
+        const openBtn = document.getElementById('settOpenLinkBtn'); if (openBtn && url) openBtn.href = url;
     }
 
     async function loadStore() {
@@ -124,27 +164,17 @@ const StoreApp = (function() {
             const shell = document.getElementById('storeShell');
             if (shell) shell.classList.remove('hidden');
 
-            // Banner
-            const slug = storeRef();
+            // Header band
             const storeUrl = getStoreUrl();
             const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || ''; };
             set('storeName', store.name || 'My Store');
-            set('storeCode', store.id ? String(store.id).slice(0, 5) : '');
-            set('publicLinkText', '/s/' + slug);
+            set('storeDescription', store.description || '');
 
-            const pill = document.getElementById('publicLinkPill');
-            if (pill && storeUrl) pill.href = storeUrl;
-            const viewBtn = document.getElementById('viewStoreBtn');
-            if (viewBtn && storeUrl) viewBtn.href = storeUrl;
+            updateStoreLinks();
             const copyBtn = document.getElementById('copyLinkBtn');
-            if (copyBtn) copyBtn.onclick = () => {
-                if (!storeUrl) return;
-                navigator.clipboard.writeText(storeUrl)
-                    .then(() => toast('Store link copied!', 'success'))
-                    .catch(() => prompt('Copy your store link:', storeUrl));
-            };
+            if (copyBtn) copyBtn.onclick = () => copyLink(getStoreUrl(), copyBtn);
 
-            applyBannerTheme(storeTheme());
+            applyTheme(storeTheme());
 
             loadDashboard();
             loadPackages();
@@ -223,7 +253,15 @@ const StoreApp = (function() {
         if (!container) return;
 
         if (!orders.length) {
-            container.innerHTML = '<p class="text-center py-10" style="color:#475569;">No orders yet.</p>';
+            container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon"><i class="fas fa-share-nodes"></i></div>
+                <div class="empty-title">No orders yet</div>
+                <div class="empty-text">Share your store link with customers to start making sales. Your most recent orders will appear here.</div>
+                <button id="emptyCopyLinkBtn" class="btn-primary px-5 py-2.5 rounded-lg text-sm font-semibold" style="margin:16px auto 0;"><i class="fas fa-copy"></i> <span>Copy Store Link</span></button>
+            </div>`;
+            const btn = document.getElementById('emptyCopyLinkBtn');
+            if (btn) btn.onclick = () => copyLink(getStoreUrl(), btn);
             return;
         }
 
@@ -273,11 +311,8 @@ const StoreApp = (function() {
     function renderPackages() {
         const container = document.getElementById('packagesList');
         const networks = ['MTN', 'AirtelTigo', 'Telecel'];
-        const networkStyle = {
-            MTN: { accent: 'yellow-500', label: 'bg-yellow-500 text-black', icon: 'fa-signal' },
-            AirtelTigo: { accent: 'red-500', label: 'bg-red-500 text-white', icon: 'fa-broadcast-tower' },
-            Telecel: { accent: 'blue-500', label: 'bg-blue-500 text-white', icon: 'fa-satellite-dish' }
-        };
+        const chipClass = { MTN: 'net-chip-mtn', AirtelTigo: 'net-chip-airteltigo', Telecel: 'net-chip-telecel' };
+        const chipIcon = { MTN: 'fa-signal', AirtelTigo: 'fa-broadcast-tower', Telecel: 'fa-satellite-dish' };
 
         let html = '';
         let hasAny = false;
@@ -286,22 +321,22 @@ const StoreApp = (function() {
             const pkgs = packages[net] || [];
             if (!pkgs.length) return;
             hasAny = true;
-            const style = networkStyle[net];
+            const pricedCount = pkgs.filter(p => p.sellingPrice !== null && p.sellingPrice !== undefined).length;
 
             html += `
-            <div class="card overflow-hidden">
-                <div class="flex items-center gap-3 px-5 py-3 border-b border-[#374151]">
-                    <span class="${style.label} text-xs font-bold px-3 py-1 rounded-full"><i class="fas ${style.icon} mr-1"></i>${escapeHtml(net)}</span>
-                    <span class="text-gray-500 text-xs">${pkgs.length} package${pkgs.length !== 1 ? 's' : ''}</span>
+            <div class="card bundle-group">
+                <div class="bundle-group-head">
+                    <span class="net-chip ${chipClass[net]}"><i class="fas ${chipIcon[net]}"></i>${escapeHtml(net)}</span>
+                    <span class="priced-counter"><b>${pricedCount}/${pkgs.length}</b> priced</span>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
+                <div style="overflow-x:auto;">
+                    <table class="data-table">
                         <thead>
-                            <tr class="border-b border-[#374151] text-gray-500 text-[11px] uppercase tracking-wider">
-                                <th class="text-left py-3 px-5 font-medium">Package</th>
-                                <th class="text-right py-3 px-5 font-medium">Cost Price</th>
-                                <th class="text-center py-3 px-5 font-medium">Selling Price</th>
-                                <th class="text-right py-3 px-5 font-medium">Profit</th>
+                            <tr>
+                                <th>Package</th>
+                                <th style="text-align:right;">Cost</th>
+                                <th style="text-align:center;">Your Price</th>
+                                <th style="text-align:right;">Profit</th>
                             </tr>
                         </thead>
                         <tbody>`;
@@ -310,53 +345,44 @@ const StoreApp = (function() {
                 const hasPrice = p.sellingPrice !== null && p.sellingPrice !== undefined;
                 const displayPrice = hasPrice ? 'GH₵' + Number(p.sellingPrice).toFixed(2) : '—';
                 const profit = hasPrice ? (p.sellingPrice - p.costPrice).toFixed(2) : '—';
-                const profitColor = hasPrice && p.sellingPrice > p.costPrice ? 'text-green-400' : (hasPrice && p.sellingPrice < p.costPrice ? 'text-red-400' : 'text-gray-500');
+                const profitColor = hasPrice && p.sellingPrice >= p.costPrice ? 'var(--pos)' : 'var(--text-ghost)';
 
                 html += `
-                            <tr class="border-b border-[#374151]/50 hover:bg-[#1f2937]/60 transition-colors" data-row-id="${escapeHtml(p.id)}">
-                                <td class="py-3 px-5">
-                                    <span class="text-white font-medium text-sm">${escapeHtml(p.data)}</span>
-                                    <span class="text-gray-500 text-xs ml-2">${escapeHtml(p.validity || '')}</span>
+                            <tr data-row-id="${escapeHtml(p.id)}">
+                                <td>
+                                    <span class="text-white font-medium">${escapeHtml(p.data)}</span>
+                                    <span style="color:var(--text-ghost); font-size:12px; margin-left:6px;">${escapeHtml(p.validity || '')}</span>
                                 </td>
-                                <td class="py-3 px-5 text-right text-gray-400 text-sm tabular-nums">GH₵${p.costPrice.toFixed(2)}</td>
-                                <td class="py-3 px-5 text-center">
+                                <td style="text-align:right; color:var(--text-dim);" class="tabular">GH₵${p.costPrice.toFixed(2)}</td>
+                                <td style="text-align:center;">
                                     <div class="pkg-price-cell inline-flex items-center gap-2" data-pkg-id="${escapeHtml(p.id)}" data-cost="${p.costPrice}" data-current="${hasPrice ? p.sellingPrice : ''}">
-                                        <span class="pkg-price-display text-green-400 font-semibold text-sm tabular-nums">${displayPrice}</span>
-                                        <input type="number" step="0.01" min="${p.costPrice}" value="${hasPrice ? p.sellingPrice : ''}"
-                                            placeholder="0.00"
-                                            class="pkg-price-input hidden bg-[#111827] border border-[#374151] text-green-400 text-sm text-center rounded-lg px-2 py-1 w-24 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 focus:outline-none">
-                                        <button class="pkg-edit-btn text-gray-400 hover:text-indigo-400 text-xs transition" title="Edit price">
-                                            <i class="fas fa-pen"></i>
-                                        </button>
-                                        <button class="pkg-save-btn hidden text-green-400 hover:text-green-300 text-xs transition" title="Save price">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button class="pkg-cancel-btn hidden text-gray-500 hover:text-red-400 text-xs transition" title="Cancel">
-                                            <i class="fas fa-times"></i>
-                                        </button>
+                                        <span class="pkg-price-display font-semibold tabular" style="color:var(--pos);">${displayPrice}</span>
+                                        <input type="number" step="0.01" min="${p.costPrice}" value="${hasPrice ? p.sellingPrice : ''}" placeholder="0.00" class="pkg-price-input price-input hidden">
+                                        <button type="button" class="pkg-edit-btn icon-btn" style="color:var(--text-faint);" title="Edit price"><i class="fas fa-pen"></i></button>
+                                        <button type="button" class="pkg-save-btn icon-btn hidden" style="color:var(--pos);" title="Save price"><i class="fas fa-check"></i></button>
+                                        <button type="button" class="pkg-cancel-btn icon-btn hidden" style="color:var(--text-faint);" title="Cancel"><i class="fas fa-times"></i></button>
                                     </div>
                                 </td>
-                                <td class="py-3 px-5 text-right">
-                                    <span class="pkg-profit ${profitColor} text-sm font-semibold tabular-nums" data-pkg-id="${escapeHtml(p.id)}">${profit !== '—' ? 'GH₵' + profit : '—'}</span>
+                                <td style="text-align:right;">
+                                    <span class="pkg-profit font-semibold tabular" style="color:${profitColor};" data-pkg-id="${escapeHtml(p.id)}">${profit !== '—' ? 'GH₵' + profit : '—'}</span>
                                 </td>
                             </tr>`;
             });
 
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>`;
+            html += `</tbody></table></div></div>`;
         });
 
         if (!hasAny) {
-            container.innerHTML = '<p class="text-gray-500 text-center py-8">No packages available.</p>';
+            container.innerHTML = '<div class="card"><div class="empty-state"><div class="empty-icon"><i class="fas fa-box-open"></i></div><div class="empty-title">No bundles available</div><div class="empty-text">There are no data packages to price right now. Check back later.</div></div></div>';
             return;
         }
 
         container.innerHTML = html;
+        wireBundleEditors(container);
+    }
 
-        // Edit / Save / Cancel handlers
+    // Inline price editing: live profit + Save disabled while the price is below cost.
+    function wireBundleEditors(container) {
         container.querySelectorAll('.pkg-price-cell').forEach(cell => {
             const display = cell.querySelector('.pkg-price-display');
             const input = cell.querySelector('.pkg-price-input');
@@ -367,12 +393,29 @@ const StoreApp = (function() {
             const cost = parseFloat(cell.dataset.cost);
             const profitEl = container.querySelector(`.pkg-profit[data-pkg-id="${pkgId}"]`);
 
+            function setProfit(text, color) {
+                if (!profitEl) return;
+                profitEl.textContent = text;
+                profitEl.style.color = color;
+            }
+
+            function refreshState() {
+                const val = parseFloat(input.value);
+                const valid = !isNaN(val) && val >= cost;
+                saveBtn.disabled = !valid;
+                input.classList.toggle('below', !isNaN(val) && val < cost);
+                if (valid) setProfit('GH₵' + (val - cost).toFixed(2), 'var(--pos)');
+                else if (!isNaN(val)) setProfit('Below cost', '#f87171');
+                else setProfit('—', 'var(--text-ghost)');
+            }
+
             function enterEdit() {
                 display.classList.add('hidden');
                 editBtn.classList.add('hidden');
                 input.classList.remove('hidden');
                 saveBtn.classList.remove('hidden');
                 cancelBtn.classList.remove('hidden');
+                refreshState();
                 input.focus();
                 input.select();
             }
@@ -385,35 +428,25 @@ const StoreApp = (function() {
                 editBtn.classList.remove('hidden');
             }
 
-            function updateProfit(val) {
-                if (profitEl) {
-                    if (!isNaN(val) && val >= cost) {
-                        profitEl.textContent = 'GH₵' + (val - cost).toFixed(2);
-                        profitEl.className = 'pkg-profit text-green-400 text-sm font-semibold tabular-nums';
-                    } else if (!isNaN(val)) {
-                        profitEl.textContent = 'Too low';
-                        profitEl.className = 'pkg-profit text-red-400 text-sm font-semibold tabular-nums';
-                    } else {
-                        profitEl.textContent = '—';
-                        profitEl.className = 'pkg-profit text-gray-500 text-sm font-semibold tabular-nums';
-                    }
-                }
-            }
-
             editBtn.addEventListener('click', enterEdit);
 
             cancelBtn.addEventListener('click', () => {
                 input.value = cell.dataset.current || '';
-                updateProfit(parseFloat(cell.dataset.current));
+                input.classList.remove('below');
+                const cur = parseFloat(cell.dataset.current);
+                if (!isNaN(cur)) setProfit('GH₵' + (cur - cost).toFixed(2), 'var(--pos)');
+                else setProfit('—', 'var(--text-ghost)');
                 exitEdit();
             });
 
-            input.addEventListener('input', () => updateProfit(parseFloat(input.value)));
+            input.addEventListener('input', refreshState);
 
-            saveBtn.addEventListener('click', () => saveSinglePrice(pkgId, input, display, cell, cost, profitEl, exitEdit));
+            saveBtn.addEventListener('click', () => {
+                if (!saveBtn.disabled) saveSinglePrice(pkgId, input, display, cell, cost, profitEl, exitEdit);
+            });
 
             input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') { e.preventDefault(); saveSinglePrice(pkgId, input, display, cell, cost, profitEl, exitEdit); }
+                if (e.key === 'Enter') { e.preventDefault(); if (!saveBtn.disabled) saveSinglePrice(pkgId, input, display, cell, cost, profitEl, exitEdit); }
                 if (e.key === 'Escape') { cancelBtn.click(); }
             });
         });
@@ -442,13 +475,8 @@ const StoreApp = (function() {
                 const pkg = (packages[net] || []).find(pk => String(pk.id) === String(pkgId));
                 if (pkg) pkg.sellingPrice = val;
             });
-            display.textContent = 'GH₵' + val.toFixed(2);
-            cell.dataset.current = val;
-            if (profitEl) {
-                profitEl.textContent = 'GH₵' + (val - cost).toFixed(2);
-                profitEl.className = 'pkg-profit text-green-400 text-sm font-semibold tabular-nums';
-            }
-            exitEdit();
+            // Re-render so the "X/Y priced" counter and row reflect the new price.
+            renderPackages();
         } catch (e) {
             toast(e.message, 'error');
         }
@@ -543,8 +571,12 @@ const StoreApp = (function() {
         if (orders !== lastRenderedOrders) { ordersPage = 1; lastRenderedOrders = orders; }
 
         if (!orders.length) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding:32px; color:#475569;">No orders found.</td></tr>';
-            if (meta) meta.textContent = '0 orders';
+            const noneAtAll = !allOrders.length;
+            const cell = noneAtAll
+                ? `<div class="empty-state"><div class="empty-icon"><i class="fas fa-receipt"></i></div><div class="empty-title">No orders yet</div><div class="empty-text">When customers buy from your store, their orders will show up here.</div></div>`
+                : `<div class="empty-state"><div class="empty-icon"><i class="fas fa-filter"></i></div><div class="empty-title">No matching orders</div><div class="empty-text">No orders match your current filters. Try adjusting or clearing them.</div></div>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="padding:0;">${cell}</td></tr>`;
+            if (meta) meta.textContent = noneAtAll ? '0 orders' : '0 matches';
             renderOrdersPagination(0);
             return;
         }
@@ -746,11 +778,21 @@ const StoreApp = (function() {
                 apiRequest('/store')
             ]);
             store = storeData.store;
-            const settlement = store.settlementAccount;
+            const settlement = store.settlementAccount || {};
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
-            document.getElementById('withdrawableBalance').textContent = `GH₵${settlement.availableBalance.toFixed(2)}`;
-            document.getElementById('payoutHoldAmount').textContent = `GH₵${settlement.holdAmount.toFixed(2)}`;
-            document.getElementById('payoutAvailable').textContent = `GH₵${settlement.availableBalance.toFixed(2)}`;
+            set('withdrawableBalance', money(settlement.availableBalance));
+            set('payoutAvailable', money(settlement.availableBalance));
+            set('payoutHoldAmount', money(settlement.holdAmount));
+            set('payoutMinAmount', money(store.payoutThreshold));
+            set('payoutFeeAmount', 'No fee');
+
+            // Prefill saved mobile money details (only when the field is empty,
+            // so we don't clobber what the agent is currently typing).
+            const provEl = document.getElementById('payoutMomoProvider');
+            const numEl = document.getElementById('payoutMomoNumber');
+            if (provEl && !provEl.value) provEl.value = store.momoProvider || '';
+            if (numEl && !numEl.value) numEl.value = store.momoNumber || '';
 
             renderPayouts(payoutsData.payouts);
         } catch (e) {
@@ -761,43 +803,26 @@ const StoreApp = (function() {
     function renderPayouts(payouts) {
         const container = document.getElementById('payoutsList');
         if (!payouts.length) {
-            container.innerHTML = '<p class="text-gray-500 text-center py-8">No payout requests yet.</p>';
+            container.innerHTML = '<div class="empty-state" style="padding:32px 16px;"><div class="empty-icon"><i class="fas fa-money-bill-transfer"></i></div><div class="empty-title">No withdrawals yet</div><div class="empty-text">Your payout requests will appear here once you make one.</div></div>';
             return;
         }
 
         const statusColors = { pending: 'badge-warning', approved: 'badge-info', processing: 'badge-info', completed: 'badge-success', failed: 'badge-error', rejected: 'badge-error' };
 
         container.innerHTML = payouts.map(p => `
-            <div class="card p-4">
-                <div class="flex items-center justify-between mb-2">
-                    <div>
-                        <span class="text-white font-semibold text-sm">${escapeHtml(p.payoutId)}</span>
-                        <span class="text-xs px-2 py-0.5 rounded-full ml-2 ${statusColors[p.status]}">${p.status}</span>
-                    </div>
-                    <span class="text-green-400 font-bold">GH₵${p.amount.toFixed(2)}</span>
+            <div style="background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:14px 16px;">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-white font-semibold text-sm">${escapeHtml(p.payoutId)}</span>
+                    <span class="font-bold" style="color:var(--pos);">${money(p.amount)}</span>
                 </div>
-                <div class="flex items-center justify-between text-xs text-gray-500">
+                <div class="flex items-center justify-between text-xs" style="color:var(--text-faint);">
                     <span><i class="fas fa-${p.method === 'bank_transfer' ? 'university' : 'mobile-alt'} mr-1"></i>${p.method === 'bank_transfer' ? 'Bank Transfer' : 'Mobile Money'}</span>
-                    <span>${new Date(p.createdAt).toLocaleDateString()}</span>
+                    <span class="badge ${statusColors[p.status] || 'badge-info'}">${escapeHtml(p.status)}</span>
                 </div>
-                ${p.rejectionReason ? `<p class="text-red-400 text-xs mt-1"><i class="fas fa-info-circle mr-1"></i>${escapeHtml(p.rejectionReason)}</p>` : ''}
+                <div class="text-xs mt-1" style="color:var(--text-ghost);">${new Date(p.createdAt).toLocaleDateString()}</div>
+                ${p.rejectionReason ? `<p class="text-xs mt-2" style="color:#f87171;"><i class="fas fa-info-circle mr-1"></i>${escapeHtml(p.rejectionReason)}</p>` : ''}
             </div>
         `).join('');
-    }
-
-    function showPayoutModal() {
-        if (store && store.settlementAccount) {
-            document.getElementById('payoutAvailable').textContent = `GH₵${store.settlementAccount.availableBalance.toFixed(2)}`;
-        }
-        document.getElementById('payoutForm').reset();
-        // Prefill saved mobile money details
-        if (store) {
-            const provEl = document.getElementById('payoutMomoProvider');
-            const numEl = document.getElementById('payoutMomoNumber');
-            if (provEl) provEl.value = store.momoProvider || '';
-            if (numEl) numEl.value = store.momoNumber || '';
-        }
-        openModal('payoutModal');
     }
 
     async function submitPayout(e) {
@@ -824,8 +849,9 @@ const StoreApp = (function() {
                 method: 'POST',
                 body: JSON.stringify({ amount, method: 'momo', momoNumber, momoProvider })
             });
-            closeModal('payoutModal');
             toast('Payout request submitted!', 'success');
+            const amtEl = document.getElementById('payoutAmount');
+            if (amtEl) amtEl.value = '';
             loadPayouts();
             loadDashboard();
         } catch (e) {
@@ -880,11 +906,30 @@ const StoreApp = (function() {
             };
             const data = await apiRequest('/store', { method: 'PUT', body: JSON.stringify(body) });
             store = data.store;
-            applyBannerTheme(theme);
+            applyTheme(theme);
+
+            // Keep the header in sync with edits to name/description/link.
+            const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || ''; };
+            setTxt('storeName', store.name || 'My Store');
+            setTxt('storeDescription', store.description || '');
+            updateStoreLinks();
+
+            showSavedPill();
             toast('Store settings updated', 'success');
         } catch (e) {
             toast(e.message, 'error');
         }
+    }
+
+    // Flash the inline "Saved!" pills in the settings tab for ~2.2s.
+    function showSavedPill() {
+        ['settingsSavedInline', 'settingsSaved'].forEach(id => {
+            const pill = document.getElementById(id);
+            if (!pill) return;
+            pill.classList.add('show');
+            clearTimeout(pill._t);
+            pill._t = setTimeout(() => pill.classList.remove('show'), 2200);
+        });
     }
 
     // ==========================================
@@ -998,23 +1043,18 @@ const StoreApp = (function() {
             applyOrderFilters();
         });
 
-        // Color theme picker
+        // Color theme picker — live preview of accents as you pick.
         document.querySelectorAll('.theme-swatch').forEach(s => {
             s.addEventListener('click', () => {
                 document.querySelectorAll('.theme-swatch').forEach(x => x.classList.remove('active'));
                 s.classList.add('active');
+                applyTheme(s.dataset.theme);
             });
         });
 
         // Settings store link copy
         const settCopyBtn = document.getElementById('settCopyLinkBtn');
-        if (settCopyBtn) settCopyBtn.addEventListener('click', () => {
-            const url = getStoreUrl();
-            if (!url) return;
-            navigator.clipboard.writeText(url)
-                .then(() => toast('Store link copied!', 'success'))
-                .catch(() => prompt('Copy your store link:', url));
-        });
+        if (settCopyBtn) settCopyBtn.addEventListener('click', () => copyLink(getStoreUrl(), settCopyBtn));
 
         // Forms
         document.getElementById('createStoreForm').addEventListener('submit', createStore);
@@ -1025,8 +1065,6 @@ const StoreApp = (function() {
         // Buttons
         const newOrderBtn = document.getElementById('newOrderBtn');
         if (newOrderBtn) newOrderBtn.addEventListener('click', showNewOrder);
-        const reqPayoutBtn = document.getElementById('requestPayoutBtn');
-        if (reqPayoutBtn) reqPayoutBtn.addEventListener('click', showPayoutModal);
 
         // Network tabs inside order modal
         document.querySelectorAll('.order-network-tab').forEach(btn => {
