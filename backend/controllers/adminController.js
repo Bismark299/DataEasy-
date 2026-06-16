@@ -637,6 +637,16 @@ exports.matchAndCompleteOrders = async (req, res) => {
             order: [['createdAt', 'ASC']]
         });
 
+        // Also reconcile store-link orders so the paste-and-complete tool works on
+        // them too. Only paid store orders that are not yet fully delivered.
+        const storeOrders = await StoreOrder.findAll({
+            where: {
+                status: 'paid',
+                deliveryStatus: { [Op.in]: ['Pending', 'Processing', 'Partially Delivered'] }
+            },
+            order: [['createdAt', 'ASC']]
+        });
+
         let matched = 0;
         const updatedOrders = new Set();
         const auditEntries = [];
@@ -676,6 +686,46 @@ exports.matchAndCompleteOrders = async (req, res) => {
                     }
                 }
                 if (found) break;
+            }
+
+            // Fall back to store-link orders so the reconcile tool completes them.
+            // Store completions go through the delivery service so the
+            // paid -> fulfilled ledger (commission/settlement) stays consistent.
+            if (!found) {
+                for (const so of storeOrders) {
+                    const items = so.items || [];
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i];
+                        const itemStatus = (item.deliveryStatus || 'Pending').toLowerCase();
+                        if (itemStatus !== 'pending' && itemStatus !== 'processing') continue;
+
+                        const itemPhone = (item.recipientPhone || so.customerPhone || '').replace(/\s+/g, '').replace(/^\+233/, '0');
+                        if (itemPhone !== phone) continue;
+
+                        const itemDataMatch = (item.data || item.productName || '').match(/(\d+(?:\.\d+)?)\s*(?:GB|MB)?/i);
+                        const itemDataNum = itemDataMatch ? itemDataMatch[1] : '';
+                        if (itemDataNum !== dataSize) continue;
+
+                        const overall = await storeDelivery.updateItem(so.id, i, {
+                            deliveryStatus: 'Delivered',
+                            deliveredAt: new Date().toISOString(),
+                            deliveryError: null
+                        });
+                        if (!overall) {
+                            // Update failed/not persisted — leave the entry unmatched
+                            // so it can match another candidate item/order.
+                            console.warn(`match-complete: store update failed for ${so.orderId} item ${i} (${phone}/${dataSize})`);
+                            continue;
+                        }
+                        item.deliveryStatus = 'Delivered'; // keep in-memory state consistent for later entries
+                        matched++;
+                        found = true;
+                        auditEntries.push({ orderId: so.orderId, itemIndex: i, phone, dataSize, source: 'store' });
+                        break;
+                    }
+                    if (found) break;
+                }
+                if (found) invalidateCache('/admin/orders');
             }
         }
 
