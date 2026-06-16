@@ -1282,28 +1282,28 @@ exports.verifyPublicPayment = async (req, res) => {
 
 /**
  * Public order tracking (no auth)
- * Customers look up their order with the order ID + the recipient phone they used.
- * Phone is required so orders can't be enumerated by ID alone.
- * GET /api/store/public/track?orderId=SO-...&phone=024...
+ * Customers look up their most recent order using only the recipient phone number.
+ * GET /api/store/public/track?phone=024...
  */
 exports.trackPublicOrder = async (req, res) => {
     try {
-        const orderId = String(req.query.orderId || '').trim();
         const phone = String(req.query.phone || '').replace(/\D/g, '');
+        // Match on the last 9 digits so any local/international format works (024..., 233...)
+        const last9 = phone.slice(-9);
 
-        if (!orderId || !phone) {
-            return res.status(400).json({ error: 'Order ID and recipient phone number are required' });
+        if (!phone || last9.length < 9) {
+            return res.status(400).json({ error: 'A valid recipient phone number is required' });
         }
 
+        // Return the customer's most recent order for that phone number
         const order = await StoreOrder.findOne({
-            where: { orderId },
-            include: [{ model: Store, as: 'store', attributes: ['name'] }]
+            where: { customerPhone: { [Op.iLike]: `%${last9}` } },
+            include: [{ model: Store, as: 'store', attributes: ['name'] }],
+            order: [['createdAt', 'DESC']]
         });
 
-        // Verify the phone matches the order (last 9 digits, ignoring leading 0 / country code)
-        const last9 = (s) => String(s || '').replace(/\D/g, '').slice(-9);
-        if (!order || last9(order.customerPhone) !== last9(phone)) {
-            return res.status(404).json({ error: 'No order found matching that Order ID and phone number' });
+        if (!order) {
+            return res.status(404).json({ error: 'No order found for that phone number' });
         }
 
         res.json({
