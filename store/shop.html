@@ -21,17 +21,18 @@
 <body class="text-gray-100">
 
     <!-- Header -->
-    <header class="bg-[#1e293b] border-b border-[#334155] px-4 py-4">
-        <div class="max-w-4xl mx-auto">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+    <header id="storeHeader" class="bg-[#1e293b] border-b border-[#334155] px-4 py-4">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div id="storeLogo" class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
                     <i class="fas fa-store text-white text-sm"></i>
                 </div>
-                <div>
-                    <h1 id="storeName" class="text-lg font-bold text-white">Loading...</h1>
-                    <p id="storeLocation" class="text-gray-400 text-xs"></p>
+                <div class="min-w-0">
+                    <h1 id="storeName" class="text-lg font-bold text-white truncate">Loading...</h1>
+                    <p id="storeLocation" class="text-gray-400 text-xs truncate"></p>
                 </div>
             </div>
+            <div id="storeContact" class="flex items-center gap-2 flex-wrap"></div>
         </div>
     </header>
 
@@ -133,6 +134,49 @@
         let currentNetwork = 'MTN';
         let selectedPackage = null;
 
+        // Theme accents mirror the store dashboard theme options
+        const THEMES = {
+            blue:   { accent: '#3b82f6', grad: 'from-blue-500 to-blue-700' },
+            amber:  { accent: '#f59e0b', grad: 'from-amber-400 to-amber-600' },
+            red:    { accent: '#ef4444', grad: 'from-red-500 to-red-700' },
+            green:  { accent: '#22c55e', grad: 'from-green-500 to-green-700' },
+            purple: { accent: '#a855f7', grad: 'from-purple-500 to-purple-700' },
+            orange: { accent: '#f97316', grad: 'from-orange-400 to-orange-600' },
+            teal:   { accent: '#14b8a6', grad: 'from-teal-400 to-teal-600' }
+        };
+
+        function applyTheme(themeName) {
+            const theme = THEMES[themeName] || THEMES.blue;
+            const logo = document.getElementById('storeLogo');
+            if (logo) logo.className = `w-10 h-10 rounded-full bg-gradient-to-br ${theme.grad} flex items-center justify-center flex-shrink-0`;
+            const payBtn = document.getElementById('payBtn');
+            if (payBtn) {
+                payBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                payBtn.style.backgroundColor = theme.accent;
+            }
+        }
+
+        // Normalize a Ghana phone number to international format for WhatsApp links
+        function waNumber(num) {
+            let n = String(num || '').replace(/[^\d]/g, '');
+            if (n.startsWith('0')) n = '233' + n.slice(1);
+            else if (!n.startsWith('233') && n.length === 9) n = '233' + n;
+            return n;
+        }
+
+        function renderContact(store) {
+            const container = document.getElementById('storeContact');
+            if (!container) return;
+            let html = '';
+            if (store.phone) {
+                html += `<a href="tel:${escapeHtml(store.phone)}" class="inline-flex items-center gap-1.5 bg-[#334155] hover:bg-[#3f4d63] text-white text-xs font-semibold px-3 py-2 rounded-lg transition"><i class="fas fa-phone"></i> Call</a>`;
+            }
+            if (store.whatsapp) {
+                html += `<a href="https://wa.me/${waNumber(store.whatsapp)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-white text-xs font-semibold px-3 py-2 rounded-lg transition" style="background-color:#25D366;"><i class="fab fa-whatsapp"></i> WhatsApp</a>`;
+            }
+            container.innerHTML = html;
+        }
+
         function escapeHtml(str) {
             if (!str) return '';
             return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -214,6 +258,9 @@
                 if (data.store.location) {
                     document.getElementById('storeLocation').textContent = data.store.location;
                 }
+                document.title = `${data.store.name} | Data Bundles`;
+                applyTheme(data.store.theme);
+                renderContact(data.store);
                 document.getElementById('storeContent').classList.remove('hidden');
                 await loadPackages();
             } catch (e) {

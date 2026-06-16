@@ -941,6 +941,9 @@ const DataEasyApp = (function() {
                         }
                     }
 
+                    // Also merge this user's store (storefront) sales, if they run one
+                    fetched = fetched.concat(await fetchStoreOrders(params));
+
                     allOrders = fetched;
                     return;
                 } catch (e) {
@@ -950,6 +953,58 @@ const DataEasyApp = (function() {
                 }
             } else {
                 allOrders = [];
+            }
+        }
+
+        // Fetch the user's own storefront sales and map them to the main order shape
+        async function fetchStoreOrders(params = {}) {
+            if (typeof DataEasyAPI === 'undefined' || !DataEasyAPI.Store) return [];
+            try {
+                const detectNet = (txt) => {
+                    const s = String(txt || '').toLowerCase();
+                    if (s.includes('mtn')) return 'MTN';
+                    if (s.includes('airtel') || s.includes('tigo') || s.includes('at ')) return 'AirtelTigo';
+                    if (s.includes('telecel') || s.includes('vodafone')) return 'Telecel';
+                    return '';
+                };
+                let page = 1;
+                const perPage = 1000;
+                let storeOrders = [];
+                let hasMore = true;
+                while (hasMore) {
+                    const resp = await DataEasyAPI.Store.getOrders({ limit: perPage, page, ...params });
+                    if (resp && resp.success && resp.orders && resp.orders.length) {
+                        storeOrders = storeOrders.concat(resp.orders);
+                        if (resp.pagination && page < resp.pagination.pages) page++;
+                        else hasMore = false;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+                // Only show paid/fulfilled storefront sales in the orders history
+                return storeOrders
+                    .filter(o => o.paidAt || ['paid', 'fulfilled', 'completed'].includes((o.status || '').toLowerCase()))
+                    .map(o => ({
+                        id: o.orderId,
+                        orderId: o.orderId,
+                        createdAt: o.createdAt,
+                        processedAt: o.fulfilledAt || null,
+                        total: o.subtotal || 0,
+                        status: o.status,
+                        deliveryStatus: o.deliveryStatus || 'Pending',
+                        isStoreOrder: true,
+                        items: (o.items || []).map(it => ({
+                            data: it.productName || it.data || 'Bundle',
+                            network: detectNet(it.productName),
+                            price: it.unitPrice || it.lineTotal || 0,
+                            quantity: it.quantity || 1,
+                            phoneNumber: o.customerPhone || '',
+                            deliveryStatus: o.deliveryStatus || 'Pending'
+                        }))
+                    }));
+            } catch (e) {
+                // No store (404) or other failure — silently skip, main orders still load
+                return [];
             }
         }
 

@@ -127,7 +127,7 @@ exports.updateStore = async (req, res) => {
             return res.status(404).json({ error: 'Store not found' });
         }
 
-        const allowedFields = ['name', 'description', 'location', 'phone', 'bankName', 'bankAccountNumber', 'bankAccountName', 'momoNumber', 'momoProvider'];
+        const allowedFields = ['name', 'description', 'location', 'phone', 'whatsapp', 'bankName', 'bankAccountNumber', 'bankAccountName', 'momoNumber', 'momoProvider'];
         const updates = {};
         for (const field of allowedFields) {
             if (req.body[field] !== undefined) {
@@ -490,9 +490,17 @@ exports.getOrders = async (req, res) => {
         const store = await Store.findOne({ where: { userId: req.user.id } });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
-        const { page = 1, limit = 20, status } = req.query;
+        const { page = 1, limit = 20, status, dateFrom, dateTo } = req.query;
         const where = { storeId: store.id };
         if (status) where.status = status;
+
+        // Optional date range filter (keeps the main orders page load bounded)
+        if (dateFrom || dateTo) {
+            const dateFilter = {};
+            if (dateFrom) dateFilter[Op.gte] = new Date(`${dateFrom}T00:00:00`);
+            if (dateTo) dateFilter[Op.lte] = new Date(`${dateTo}T23:59:59`);
+            where.createdAt = dateFilter;
+        }
 
         const { count, rows: orders } = await StoreOrder.findAndCountAll({
             where,
@@ -533,15 +541,16 @@ exports.requestPayout = async (req, res) => {
         });
         if (!store) return res.status(404).json({ error: 'Store not found' });
 
-        const { amount, method } = req.body;
+        const { amount, method, momoNumber, momoProvider } = req.body;
         const payoutAmount = Math.round(parseFloat(amount) * 100) / 100;
 
         if (!amount || payoutAmount < 1) {
             return res.status(400).json({ error: 'Valid payout amount is required' });
         }
 
-        if (!method || !['bank_transfer', 'momo'].includes(method)) {
-            return res.status(400).json({ error: 'Payout method must be bank_transfer or momo' });
+        // Payouts are mobile money only.
+        if (method !== 'momo') {
+            return res.status(400).json({ error: 'Payouts are only available via mobile money.' });
         }
 
         const settlement = store.settlementAccount;
@@ -559,12 +568,24 @@ exports.requestPayout = async (req, res) => {
             });
         }
 
+        // Resolve mobile money destination: request body overrides saved store settings.
+        const payoutMomoNumber = (momoNumber && String(momoNumber).trim()) || store.momoNumber;
+        const payoutMomoProvider = (momoProvider && String(momoProvider).trim()) || store.momoProvider;
+
         // Validate payout destination details exist
         if (method === 'bank_transfer' && (!store.bankAccountNumber || !store.bankName)) {
             return res.status(400).json({ error: 'Bank account details not configured. Update your store settings.' });
         }
-        if (method === 'momo' && !store.momoNumber) {
-            return res.status(400).json({ error: 'MoMo number not configured. Update your store settings.' });
+        if (method === 'momo' && !payoutMomoNumber) {
+            return res.status(400).json({ error: 'Mobile money number is required.' });
+        }
+        if (method === 'momo' && !payoutMomoProvider) {
+            return res.status(400).json({ error: 'Select your mobile money network.' });
+        }
+
+        // Persist the latest mobile money details to the store for next time.
+        if (method === 'momo' && (payoutMomoNumber !== store.momoNumber || payoutMomoProvider !== store.momoProvider)) {
+            await store.update({ momoNumber: payoutMomoNumber, momoProvider: payoutMomoProvider });
         }
 
         const payoutId = `PO-${Date.now()}-${uuidv4().split('-')[0]}`;
@@ -583,10 +604,11 @@ exports.requestPayout = async (req, res) => {
                 fee,
                 netAmount,
                 method,
-                bankName: method === 'bank_transfer' ? store.bankName : null,
-                accountNumber: method === 'bank_transfer' ? store.bankAccountNumber : store.momoNumber,
+                bankName: method === 'bank_transfer' ? store.bankName : payoutMomoProvider,
+                accountNumber: method === 'bank_transfer' ? store.bankAccountNumber : payoutMomoNumber,
                 accountName: method === 'bank_transfer' ? store.bankAccountName : store.name,
                 status: 'pending',
+                metadata: method === 'momo' ? { network: payoutMomoProvider } : {},
                 balanceBefore: settlement.availableBalance + payoutAmount, // Before hold
                 balanceAfter: settlement.availableBalance, // After hold
                 transferReference: `TRF-${Date.now()}-${uuidv4().split('-')[0]}`
@@ -1011,7 +1033,9 @@ exports.getPublicStore = async (req, res) => {
                 name: store.name,
                 description: store.description,
                 location: store.location,
-                phone: store.phone
+                phone: store.phone,
+                whatsapp: store.whatsapp,
+                theme: (store.metadata && store.metadata.theme) || 'blue'
             }
         });
     } catch (error) {
@@ -1043,8 +1067,9 @@ exports.getPublicPackages = async (req, res) => {
                 .filter(p => {
                     if (!p.isActive) return false;
                     const ap = pricing[p.id];
-                    // If agent explicitly disabled this package, hide it
-                    if (ap && ap.active === false) return false;
+                    // Only show bundles the owner has explicitly listed with a selling price.
+                    // No store price set (or disabled) → not shown on the public store link.
+                    if (!ap || ap.active === false || !ap.sellingPrice) return false;
                     return true;
                 })
                 .map(p => {
@@ -1055,7 +1080,7 @@ exports.getPublicPackages = async (req, res) => {
                         network: p.network,
                         data: p.data,
                         validity: p.validity,
-                        price: (ap && ap.sellingPrice) ? ap.sellingPrice : p.price,
+                        price: ap.sellingPrice,
                         popular: p.popular
                     };
                 });
@@ -1104,15 +1129,14 @@ exports.createPublicOrder = async (req, res) => {
             }
 
             const agentPricing = pricing[item.packageId];
-            // If agent explicitly disabled this package, reject
-            if (agentPricing && agentPricing.active === false) {
+            // Only allow bundles the owner has explicitly listed with a selling price.
+            if (!agentPricing || agentPricing.active === false || !agentPricing.sellingPrice) {
                 return res.status(400).json({ error: `Package not available in this store: ${pkg.name}` });
             }
 
             const qty = parseInt(item.quantity) || 1;
             const costPrice = getPriceForRole(pkg, userRole);
-            // Use agent's custom price if set, otherwise use base price
-            const sellingPrice = (agentPricing && agentPricing.sellingPrice) ? agentPricing.sellingPrice : getPriceForRole(pkg, 'agent');
+            const sellingPrice = agentPricing.sellingPrice;
 
             const lineTotal = Math.round(sellingPrice * qty * 100) / 100;
             const lineCost = Math.round(costPrice * qty * 100) / 100;
@@ -1158,10 +1182,15 @@ exports.createPublicOrder = async (req, res) => {
             status: 'pending'
         });
 
+        // Redirect the customer back to this store's page after Paystack payment.
+        const baseUrl = (process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+        const callbackUrl = `${baseUrl}/store/shop.html?store=${encodeURIComponent(store.id)}`;
+
         const paystackResponse = await initializeTransaction({
             email: customerEmail.trim(),
             amount: subtotal,
             reference: paymentReference,
+            callback_url: callbackUrl,
             metadata: {
                 store_order_id: orderId,
                 store_id: store.id,

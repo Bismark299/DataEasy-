@@ -345,6 +345,8 @@ const fixMissingColumns = async () => {
         
         // Stores table - pricing for agent selling prices
         `ALTER TABLE stores ADD COLUMN IF NOT EXISTS pricing JSONB DEFAULT '{}'::jsonb`,
+        // Stores table - WhatsApp contact number shown on the public store link
+        `ALTER TABLE stores ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(20)`,
 
         // Orders table - webhook callback URL for developer API orders
         `ALTER TABLE orders ADD COLUMN IF NOT EXISTS "callbackUrl" TEXT`,

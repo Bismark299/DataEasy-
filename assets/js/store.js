@@ -512,14 +512,40 @@ const StoreApp = (function() {
         renderOrders(rows);
     }
 
+    let ordersPage = 1;
+    const ORDERS_PER_PAGE = 20;
+    let lastRenderedOrders = [];
+
+    function renderOrdersPagination(total) {
+        const container = document.getElementById('ordersPagination');
+        if (!container) return;
+        const totalPages = Math.ceil(total / ORDERS_PER_PAGE);
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+        const btn = (label, page, disabled, active) =>
+            `<button class="order-filter${active ? ' active' : ''}" ${disabled ? 'disabled style="opacity:.4;cursor:not-allowed;"' : ''} data-page="${page}">${label}</button>`;
+        let html = btn('‹ Prev', ordersPage - 1, ordersPage === 1, false);
+        html += `<span style="color:#94a3b8; font-size:13px; padding:0 8px;">Page ${ordersPage} of ${totalPages}</span>`;
+        html += btn('Next ›', ordersPage + 1, ordersPage === totalPages, false);
+        container.innerHTML = html;
+        container.querySelectorAll('button[data-page]').forEach(b => {
+            b.addEventListener('click', () => {
+                const p = parseInt(b.dataset.page, 10);
+                if (p >= 1 && p <= totalPages) { ordersPage = p; renderOrders(lastRenderedOrders); }
+            });
+        });
+    }
+
     function renderOrders(orders) {
         const tbody = document.getElementById('ordersList');
         const meta = document.getElementById('ordersMeta');
         if (!tbody) return;
 
+        if (orders !== lastRenderedOrders) { ordersPage = 1; lastRenderedOrders = orders; }
+
         if (!orders.length) {
             tbody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding:32px; color:#475569;">No orders found.</td></tr>';
             if (meta) meta.textContent = '0 orders';
+            renderOrdersPagination(0);
             return;
         }
 
@@ -536,7 +562,10 @@ const StoreApp = (function() {
         };
         const paidStates = ['paid', 'fulfilled', 'completed', 'sent'];
 
-        tbody.innerHTML = orders.map(o => {
+        const startIdx = (ordersPage - 1) * ORDERS_PER_PAGE;
+        const pageOrders = orders.slice(startIdx, startIdx + ORDERS_PER_PAGE);
+
+        tbody.innerHTML = pageOrders.map(o => {
             const item = orderPrimaryItem(o);
             const net = item.network || detectNetwork(item.productName || item.data || '');
             const dataLabel = item.data || (item.productName || '').replace(/\s*Data$/i, '').replace(new RegExp('^' + net + '\\s*', 'i'), '') || item.productName || 'Bundle';
@@ -559,6 +588,8 @@ const StoreApp = (function() {
                 <td style="color:#64748b; white-space:nowrap;">${fmtDateTime(o.createdAt)}</td>
             </tr>`;
         }).join('');
+
+        renderOrdersPagination(orders.length);
     }
 
     function showNewOrder() {
@@ -759,24 +790,39 @@ const StoreApp = (function() {
             document.getElementById('payoutAvailable').textContent = `GH₵${store.settlementAccount.availableBalance.toFixed(2)}`;
         }
         document.getElementById('payoutForm').reset();
-        document.getElementById('payoutDestination').classList.add('hidden');
+        // Prefill saved mobile money details
+        if (store) {
+            const provEl = document.getElementById('payoutMomoProvider');
+            const numEl = document.getElementById('payoutMomoNumber');
+            if (provEl) provEl.value = store.momoProvider || '';
+            if (numEl) numEl.value = store.momoNumber || '';
+        }
         openModal('payoutModal');
     }
 
     async function submitPayout(e) {
         e.preventDefault();
         const amount = parseFloat(document.getElementById('payoutAmount').value);
-        const method = document.getElementById('payoutMethod').value;
+        const momoProvider = document.getElementById('payoutMomoProvider').value;
+        const momoNumber = document.getElementById('payoutMomoNumber').value.trim();
 
-        if (!amount || !method) {
-            toast('Amount and method are required', 'warning');
+        if (!amount) {
+            toast('Amount is required', 'warning');
+            return;
+        }
+        if (!momoProvider) {
+            toast('Select your mobile money network', 'warning');
+            return;
+        }
+        if (!momoNumber) {
+            toast('Mobile money number is required', 'warning');
             return;
         }
 
         try {
             await apiRequest('/store/payouts', {
                 method: 'POST',
-                body: JSON.stringify({ amount, method })
+                body: JSON.stringify({ amount, method: 'momo', momoNumber, momoProvider })
             });
             closeModal('payoutModal');
             toast('Payout request submitted!', 'success');
@@ -794,6 +840,8 @@ const StoreApp = (function() {
         if (!store) return;
         document.getElementById('settStoreName').value = store.name || '';
         document.getElementById('settStorePhone').value = store.phone || '';
+        const waEl = document.getElementById('settStoreWhatsapp');
+        if (waEl) waEl.value = store.whatsapp || '';
         document.getElementById('settStoreDesc').value = store.description || '';
         document.getElementById('settStoreLoc').value = store.location || '';
         document.getElementById('settBankName').value = store.bankName || '';
@@ -820,6 +868,7 @@ const StoreApp = (function() {
             const body = {
                 name: document.getElementById('settStoreName').value,
                 phone: document.getElementById('settStorePhone').value,
+                whatsapp: document.getElementById('settStoreWhatsapp') ? document.getElementById('settStoreWhatsapp').value : undefined,
                 description: document.getElementById('settStoreDesc').value,
                 location: document.getElementById('settStoreLoc').value,
                 bankName: document.getElementById('settBankName').value,
@@ -992,22 +1041,6 @@ const StoreApp = (function() {
                 (colorMap[orderNetwork] || colorMap.MTN).forEach(c => btn.classList.add(c));
                 renderOrderPackages();
             });
-        });
-
-        // Payout method change -> show destination
-        document.getElementById('payoutMethod').addEventListener('change', function() {
-            const dest = document.getElementById('payoutDestination');
-            const destText = document.getElementById('payoutDestText');
-            if (!store) return;
-            if (this.value === 'bank_transfer') {
-                destText.textContent = store.bankAccountNumber ? `${store.bankName} - ${store.bankAccountNumber} (${store.bankAccountName})` : 'No bank details configured';
-                dest.classList.remove('hidden');
-            } else if (this.value === 'momo') {
-                destText.textContent = store.momoNumber ? `${store.momoProvider} - ${store.momoNumber}` : 'No MoMo details configured';
-                dest.classList.remove('hidden');
-            } else {
-                dest.classList.add('hidden');
-            }
         });
 
     }

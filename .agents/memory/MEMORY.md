@@ -1,1 +1,2 @@
 - [Store order auto-delivery design](store-order-delivery.md) — paid store orders delivered by a separate service that deliberately mirrors the normal-order pipeline's recovery semantics (7-day cutoff, ref-after-send); change both together.
+- [storeController duplicated blocks](store-controller-duplicates.md) — Paystack init + orders-query destructure each exist twice; anchor edits with unique context.

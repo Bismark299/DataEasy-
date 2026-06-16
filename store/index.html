@@ -338,6 +338,7 @@
                         </tbody>
                     </table>
                 </div>
+                <div id="ordersPagination" class="flex items-center justify-center gap-2 mt-4"></div>
             </div>
         </div>
 
@@ -378,8 +379,14 @@
                         <input type="text" id="settStoreName" class="input-field w-full px-4 py-2">
                     </div>
                     <div>
-                        <label class="text-sm mb-1 block" style="color: #94a3b8;">Phone</label>
-                        <input type="text" id="settStorePhone" class="input-field w-full px-4 py-2">
+                        <label class="text-sm mb-1 block" style="color: #94a3b8;">Call Line (Phone)</label>
+                        <input type="text" id="settStorePhone" class="input-field w-full px-4 py-2" placeholder="0241234567">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm mb-1 block" style="color: #94a3b8;"><i class="fab fa-whatsapp" style="color:#25D366;"></i> WhatsApp Number</label>
+                        <input type="text" id="settStoreWhatsapp" class="input-field w-full px-4 py-2" placeholder="0241234567">
                     </div>
                 </div>
                 <div>
@@ -534,17 +541,24 @@
                 <label class="text-xs mb-1 block" style="color: #94a3b8;">Amount (GH₵) *</label>
                 <input type="number" step="0.01" id="payoutAmount" class="input-field w-full px-3 py-2 text-sm" required>
             </div>
-            <div>
-                <label class="text-xs mb-1 block" style="color: #94a3b8;">Payout Method *</label>
-                <select id="payoutMethod" class="input-field w-full px-3 py-2 text-sm" required>
-                    <option value="">Choose method</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="momo">Mobile Money</option>
-                </select>
-            </div>
-            <div id="payoutDestination" class="rounded-xl p-3 hidden" style="background: #0c111b; border: 1px solid #1e2433;">
-                <p class="text-xs mb-1" style="color: #64748b;">Payout will be sent to:</p>
-                <p class="text-sm font-medium text-white" id="payoutDestText">-</p>
+            <input type="hidden" id="payoutMethod" value="momo">
+            <div class="rounded-xl p-3" style="background: #0c111b; border: 1px solid #1e2433;">
+                <p class="text-xs font-semibold mb-2" style="color: #94a3b8;"><i class="fas fa-mobile-alt mr-1"></i> Mobile Money</p>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs mb-1 block" style="color: #94a3b8;">Network *</label>
+                        <select id="payoutMomoProvider" class="input-field w-full px-3 py-2 text-sm" required>
+                            <option value="">Choose network</option>
+                            <option value="MTN">MTN MoMo</option>
+                            <option value="AirtelTigo">AirtelTigo Money</option>
+                            <option value="Telecel">Telecel Cash</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs mb-1 block" style="color: #94a3b8;">Mobile Money Number *</label>
+                        <input type="tel" id="payoutMomoNumber" class="input-field w-full px-3 py-2 text-sm" placeholder="0241234567" required>
+                    </div>
+                </div>
             </div>
             <button type="submit" class="btn-primary w-full py-2 rounded-lg font-semibold text-sm justify-center">
                 <i class="fas fa-paper-plane"></i> Submit Payout Request

@@ -44,6 +44,11 @@ const Store = sequelize.define('Store', {
         type: DataTypes.STRING(15),
         allowNull: true
     },
+    whatsapp: {
+        type: DataTypes.STRING(20),
+        allowNull: true,
+        comment: 'WhatsApp contact number shown on the public store link'
+    },
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true

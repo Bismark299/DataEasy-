@@ -801,6 +801,16 @@ const DataEasyAPI = (function() {
     };
 
     // ==========================================
+    // STORE (agent storefront)
+    // ==========================================
+    const Store = {
+        async getOrders(params = {}) {
+            const qs = new URLSearchParams(params).toString();
+            return request(`/store/orders${qs ? `?${qs}` : ''}`);
+        }
+    };
+
+    // ==========================================
     // PUBLIC API
     // ==========================================
     return {
@@ -808,6 +818,7 @@ const DataEasyAPI = (function() {
         Users,
         Orders,
         Wallet,
+        Store,
         Admin,
         admin: Admin,  // Lowercase alias for compatibility with admin pages
         Developer,
