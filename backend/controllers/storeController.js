@@ -1059,28 +1059,29 @@ exports.getPublicPackages = async (req, res) => {
         const allPackages = await getAllPackagesForRole(userRole);
         const pricing = store.pricing || {};
 
-        // Show ALL active packages
-        // Use agent's custom selling price if set, otherwise use the base price
+        // Show ALL active packages.
+        // Use the owner's custom selling price when set, otherwise fall back to
+        // the agent's own role-based cost price (so unpriced bundles still sell).
         const result = {};
         for (const [network, pkgs] of Object.entries(allPackages)) {
             const activePkgs = pkgs
                 .filter(p => {
                     if (!p.isActive) return false;
                     const ap = pricing[p.id];
-                    // Only show bundles the owner has explicitly listed with a selling price.
-                    // No store price set (or disabled) → not shown on the public store link.
-                    if (!ap || ap.active === false || !ap.sellingPrice) return false;
+                    // Hide only bundles the owner has explicitly disabled.
+                    if (ap && ap.active === false) return false;
                     return true;
                 })
                 .map(p => {
                     const ap = pricing[p.id];
+                    const sellingPrice = (ap && ap.sellingPrice) ? ap.sellingPrice : getPriceForRole(p, userRole);
                     return {
                         id: p.id,
                         name: p.name,
                         network: p.network,
                         data: p.data,
                         validity: p.validity,
-                        price: ap.sellingPrice,
+                        price: sellingPrice,
                         popular: p.popular
                     };
                 });
@@ -1129,14 +1130,15 @@ exports.createPublicOrder = async (req, res) => {
             }
 
             const agentPricing = pricing[item.packageId];
-            // Only allow bundles the owner has explicitly listed with a selling price.
-            if (!agentPricing || agentPricing.active === false || !agentPricing.sellingPrice) {
+            // Block only bundles the owner has explicitly disabled.
+            if (agentPricing && agentPricing.active === false) {
                 return res.status(400).json({ error: `Package not available in this store: ${pkg.name}` });
             }
 
             const qty = parseInt(item.quantity) || 1;
             const costPrice = getPriceForRole(pkg, userRole);
-            const sellingPrice = agentPricing.sellingPrice;
+            // Use the owner's selling price when set, otherwise fall back to their cost price.
+            const sellingPrice = (agentPricing && agentPricing.sellingPrice) ? agentPricing.sellingPrice : costPrice;
 
             const lineTotal = Math.round(sellingPrice * qty * 100) / 100;
             const lineCost = Math.round(costPrice * qty * 100) / 100;
