@@ -74,15 +74,9 @@
                             <label class="text-gray-400 text-xs mb-1 block">Recipient Phone Number *</label>
                             <input type="tel" id="recipientPhone" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none" placeholder="e.g. 024XXXXXXX" required>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-gray-400 text-xs mb-1 block">Your Name *</label>
-                                <input type="text" id="custName" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none" required>
-                            </div>
-                            <div>
-                                <label class="text-gray-400 text-xs mb-1 block">Your Email *</label>
-                                <input type="email" id="custEmail" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none" required>
-                            </div>
+                        <div>
+                            <label class="text-gray-400 text-xs mb-1 block">Email <span class="text-gray-500">(optional, for receipt)</span></label>
+                            <input type="email" id="custEmail" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none" placeholder="you@example.com">
                         </div>
                         <div>
                             <label class="text-gray-400 text-xs mb-1 block">Quantity</label>
@@ -356,7 +350,6 @@
 
             try {
                 const body = {
-                    customerName: document.getElementById('custName').value.trim(),
                     customerEmail: document.getElementById('custEmail').value.trim(),
                     customerPhone: document.getElementById('recipientPhone').value.trim(),
                     items: [{

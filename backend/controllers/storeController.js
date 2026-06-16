@@ -424,23 +424,9 @@ exports.verifyOrderPayment = async (req, res) => {
             return res.status(400).json({ error: 'Payment amount mismatch' });
         }
 
-        // Process payment in transaction
-        await sequelize.transaction(async (t) => {
-            // Update order status
-            await order.update({
-                status: 'paid',
-                paidAt: new Date()
-            }, { transaction: t });
-
-            // Record sale in ledger (double-entry)
-            await ledgerService.recordSale(store.id, {
-                orderId: order.orderId,
-                subtotal: order.subtotal,
-                commission: order.commission,
-                netAmount: order.netAmount,
-                totalCost: order.totalCost
-            }, { transaction: t });
-        });
+        // Mark as paid only. Profit/settlement is credited later, once the
+        // order is actually delivered/fulfilled (see recordSale on fulfillment).
+        await order.update({ status: 'paid', paidAt: new Date() });
 
         const updatedOrder = await StoreOrder.findByPk(order.id);
         res.json({ success: true, message: 'Payment verified and recorded', order: updatedOrder });
@@ -475,8 +461,24 @@ exports.fulfillOrder = async (req, res) => {
             return res.status(400).json({ error: 'Only paid orders can be fulfilled' });
         }
 
-        await order.update({ status: 'fulfilled', fulfilledAt: new Date() });
-        res.json({ success: true, order });
+        // Fulfilling the order credits the owner's profit/settlement. Re-check the
+        // status under a row lock so a concurrent auto-delivery fulfill can't make
+        // us record the sale twice.
+        await sequelize.transaction(async (t) => {
+            const locked = await StoreOrder.findByPk(order.id, { transaction: t, lock: t.LOCK.UPDATE });
+            if (!locked || locked.status !== 'paid') return; // already fulfilled elsewhere
+            await locked.update({ status: 'fulfilled', fulfilledAt: new Date() }, { transaction: t });
+            await ledgerService.recordSale(store.id, {
+                orderId: locked.orderId,
+                subtotal: locked.subtotal,
+                commission: locked.commission,
+                netAmount: locked.netAmount,
+                totalCost: locked.totalCost
+            }, { transaction: t });
+        });
+
+        const fresh = await StoreOrder.findByPk(order.id);
+        res.json({ success: true, order: fresh });
     } catch (error) {
         logger.error('Fulfill order error', { error: error.message });
         res.status(500).json({ error: 'Failed to fulfill order' });
@@ -693,12 +695,14 @@ exports.getIncomeStatement = async (req, res) => {
             raw: true
         });
 
-        // Get COGS from store orders
+        // Get COGS from store orders. Revenue is recognized at fulfillment
+        // (recordSale runs on the paid->fulfilled transition), so COGS must match:
+        // only count fulfilled orders, dated by when they were fulfilled.
         const cogsResult = await StoreOrder.findOne({
             where: { 
                 storeId: store.id, 
-                status: { [Op.in]: ['paid', 'fulfilled'] },
-                ...(Object.keys(dateFilter).length > 0 ? { paidAt: dateFilter } : {})
+                status: 'fulfilled',
+                ...(Object.keys(dateFilter).length > 0 ? { fulfilledAt: dateFilter } : {})
             },
             attributes: [[sequelize.fn('COALESCE', sequelize.fn('SUM', sequelize.col('totalCost')), 0), 'total']],
             raw: true
@@ -1110,13 +1114,19 @@ exports.createPublicOrder = async (req, res) => {
 
         const { customerName, customerPhone, customerEmail, items, notes } = req.body;
 
-        if (!customerName || !customerEmail || !items || !Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ error: 'Customer name, email, and at least one item are required' });
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'At least one item is required' });
         }
 
         if (!customerPhone) {
             return res.status(400).json({ error: 'Phone number is required for data delivery' });
         }
+
+        // Name and email are optional on the public store form. Derive sensible
+        // fallbacks (Paystack requires a valid email to initialize payment).
+        const phone = String(customerPhone).trim();
+        const finalName = (customerName && customerName.trim()) || `Customer ${phone}`;
+        const finalEmail = (customerEmail && customerEmail.trim()) || `${phone.replace(/\D/g, '') || 'customer'}@store.dataeasyplus.com`;
 
         const userRole = store.owner?.role || 'agent';
         const pricing = store.pricing || {};
@@ -1173,9 +1183,9 @@ exports.createPublicOrder = async (req, res) => {
         const storeOrder = await StoreOrder.create({
             orderId,
             storeId: store.id,
-            customerName: customerName.trim(),
-            customerPhone: customerPhone,
-            customerEmail: customerEmail.trim(),
+            customerName: finalName,
+            customerPhone: phone,
+            customerEmail: finalEmail,
             items: orderItems,
             subtotal,
             totalCost,
@@ -1191,7 +1201,7 @@ exports.createPublicOrder = async (req, res) => {
         const callbackUrl = `${baseUrl}/store/shop.html?store=${encodeURIComponent(store.id)}`;
 
         const paystackResponse = await initializeTransaction({
-            email: customerEmail.trim(),
+            email: finalEmail,
             amount: subtotal,
             reference: paymentReference,
             callback_url: callbackUrl,
@@ -1199,7 +1209,7 @@ exports.createPublicOrder = async (req, res) => {
                 store_order_id: orderId,
                 store_id: store.id,
                 store_name: store.name,
-                customer_name: customerName,
+                customer_name: finalName,
                 type: 'store_payment'
             }
         });
@@ -1251,21 +1261,9 @@ exports.verifyPublicPayment = async (req, res) => {
             return res.status(400).json({ error: 'Amount mismatch' });
         }
 
-        const store = await Store.findByPk(order.storeId, {
-            include: [{ model: SettlementAccount, as: 'settlementAccount' }]
-        });
-
-        await sequelize.transaction(async (t) => {
-            await order.update({ status: 'paid', paidAt: new Date(), paymentMethod: 'paystack' }, { transaction: t });
-
-            await ledgerService.recordSale(store.id, {
-                orderId: order.orderId,
-                subtotal: order.subtotal,
-                commission: order.commission,
-                netAmount: order.netAmount,
-                totalCost: order.totalCost
-            }, { transaction: t });
-        });
+        // Mark as paid only. Profit/settlement is credited later, once the
+        // order is actually delivered/fulfilled (see recordSale on fulfillment).
+        await order.update({ status: 'paid', paidAt: new Date(), paymentMethod: 'paystack' });
 
         res.json({ success: true, message: 'Payment successful! Your data will be delivered shortly.', status: 'paid' });
 

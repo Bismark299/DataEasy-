@@ -21,6 +21,7 @@ const dispatchLock = require('./dispatchLock');
 const { StoreOrder, Setting } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
+const ledgerService = require('./ledgerService');
 
 const DELIVERED_STATUSES = ['success', 'completed', 'delivered', 'successful'];
 const FAILED_STATUSES = ['failed', 'fail', 'error', 'cancelled', 'rejected', 'not_found'];
@@ -57,12 +58,25 @@ async function updateItem(storeOrderId, itemIndex, patch) {
         const overall = computeOverall(items);
 
         const updates = { items, deliveryStatus: overall };
-        if (overall === 'Delivered' && order.status === 'paid') {
+        const isFulfilling = overall === 'Delivered' && order.status === 'paid';
+        if (isFulfilling) {
             updates.status = 'fulfilled';
             updates.fulfilledAt = new Date();
         }
 
         await order.update(updates, { transaction: t });
+
+        // Credit the owner's profit/settlement once the order is fully delivered.
+        if (isFulfilling) {
+            await ledgerService.recordSale(order.storeId, {
+                orderId: order.orderId,
+                subtotal: order.subtotal,
+                commission: order.commission,
+                netAmount: order.netAmount,
+                totalCost: order.totalCost
+            }, { transaction: t });
+        }
+
         await t.commit();
         return overall;
     } catch (e) {
