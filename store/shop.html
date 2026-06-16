@@ -32,7 +32,10 @@
                     <p id="storeLocation" class="text-gray-400 text-xs truncate"></p>
                 </div>
             </div>
-            <div id="storeContact" class="flex items-center gap-2 flex-wrap"></div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <div id="storeContact" class="flex items-center gap-2 flex-wrap"></div>
+                <button id="openTrackBtn" type="button" class="inline-flex items-center gap-1.5 bg-[#334155] hover:bg-[#3f4d63] text-white text-xs font-semibold px-3 py-2 rounded-lg transition"><i class="fas fa-truck"></i> Track Order</button>
+            </div>
         </div>
     </header>
 
@@ -103,11 +106,40 @@
                 <h2 class="text-xl font-bold text-white mb-2">Payment Successful!</h2>
                 <p class="text-gray-400 text-sm">Your data bundle will be delivered shortly to</p>
                 <p id="deliveryPhone" class="text-green-400 font-bold mt-1"></p>
+                <div id="successOrderIdWrap" class="hidden mt-4 inline-block bg-[#1e293b] border border-[#334155] rounded-lg px-4 py-3">
+                    <p class="text-gray-400 text-xs">Your Order ID (save this to track your order)</p>
+                    <p id="successOrderId" class="text-white font-bold font-mono text-sm mt-1"></p>
+                </div>
                 <p class="text-gray-500 text-xs mt-4">Reference: <span id="paymentRef"></span></p>
+                <div class="mt-5">
+                    <button id="successTrackBtn" type="button" class="bg-[#334155] hover:bg-[#3f4d63] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"><i class="fas fa-truck mr-1"></i> Track this order</button>
+                </div>
             </div>
 
         </div>
     </main>
+
+    <!-- Track Order Modal -->
+    <div id="trackModal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-[#1e293b] border border-[#334155] rounded-xl w-full max-w-md p-5 my-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-white font-bold text-lg"><i class="fas fa-truck mr-2"></i>Track Your Order</h2>
+                <button id="closeTrackBtn" type="button" class="text-gray-400 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+            </div>
+            <form id="trackForm" class="space-y-3">
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Order ID *</label>
+                    <input type="text" id="trackOrderId" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none font-mono" placeholder="e.g. SO-1234567890" required>
+                </div>
+                <div>
+                    <label class="text-gray-400 text-xs mb-1 block">Recipient Phone Number *</label>
+                    <input type="tel" id="trackPhone" class="w-full bg-[#0f172a] border border-[#334155] text-white px-3 py-2.5 rounded-lg text-sm focus:border-blue-500 focus:outline-none" placeholder="The phone used on the order" required>
+                </div>
+                <button type="submit" id="trackSubmitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg text-sm transition-colors"><i class="fas fa-search mr-1"></i> Track Order</button>
+            </form>
+            <div id="trackResult" class="hidden mt-4"></div>
+        </div>
+    </div>
 
     <!-- Toast container -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
@@ -127,6 +159,8 @@
         let packages = {};
         let currentNetwork = 'MTN';
         let selectedPackage = null;
+        let lastOrderId = '';
+        let lastOrderPhone = '';
 
         // Theme accents mirror the store dashboard theme options
         const THEMES = {
@@ -366,7 +400,10 @@
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Failed to create order');
 
-                try { sessionStorage.setItem('dataeasy_order_phone', body.customerPhone); } catch(ex) {}
+                try {
+                    sessionStorage.setItem('dataeasy_order_phone', body.customerPhone);
+                    if (data.order && data.order.orderId) sessionStorage.setItem('dataeasy_order_id', data.order.orderId);
+                } catch(ex) {}
 
                 if (data.payment && data.payment.authorizationUrl) {
                     window.location.href = data.payment.authorizationUrl;
@@ -403,7 +440,15 @@
                     try {
                         const phone = sessionStorage.getItem('dataeasy_order_phone');
                         if (phone) document.getElementById('deliveryPhone').textContent = phone;
+                        const oid = sessionStorage.getItem('dataeasy_order_id');
+                        if (oid) {
+                            document.getElementById('successOrderId').textContent = oid;
+                            document.getElementById('successOrderIdWrap').classList.remove('hidden');
+                            lastOrderId = oid;
+                        }
+                        lastOrderPhone = phone || '';
                         sessionStorage.removeItem('dataeasy_order_phone');
+                        sessionStorage.removeItem('dataeasy_order_id');
                     } catch(ex) {}
                     successDiv.classList.remove('hidden');
                 } else {
@@ -412,6 +457,103 @@
             } catch (e) {
                 toast('Could not verify payment', 'error');
             }
+        }
+
+        // ==========================================
+        // ORDER TRACKING
+        // ==========================================
+        function openTrackModal(prefill) {
+            const modal = document.getElementById('trackModal');
+            modal.classList.remove('hidden');
+            document.getElementById('trackResult').classList.add('hidden');
+            if (prefill) {
+                if (lastOrderId) document.getElementById('trackOrderId').value = lastOrderId;
+                if (lastOrderPhone) document.getElementById('trackPhone').value = lastOrderPhone;
+            }
+        }
+
+        function closeTrackModal() {
+            document.getElementById('trackModal').classList.add('hidden');
+        }
+
+        function statusStep(status, deliveryStatus) {
+            const ds = (deliveryStatus || '').toLowerCase();
+            if (ds === 'delivered') return 3;
+            if (ds === 'processing' || ds === 'partially delivered') return 2;
+            if (status === 'paid' || status === 'fulfilled') return 2;
+            if (status === 'pending') return 1;
+            return 0;
+        }
+
+        async function trackOrder(e) {
+            e.preventDefault();
+            const orderId = document.getElementById('trackOrderId').value.trim();
+            const phone = document.getElementById('trackPhone').value.trim();
+            const btn = document.getElementById('trackSubmitBtn');
+            const resultEl = document.getElementById('trackResult');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Searching...';
+            resultEl.classList.add('hidden');
+
+            try {
+                const url = `${API}/store/public/track?orderId=${encodeURIComponent(orderId)}&phone=${encodeURIComponent(phone)}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || 'Order not found');
+                renderTrackResult(data.order);
+            } catch (err) {
+                resultEl.innerHTML = `<div class="bg-red-600/15 border border-red-600/40 text-red-300 rounded-lg p-3 text-sm">${escapeHtml(err.message)}</div>`;
+                resultEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-search mr-1"></i> Track Order';
+            }
+        }
+
+        function renderTrackResult(order) {
+            const resultEl = document.getElementById('trackResult');
+            const failed = order.status === 'cancelled' || order.status === 'refunded' || (order.deliveryStatus || '').toLowerCase() === 'failed';
+            const step = statusStep(order.status, order.deliveryStatus);
+
+            const steps = [
+                { label: 'Order Placed', icon: 'fa-receipt' },
+                { label: 'Payment Confirmed', icon: 'fa-credit-card' },
+                { label: 'Delivered', icon: 'fa-check-circle' }
+            ];
+
+            const timeline = steps.map((s, i) => {
+                const reached = step >= (i + 1);
+                const color = reached ? 'text-green-400' : 'text-gray-600';
+                const dot = reached ? 'bg-green-500' : 'bg-[#334155]';
+                return `<div class="flex items-center gap-3">
+                    <span class="w-7 h-7 rounded-full ${dot} flex items-center justify-center flex-shrink-0"><i class="fas ${s.icon} text-xs ${reached ? 'text-white' : 'text-gray-500'}"></i></span>
+                    <span class="text-sm ${color}">${s.label}</span>
+                </div>`;
+            }).join('<div class="ml-3.5 h-3 border-l border-[#334155]"></div>');
+
+            const items = (order.items || []).map(it => `<li>${escapeHtml(it.network)} ${escapeHtml(it.data)}${it.quantity > 1 ? ' x' + it.quantity : ''}</li>`).join('');
+
+            const banner = failed
+                ? `<div class="bg-red-600/15 border border-red-600/40 text-red-300 rounded-lg p-2.5 text-sm mb-3"><i class="fas fa-exclamation-circle mr-1"></i> This order was ${escapeHtml(order.status)}. Please contact the store.</div>`
+                : (order.deliveryStatus || '').toLowerCase() === 'delivered'
+                    ? `<div class="bg-green-600/15 border border-green-600/40 text-green-300 rounded-lg p-2.5 text-sm mb-3"><i class="fas fa-check-circle mr-1"></i> Your data has been delivered.</div>`
+                    : `<div class="bg-blue-600/15 border border-blue-600/40 text-blue-300 rounded-lg p-2.5 text-sm mb-3"><i class="fas fa-clock mr-1"></i> Your order is being processed and will be delivered shortly.</div>`;
+
+            resultEl.innerHTML = `
+                ${banner}
+                <div class="bg-[#0f172a] border border-[#334155] rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <p class="text-white font-mono font-bold text-sm">${escapeHtml(order.orderId)}</p>
+                            <p class="text-gray-500 text-xs">${order.storeName ? escapeHtml(order.storeName) + ' · ' : ''}${new Date(order.createdAt).toLocaleString()}</p>
+                        </div>
+                        <span class="text-green-400 font-bold">${formatCurrency(order.subtotal)}</span>
+                    </div>
+                    <ul class="text-gray-300 text-xs list-disc list-inside mb-4">${items}</ul>
+                    <div class="space-y-0">${timeline}</div>
+                    <p class="text-gray-500 text-xs mt-3">Recipient: ${escapeHtml(order.customerPhone || '')}</p>
+                </div>`;
+            resultEl.classList.remove('hidden');
         }
 
         // ==========================================
@@ -437,6 +579,15 @@
 
             document.getElementById('customerOrderForm').addEventListener('submit', createOrder);
             document.getElementById('custQty').addEventListener('input', updateTotal);
+
+            // Order tracking
+            document.getElementById('openTrackBtn').addEventListener('click', () => openTrackModal(false));
+            document.getElementById('successTrackBtn').addEventListener('click', () => openTrackModal(true));
+            document.getElementById('closeTrackBtn').addEventListener('click', closeTrackModal);
+            document.getElementById('trackForm').addEventListener('submit', trackOrder);
+            document.getElementById('trackModal').addEventListener('click', (e) => {
+                if (e.target.id === 'trackModal') closeTrackModal();
+            });
 
             loadStore();
             checkPaymentCallback();

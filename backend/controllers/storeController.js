@@ -1279,3 +1279,54 @@ exports.verifyPublicPayment = async (req, res) => {
         res.status(500).json({ error: 'Failed to verify payment' });
     }
 };
+
+/**
+ * Public order tracking (no auth)
+ * Customers look up their order with the order ID + the recipient phone they used.
+ * Phone is required so orders can't be enumerated by ID alone.
+ * GET /api/store/public/track?orderId=SO-...&phone=024...
+ */
+exports.trackPublicOrder = async (req, res) => {
+    try {
+        const orderId = String(req.query.orderId || '').trim();
+        const phone = String(req.query.phone || '').replace(/\D/g, '');
+
+        if (!orderId || !phone) {
+            return res.status(400).json({ error: 'Order ID and recipient phone number are required' });
+        }
+
+        const order = await StoreOrder.findOne({
+            where: { orderId },
+            include: [{ model: Store, as: 'store', attributes: ['name'] }]
+        });
+
+        // Verify the phone matches the order (last 9 digits, ignoring leading 0 / country code)
+        const last9 = (s) => String(s || '').replace(/\D/g, '').slice(-9);
+        if (!order || last9(order.customerPhone) !== last9(phone)) {
+            return res.status(404).json({ error: 'No order found matching that Order ID and phone number' });
+        }
+
+        res.json({
+            success: true,
+            order: {
+                orderId: order.orderId,
+                storeName: order.store ? order.store.name : null,
+                status: order.status,
+                deliveryStatus: order.deliveryStatus,
+                customerPhone: order.customerPhone,
+                subtotal: order.subtotal,
+                items: (order.items || []).map(it => ({
+                    network: it.network || '',
+                    data: it.data || it.productName || '',
+                    quantity: it.quantity || 1
+                })),
+                createdAt: order.createdAt,
+                paidAt: order.paidAt,
+                fulfilledAt: order.fulfilledAt
+            }
+        });
+    } catch (error) {
+        logger.error('Track public order error', { error: error.message });
+        res.status(500).json({ error: 'Failed to track order' });
+    }
+};

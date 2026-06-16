@@ -8,13 +8,14 @@ const express = require('express');
 const router = express.Router();
 const storeController = require('../controllers/storeController');
 const { protect } = require('../middleware/auth');
-const { publicStoreOrderLimiter } = require('../middleware/rateLimiter');
+const { publicStoreOrderLimiter, publicTrackLimiter } = require('../middleware/rateLimiter');
 
 // ==========================================
 // PUBLIC ROUTES (no auth - customer facing)
 // ==========================================
 // Static path first (before :storeId param catches "orders")
 router.get('/public/orders/:reference/verify', storeController.verifyPublicPayment);
+router.get('/public/track', publicTrackLimiter, storeController.trackPublicOrder);
 // Parameterized store routes
 router.get('/public/:storeId', storeController.getPublicStore);
 router.get('/public/:storeId/packages', storeController.getPublicPackages);

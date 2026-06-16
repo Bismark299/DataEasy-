@@ -5,7 +5,7 @@
  * With audit logging and wallet adjustment limits
  */
 
-const { User, Order, Wallet, Transaction, AdminAuditLog, Package, Setting, sequelize } = require('../models');
+const { User, Order, Wallet, Transaction, AdminAuditLog, Package, Setting, StoreOrder, Store, sequelize } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 const { packages, clearPackagesCache } = require('../config/packages');
 const logger = require('../utils/logger');
@@ -246,34 +246,122 @@ exports.getAllOrders = async (req, res) => {
             limit: parseInt(limit)
         });
 
+        let mappedOrders = orders.map(order => ({
+            id: order.id,
+            orderId: order.orderId,
+            userId: order.userId,
+            source: 'platform',
+            user: order.user ? {
+                id: order.user.id,
+                fullName: order.user.fullName,
+                name: order.user.fullName,
+                email: order.user.email,
+                phone: order.user.phone,
+                agentCode: order.user.agentCode
+            } : null,
+            customer: {
+                name: order.user?.fullName || 'Unknown',
+                email: order.user?.email,
+                phone: order.user?.phone
+            },
+            network: order.network,
+            items: order.items,
+            itemCount: order.items.length,
+            total: order.total,
+            paymentStatus: order.paymentStatus,
+            deliveryStatus: order.deliveryStatus,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt
+        }));
+
+        // Merge in store-link orders so they appear alongside normal orders.
+        // Skipped when filtering by a specific platform user (store orders have none).
+        const includeStoreOrders = req.query.includeStoreOrders !== 'false' && !userId;
+        if (includeStoreOrders) {
+            try {
+                const storeWhere = {};
+                if (status && status !== 'all') storeWhere.deliveryStatus = status;
+                if (search) {
+                    storeWhere[Op.or] = [
+                        { orderId: { [Op.iLike]: `%${search}%` } },
+                        { customerPhone: { [Op.iLike]: `%${search}%` } },
+                        { customerName: { [Op.iLike]: `%${search}%` } }
+                    ];
+                }
+                if (dateFrom || dateTo) {
+                    storeWhere.createdAt = {};
+                    if (dateFrom) storeWhere.createdAt[Op.gte] = new Date(dateFrom);
+                    if (dateTo) {
+                        const to = new Date(dateTo);
+                        to.setHours(23, 59, 59, 999);
+                        storeWhere.createdAt[Op.lte] = to;
+                    }
+                }
+
+                const storeOrders = await StoreOrder.findAll({
+                    where: storeWhere,
+                    include: [{ model: Store, as: 'store', attributes: ['id', 'name'] }],
+                    order: [['createdAt', 'DESC']]
+                });
+
+                const mapPaymentStatus = (s) => {
+                    if (s === 'paid' || s === 'fulfilled') return 'completed';
+                    if (s === 'pending') return 'pending';
+                    if (s === 'refunded') return 'refunded';
+                    return 'failed';
+                };
+
+                let mappedStoreOrders = storeOrders.map(so => {
+                    const items = (so.items || []).map(it => ({
+                        packageName: it.data || it.productName || '',
+                        data: it.data || '',
+                        network: it.network || '',
+                        phoneNumber: so.customerPhone,
+                        phone: so.customerPhone,
+                        quantity: it.quantity || 1,
+                        price: parseFloat(it.lineTotal != null ? it.lineTotal : (it.unitPrice || 0) * (it.quantity || 1)) || 0,
+                        deliveryStatus: so.deliveryStatus
+                    }));
+                    return {
+                        id: so.id,
+                        orderId: so.orderId,
+                        source: 'store',
+                        storeName: so.store ? so.store.name : null,
+                        user: {
+                            fullName: so.store ? so.store.name : 'Store',
+                            name: so.store ? so.store.name : 'Store',
+                            agentCode: 'STORE'
+                        },
+                        customer: { name: so.customerName, phone: so.customerPhone, email: so.customerEmail },
+                        network: items[0] ? items[0].network : null,
+                        items,
+                        itemCount: items.length,
+                        total: so.subtotal,
+                        paymentStatus: mapPaymentStatus(so.status),
+                        deliveryStatus: so.deliveryStatus,
+                        createdAt: so.createdAt,
+                        updatedAt: so.updatedAt
+                    };
+                });
+
+                // Apply the same network + payment filters that Order honored
+                if (network && network !== 'all') {
+                    mappedStoreOrders = mappedStoreOrders.filter(o => (o.network || '').toLowerCase() === network.toLowerCase());
+                }
+                if (paymentStatus && paymentStatus !== 'all') {
+                    mappedStoreOrders = mappedStoreOrders.filter(o => o.paymentStatus === paymentStatus);
+                }
+
+                mappedOrders = mappedOrders.concat(mappedStoreOrders);
+                mappedOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            } catch (storeErr) {
+                logger.error?.('Merge store orders into admin orders failed', { error: storeErr.message });
+            }
+        }
+
         res.json({
             success: true,
-            orders: orders.map(order => ({
-                id: order.id,
-                orderId: order.orderId,
-                userId: order.userId,
-                user: order.user ? {
-                    id: order.user.id,
-                    fullName: order.user.fullName,
-                    name: order.user.fullName,
-                    email: order.user.email,
-                    phone: order.user.phone,
-                    agentCode: order.user.agentCode
-                } : null,
-                customer: {
-                    name: order.user?.fullName || 'Unknown',
-                    email: order.user?.email,
-                    phone: order.user?.phone
-                },
-                network: order.network,
-                items: order.items,
-                itemCount: order.items.length,
-                total: order.total,
-                paymentStatus: order.paymentStatus,
-                deliveryStatus: order.deliveryStatus,
-                createdAt: order.createdAt,
-                updatedAt: order.updatedAt
-            })),
+            orders: mappedOrders,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),

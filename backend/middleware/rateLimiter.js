@@ -157,6 +157,17 @@ const publicStoreOrderLimiter = rateLimit({
     legacyHeaders: false
 });
 
+const publicTrackLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 20, // 20 tracking lookups per minute per IP
+    message: {
+        error: 'Please wait',
+        message: 'Too many tracking attempts. Try again shortly.'
+    },
+    standardHeaders: false,
+    legacyHeaders: false
+});
+
 module.exports = {
     defaultLimiter,
     authLimiter,
@@ -167,5 +178,6 @@ module.exports = {
     passwordLimiter,
     adminActionLimiter,
     sensitiveAdminLimiter,
-    publicStoreOrderLimiter
+    publicStoreOrderLimiter,
+    publicTrackLimiter
 };
