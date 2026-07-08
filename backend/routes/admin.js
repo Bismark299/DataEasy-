@@ -70,6 +70,7 @@ router.get('/provider/active-polls', adminController.getActivePolls);
 router.post('/provider/retry-poll', sensitiveAdminLimiter, adminController.retryPoll);
 router.post('/provider/sync-status', sensitiveAdminLimiter, adminController.syncOrderStatus);
 router.post('/orders/:id/retry-failed', sensitiveAdminLimiter, adminController.retryFailedItems);
+router.post('/provider/bulk-push', sensitiveAdminLimiter, adminController.bulkPushMcbis);
 
 // Provider transaction review routes
 router.get('/provider/transactions/review', adminController.getTransactionsForReview);

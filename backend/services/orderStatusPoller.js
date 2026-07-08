@@ -549,11 +549,18 @@ async function syncProcessingOrders() {
  * - providerReference present → already sent, only check status
  * - No providerReference + no sentToProviderAt → never sent, safe to send
  */
-async function recoverPendingOrders() {
+async function recoverPendingOrders(options = {}) {
+    const summary = { ordersScanned: 0, itemsSent: 0, itemsFailedDispatch: 0, stoppedForBalance: false };
     try {
         const now = Date.now();
-        const cutoffDate = new Date(now - MAX_RECOVERY_AGE);
         const minAgeDate = new Date(now - MIN_ORDER_AGE);
+        // Optional manual range (admin bulk push) — overrides the 7-day auto-recovery cutoff
+        const cutoffDate = options.startDate ? new Date(options.startDate) : new Date(now - MAX_RECOVERY_AGE);
+        let maxDate = minAgeDate;
+        if (options.endDate) {
+            const end = new Date(options.endDate);
+            maxDate = end.getTime() < minAgeDate.getTime() ? end : minAgeDate;
+        }
 
         // Find stuck orders — oldest first (FIFO)
         const pendingOrders = await Order.findAll({
@@ -562,14 +569,15 @@ async function recoverPendingOrders() {
                 paymentStatus: 'Completed',
                 createdAt: { 
                     [Op.gte]: cutoffDate,
-                    [Op.lte]: minAgeDate  // Must be at least 30 seconds old
+                    [Op.lte]: maxDate  // Must be at least 60 seconds old (or custom end date)
                 }
             },
             order: [['createdAt', 'ASC']]  // Oldest first — first come, first served
         });
 
+        summary.ordersScanned = pendingOrders.length;
         if (pendingOrders.length === 0) {
-            return;
+            return summary;
         }
 
         logger.info('Recovery sweep: checking stuck orders', { count: pendingOrders.length });
@@ -631,6 +639,7 @@ async function recoverPendingOrders() {
                 logger.info('Recovery: MCBIS balance exhausted mid-batch, stopping. Will retry next cycle.', {
                     currentBalance, needed: itemCost, remainingItems: unsentItems.length - recovered
                 });
+                summary.stoppedForBalance = true;
                 break; // STOP — don't try remaining items, wait for next cycle after top-up
             }
 
@@ -695,6 +704,7 @@ async function recoverPendingOrders() {
                     logger.info('Recovery: MCBIS says insufficient balance, stopping batch', {
                         orderId: order.orderId
                     });
+                    summary.stoppedForBalance = true;
                     dispatchLock.release(order.id, itemIndex);
                     break;
 
@@ -722,6 +732,7 @@ async function recoverPendingOrders() {
                     // Deduct estimated cost from our running balance tracker
                     if (itemCost > 0) currentBalance -= itemCost;
                     recovered++;
+                    summary.itemsSent++;
 
                     logger.info('Recovery: order sent to MCBIS, now Processing', {
                         orderId: order.orderId, itemIndex, reference: deliveryResult.reference
@@ -733,6 +744,7 @@ async function recoverPendingOrders() {
                         deliveryError: deliveryResult.error || 'Recovery delivery failed'
                     };
                     await order.update({ items: freshItems });
+                    summary.itemsFailedDispatch++;
                     logger.warn('Recovery: delivery attempt failed', {
                         orderId: order.orderId, itemIndex, error: deliveryResult.error
                     });
@@ -822,6 +834,7 @@ async function recoverPendingOrders() {
     } catch (error) {
         logger.error('Recovery sweep error', { error: error.message });
     }
+    return summary;
 }
 
 module.exports = {

@@ -292,6 +292,10 @@
                             <i class="fas fa-sync-alt"></i>
                             Sync MCBIS
                         </button>
+                        <button class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-sm font-medium flex items-center gap-2" id="bulkPushBtn">
+                            <i class="fas fa-paper-plane"></i>
+                            Push to MCBIS
+                        </button>
                         <button id="exportBtn" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition text-sm font-medium">
                             Export
                         </button>
@@ -377,6 +381,43 @@
                 </button>
                 <button class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition hidden" id="cancelOrderBtn">
                     <i class="fas fa-times mr-1"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Push to MCBIS Modal -->
+    <div class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4" id="bulkPushModal">
+        <div class="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-auto">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h3 class="font-semibold text-gray-800"><i class="fas fa-paper-plane text-purple-600 mr-2"></i>Push Stuck Orders to MCBIS</h3>
+                <button class="modal-close-btn text-gray-400 hover:text-gray-600 text-xl" data-modal="bulkPushModal">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-gray-500">Finds paid orders with <strong>failed or pending</strong> deliveries in the date range and re-sends them to MCBIS. Delivered items and items already sent to MCBIS are never re-sent.</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm text-gray-700 mb-1">From</label>
+                        <input type="date" id="bulkPushStart" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-700 mb-1">To</label>
+                        <input type="date" id="bulkPushEnd" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                    </div>
+                </div>
+                <div id="bulkPushPreview" class="hidden rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm space-y-1"></div>
+                <div id="bulkPushWarning" class="hidden rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Items marked Failed/Pending will be delivered for real and spend your MCBIS balance. If any of these customers were already served manually, they will receive the data <strong>again</strong>.
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-100">
+                <button class="modal-close-btn px-4 py-2 text-gray-600 hover:text-gray-800 transition" data-modal="bulkPushModal">Close</button>
+                <button class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition text-sm font-medium" id="bulkPushPreviewBtn">
+                    <i class="fas fa-search mr-1"></i> Preview
+                </button>
+                <button class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-sm font-medium hidden" id="bulkPushConfirmBtn">
+                    <i class="fas fa-paper-plane mr-1"></i> Push Now
                 </button>
             </div>
         </div>
@@ -1235,6 +1276,107 @@
                 syncBtn.innerHTML = originalContent;
             }
         }
+
+        // ── Bulk Push stuck orders to MCBIS ──
+        function openBulkPushModal() {
+            const today = new Date().toISOString().slice(0, 10);
+            const startInput = document.getElementById('bulkPushStart');
+            const endInput = document.getElementById('bulkPushEnd');
+            if (!startInput.value) {
+                const d = new Date(); d.setDate(d.getDate() - 14);
+                startInput.value = d.toISOString().slice(0, 10);
+            }
+            if (!endInput.value) endInput.value = today;
+            document.getElementById('bulkPushPreview').classList.add('hidden');
+            document.getElementById('bulkPushWarning').classList.add('hidden');
+            document.getElementById('bulkPushConfirmBtn').classList.add('hidden');
+            const modal = document.getElementById('bulkPushModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        async function callBulkPush(dryRun) {
+            const startDate = document.getElementById('bulkPushStart').value;
+            const endDate = document.getElementById('bulkPushEnd').value;
+            if (!startDate) { showToast('warning', 'Missing Date', 'Please choose a start date'); return null; }
+            const token = localStorage.getItem('dataeasy_admin_token');
+            const apiBase = window.API_BASE_URL || '/api';
+            const res = await fetch(`${apiBase}/admin/provider/bulk-push`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ startDate, endDate, dryRun })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Bulk push request failed');
+            return data;
+        }
+
+        async function previewBulkPush() {
+            const btn = document.getElementById('bulkPushPreviewBtn');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            try {
+                const data = await callBulkPush(true);
+                if (!data) return;
+                const p = data.platform, s = data.store;
+                const toSend = p.toSend + s.toSend;
+                const toReset = p.toReset + s.toReset;
+                const toRecheck = p.toRecheck + s.toRecheck;
+                const skipped = p.skippedManual + s.skippedManual;
+                const failedSent = (p.failedAfterSend || 0) + (s.failedAfterSend || 0);
+                const cost = (p.estimatedCost + s.estimatedCost).toFixed(2);
+                const bal = data.mcbisBalance !== null && data.mcbisBalance !== undefined
+                    ? `GH₵${Number(data.mcbisBalance).toFixed(2)}` : 'unavailable';
+                const box = document.getElementById('bulkPushPreview');
+                box.innerHTML = `
+                    <div class="font-semibold text-gray-800 mb-2">Preview — ${p.orders + s.orders} order(s) affected</div>
+                    <div class="flex justify-between"><span class="text-gray-500">Pending items never sent (will send)</span><span class="font-medium">${toSend}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Failed items (will reset &amp; send)</span><span class="font-medium">${toReset}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Already sent (status re-check only)</span><span class="font-medium">${toRecheck}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Manual items (skipped)</span><span class="font-medium">${skipped}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">Failed after sending (use per-order Retry)</span><span class="font-medium">${failedSent}</span></div>
+                    <div class="flex justify-between border-t border-gray-200 mt-2 pt-2"><span class="text-gray-500">Estimated cost</span><span class="font-semibold">GH₵${cost}</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">MCBIS balance</span><span class="font-semibold">${bal}</span></div>`;
+                box.classList.remove('hidden');
+                const actionable = data.totalActionable > 0;
+                document.getElementById('bulkPushWarning').classList.toggle('hidden', !actionable);
+                document.getElementById('bulkPushConfirmBtn').classList.toggle('hidden', !(actionable || toRecheck > 0));
+                if (!actionable && toRecheck === 0) {
+                    showToast('info', 'Nothing to Push', 'No stuck items found in this date range');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('error', 'Preview Failed', err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        }
+
+        async function runBulkPush() {
+            const btn = document.getElementById('bulkPushConfirmBtn');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Pushing...';
+            try {
+                const data = await callBulkPush(false);
+                if (!data) return;
+                showToast('success', 'Push Started', data.message);
+                closeModal('bulkPushModal');
+                loadOrders();
+            } catch (err) {
+                console.error(err);
+                showToast('error', 'Push Failed', err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        }
+
+        document.getElementById('bulkPushBtn').addEventListener('click', openBulkPushModal);
+        document.getElementById('bulkPushPreviewBtn').addEventListener('click', previewBulkPush);
+        document.getElementById('bulkPushConfirmBtn').addEventListener('click', runBulkPush);
 
         function exportOrders() {
             if (allOrders.length === 0) {

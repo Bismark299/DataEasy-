@@ -3044,6 +3044,206 @@ exports.retryFailedItems = async (req, res) => {
 };
 
 /**
+ * Bulk push stuck orders (failed/pending) to MCBIS for a date range.
+ * POST /api/admin/provider/bulk-push  { startDate, endDate, dryRun }
+ *
+ * Safety:
+ * - Only paid/completed orders are considered.
+ * - Delivered items are never touched; items with a providerReference are never re-sent.
+ * - 'Processing' items WITHOUT a reference (manual admin flow) are skipped.
+ * - Failed items are reset to Pending, then dispatch reuses the recovery sweep
+ *   (dispatch locks, fresh-DB pre-checks, balance checks, FIFO).
+ */
+let bulkPushRunning = false;
+exports.bulkPushMcbis = async (req, res) => {
+    try {
+        const { startDate, endDate, dryRun } = req.body || {};
+        if (!startDate) {
+            return res.status(400).json({ error: 'startDate is required (YYYY-MM-DD)' });
+        }
+        const start = new Date(startDate);
+        if (isNaN(start.getTime())) {
+            return res.status(400).json({ error: 'Invalid startDate' });
+        }
+        start.setHours(0, 0, 0, 0);
+        let end = endDate ? new Date(endDate) : new Date();
+        if (isNaN(end.getTime())) {
+            return res.status(400).json({ error: 'Invalid endDate' });
+        }
+        end.setHours(23, 59, 59, 999);
+        if (end < start) {
+            return res.status(400).json({ error: 'endDate must be after startDate' });
+        }
+
+        const STUCK = ['Pending', 'Processing', 'Partially Delivered', 'Failed'];
+        const range = { [Op.gte]: start, [Op.lte]: end };
+
+        const [platformOrders, storeOrders] = await Promise.all([
+            Order.findAll({
+                where: {
+                    paymentStatus: 'Completed',
+                    deliveryStatus: { [Op.in]: STUCK },
+                    createdAt: range
+                },
+                order: [['createdAt', 'ASC']]
+            }),
+            StoreOrder.findAll({
+                where: {
+                    status: 'paid',
+                    deliveryStatus: { [Op.in]: STUCK },
+                    createdAt: range
+                },
+                order: [['createdAt', 'ASC']]
+            })
+        ]);
+
+        // Classify items — identical rules for platform and store orders
+        const classify = (orders) => {
+            const c = { orders: 0, toSend: 0, toReset: 0, toRecheck: 0, skippedManual: 0, failedAfterSend: 0, estimatedCost: 0 };
+            const affected = [];
+            for (const order of orders) {
+                const items = order.items || [];
+                let touchesOrder = false;
+                for (const item of items) {
+                    const st = item.deliveryStatus;
+                    if (st === 'Delivered') continue;
+                    if (item.providerReference) {
+                        // Already sent to MCBIS — NEVER re-send.
+                        // Failed-with-reference means MCBIS reported failure after sending;
+                        // bulk push won't touch these (use the per-order Retry button).
+                        if (st === 'Failed') c.failedAfterSend++;
+                        else c.toRecheck++; // Processing — poller re-checks status only
+                        continue;
+                    }
+                    if (st === 'Processing') { c.skippedManual++; continue; }     // manual admin flow — never auto-send
+                    if (st === 'Failed') { c.toReset++; touchesOrder = true; }
+                    else { c.toSend++; touchesOrder = true; }                     // Pending, never sent
+                    c.estimatedCost += parseFloat(item.costPrice || item.price || 0) || 0;
+                }
+                if (touchesOrder || items.some(i => i.providerReference && i.deliveryStatus !== 'Delivered' && i.deliveryStatus !== 'Failed')) {
+                    c.orders++;
+                    affected.push(order);
+                }
+            }
+            return { counts: c, affected };
+        };
+
+        const platform = classify(platformOrders);
+        const store = classify(storeOrders);
+
+        // MCBIS wallet balance for context
+        let mcbisBalance = null;
+        try {
+            const bal = await mcbisProvider.getWalletBalance();
+            if (bal.success && bal.configured) mcbisBalance = parseFloat(bal.balance || 0);
+        } catch (e) { /* balance is informational here */ }
+
+        const totalActionable = platform.counts.toSend + platform.counts.toReset
+                              + store.counts.toSend + store.counts.toReset;
+
+        if (dryRun) {
+            return res.json({
+                success: true,
+                dryRun: true,
+                startDate: start.toISOString(),
+                endDate: end.toISOString(),
+                mcbisBalance,
+                totalActionable,
+                platform: platform.counts,
+                store: store.counts
+            });
+        }
+
+        if (totalActionable === 0 && platform.counts.toRecheck === 0 && store.counts.toRecheck === 0) {
+            return res.status(400).json({ error: 'No stuck items found in this date range' });
+        }
+        if (bulkPushRunning) {
+            return res.status(409).json({ error: 'A bulk push is already running. Please wait for it to finish.' });
+        }
+        bulkPushRunning = true;
+
+        // 1) Reset Failed items to Pending so the dispatcher will pick them up
+        let resetCount = 0;
+        try {
+            for (const order of platform.affected) {
+                const items = order.items || [];
+                // Only reset Failed items that were NEVER sent (no providerReference)
+                if (!items.some(i => i.deliveryStatus === 'Failed' && !i.providerReference)) continue;
+                const updated = items.map(i => (i.deliveryStatus === 'Failed' && !i.providerReference)
+                    ? { ...i, deliveryStatus: 'Pending', sentToProviderAt: null, deliveryError: null }
+                    : i);
+                const hasProcessing = updated.some(i => i.deliveryStatus === 'Processing');
+                const hasPending = updated.some(i => i.deliveryStatus === 'Pending');
+                const hasDelivered = updated.some(i => i.deliveryStatus === 'Delivered');
+                const allDelivered = updated.every(i => i.deliveryStatus === 'Delivered');
+                let newStatus;
+                if (allDelivered) newStatus = 'Delivered';
+                else if (hasProcessing) newStatus = 'Processing';
+                else if (hasPending && hasDelivered) newStatus = 'Partially Delivered';
+                else newStatus = 'Pending';
+                await order.update({ items: updated, deliveryStatus: newStatus });
+                resetCount++;
+            }
+            for (const order of store.affected) {
+                const items = order.items || [];
+                // Only reset Failed items that were NEVER sent (no providerReference)
+                if (!items.some(i => i.deliveryStatus === 'Failed' && !i.providerReference)) continue;
+                const updated = items.map(i => (i.deliveryStatus === 'Failed' && !i.providerReference)
+                    ? { ...i, deliveryStatus: 'Pending', sentToProviderAt: null, deliveryError: null }
+                    : i);
+                await order.update({ items: updated, deliveryStatus: storeDelivery.computeOverall(updated) });
+                resetCount++;
+            }
+        } catch (resetErr) {
+            bulkPushRunning = false;
+            logger.error('Bulk push: reset phase failed', { error: resetErr.message });
+            return res.status(500).json({ error: 'Failed to reset failed items: ' + resetErr.message });
+        }
+
+        logger.info('Admin: bulk push to MCBIS started', {
+            admin: req.user?.email || req.user?.id,
+            startDate: start.toISOString(), endDate: end.toISOString(),
+            platform: platform.counts, store: store.counts, ordersReset: resetCount
+        });
+        invalidateCache('/admin/orders');
+
+        // 2) Dispatch in the background — reuses the recovery sweep's full safety net
+        const storeIds = store.affected.map(o => o.id);
+        (async () => {
+            try {
+                const result = await orderStatusPoller.recoverPendingOrders({
+                    startDate: start, endDate: end
+                });
+                logger.info('Bulk push: platform dispatch finished', result);
+                for (const id of storeIds) {
+                    await storeDelivery.dispatchStoreOrder(id);
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+                logger.info('Bulk push: store dispatch finished', { storeOrders: storeIds.length });
+            } catch (err) {
+                logger.error('Bulk push: background dispatch error', { error: err.message });
+            } finally {
+                bulkPushRunning = false;
+            }
+        })();
+
+        res.json({
+            success: true,
+            message: `Queued ${totalActionable} item(s) across ${platform.counts.orders + store.counts.orders} order(s). Delivery is running in the background — refresh in a few minutes to see updated statuses.`,
+            queuedItems: totalActionable,
+            resetOrders: resetCount,
+            mcbisBalance,
+            platform: platform.counts,
+            store: store.counts
+        });
+    } catch (error) {
+        bulkPushRunning = false;
+        logger.error('Bulk push MCBIS error', { error: error.message });
+        res.status(500).json({ error: 'Bulk push failed: ' + error.message });
+    }
+};
+
+/**
  * Helper: Sync a single order item with MCBIS
  */
 async function syncSingleItem(order, itemIndex, item) {
