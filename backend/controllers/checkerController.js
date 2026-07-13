@@ -78,6 +78,17 @@ function parseSiteDate(str) {
     return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
 }
 
+/**
+ * Normalize a phone number: numbers are expected to start with 0
+ * (e.g. 0241935853). If a digits-only number is missing the leading 0
+ * (e.g. 241935853), assume it and prepend the 0 so the search still works.
+ */
+function normalizePhone(p) {
+    let s = String(p || '').trim().replace(/[\s\-()]/g, '');
+    if (/^\d+$/.test(s) && !s.startsWith('0')) s = '0' + s;
+    return s;
+}
+
 /** Today as "DD/MM/YYYY" for the site default_date field */
 function todayDMY() {
     const d = new Date();
@@ -198,7 +209,7 @@ exports.check = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Phone number is required' });
         }
 
-        const cleanPhone = phone.trim();
+        const cleanPhone = normalizePhone(phone);
         const orders = await fetchSingleOrders(cleanPhone, dateFrom || null, dateTo || null);
 
         res.json({
@@ -240,7 +251,7 @@ exports.bulk = async (req, res) => {
             while (nextIdx < lines.length) {
                 const i = nextIdx++;
                 const rawLine = String(lines[i]).trim();
-                const rawPhone = rawLine.split(/\s+/)[0];
+                const rawPhone = normalizePhone(rawLine.split(/\s+/)[0]);
 
                 if (!rawPhone) {
                     results[i] = { phone: '', success: false, error: 'Invalid phone line' };
