@@ -1077,8 +1077,20 @@ function exportCSV(type) {
 function copyLines(type) {
     var rows = lastBulkResults.filter(function(r){ return r.success && (type === 'delivered' ? r.delivered > 0 : r.not_delivered > 0); });
     if (!rows.length) return;
-    navigator.clipboard.writeText(rows.map(function(r){ return r.phone; }).join('\n'))
-        .then(function(){ showToast('Copied ' + rows.length + ' numbers'); });
+    var wanted = (type === 'delivered') ? 'delivered' : 'not delivered';
+    var lines = [];
+    rows.forEach(function(r) {
+        var matching = (r.orders || []).filter(function(o){ return (o.status || '').toLowerCase() === wanted; });
+        if (matching.length) {
+            matching.forEach(function(o) {
+                lines.push(o.gb != null ? r.phone + ' ' + o.gb : r.phone);
+            });
+        } else {
+            lines.push(r.phone);
+        }
+    });
+    navigator.clipboard.writeText(lines.join('\n'))
+        .then(function(){ showToast('Copied ' + lines.length + ' line' + (lines.length !== 1 ? 's' : '')); });
 }
 </script>
 </body>
