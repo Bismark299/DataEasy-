@@ -90,6 +90,14 @@ exports.search = async (req, res) => {
             axios.get(`${LOOKUP_BASE_URL}/failures`,    { headers, params, timeout: 15000 })
         ]);
 
+        // If BOTH upstream requests failed, surface the real error instead of
+        // silently returning zero results (e.g. "user account is inactive").
+        if (allocRes.status === 'rejected' && failRes.status === 'rejected') {
+            const upErr = allocRes.reason;
+            const msg = upErr.response?.data?.error || upErr.response?.data?.message || upErr.message;
+            return res.status(upErr.response?.status || 502).json({ success: false, error: 'Lookup provider error: ' + msg });
+        }
+
         const allocations = (allocRes.status === 'fulfilled' ? allocRes.value.data.data : []) || [];
         const failures    = (failRes.status  === 'fulfilled' ? failRes.value.data.data  : []) || [];
 
@@ -148,6 +156,11 @@ exports.bulkSearch = async (req, res) => {
                         axios.get(`${LOOKUP_BASE_URL}/allocations`, { headers, params, timeout: 15000 }),
                         axios.get(`${LOOKUP_BASE_URL}/failures`,    { headers, params, timeout: 15000 })
                     ]);
+                    if (allocRes.status === 'rejected' && failRes.status === 'rejected') {
+                        const upErr = allocRes.reason;
+                        const msg = upErr.response?.data?.error || upErr.response?.data?.message || upErr.message;
+                        return { phone, msisdn, success: false, error: 'Lookup provider error: ' + msg, records: [], total: 0 };
+                    }
                     const allocations = (allocRes.status === 'fulfilled' ? allocRes.value.data.data : []) || [];
                     const failures    = (failRes.status  === 'fulfilled' ? failRes.value.data.data  : []) || [];
                     const taggedAlloc = allocations.map(r => ({ ...r, status: 'success', msisdn_local: toLocal(r.msisdn) }));
