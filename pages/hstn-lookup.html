@@ -837,13 +837,14 @@
             let html = '<div class="table-wrap ' + (animate ? 'animate-in' : '') + '">';
             html += '<div class="table-header"><div class="table-header-title"><i class="fas fa-table"></i> Record History</div><span class="row-count">' + records.length + ' records</span></div>';
             html += '<table class="desktop-table"><thead><tr>';
-            html += '<th>Date</th><th>MSISDN</th><th>Data GB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
+            html += '<th>Date</th><th>MSISDN</th><th>Beneficiary</th><th>Data GB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
             html += '</tr></thead><tbody>';
 
             records.forEach(function(r, ri) {
                 html += '<tr>';
                 html += '<td>' + fmtDate(r.created_at) + '</td>';
                 html += '<td class="cell-phone">' + toLocal(r.msisdn) + '</td>';
+                html += '<td>' + (r.beneficiary_name || '-') + '</td>';
                 html += '<td class="cell-gb">' + voiceToGB(r.voice_minutes) + '</td>';
                 html += '<td>' + (r.airtime || '-') + '</td>';
                 html += '<td>' + (r.voice_minutes || '-') + '</td>';
@@ -860,6 +861,7 @@
                 html += '<div class="mobile-card">';
                 html += mrow('Date', fmtDate(r.created_at));
                 html += mrow('MSISDN', '<span class="cell-phone">' + toLocal(r.msisdn) + '</span>');
+                html += mrow('Beneficiary', r.beneficiary_name || '-');
                 html += mrow('Data GB', '<span class="cell-gb">' + voiceToGB(r.voice_minutes) + '</span>');
                 html += mrow('Airtime', r.airtime || '-');
                 html += mrow('Voice Min', r.voice_minutes || '-');
@@ -1065,12 +1067,13 @@
                     } else {
                         html += '<div class="num-records">';
                         html += '<table class="num-table"><thead><tr>';
-                        html += '<th>Date</th><th>MSISDN</th><th>Data GB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
+                        html += '<th>Date</th><th>MSISDN</th><th>Beneficiary</th><th>Data GB</th><th>Airtime</th><th>Voice Min</th><th>SMS</th><th>Status</th><th>Failed Reason</th>';
                         html += '</tr></thead><tbody>';
                         r.records.forEach(function(rec) {
                             html += '<tr>';
                             html += '<td>' + fmtDate(rec.created_at) + '</td>';
                             html += '<td>' + toLocal(rec.msisdn) + '</td>';
+                            html += '<td>' + (rec.beneficiary_name || '-') + '</td>';
                             html += '<td class="gb">' + voiceToGB(rec.voice_minutes) + '</td>';
                             html += '<td>' + (rec.airtime || '-') + '</td>';
                             html += '<td>' + (rec.voice_minutes || '-') + '</td>';
@@ -1214,6 +1217,15 @@
             showToast('Exported ' + count + ' record(s) with info');
         }
 
+        // Format a result's phone in local format with the leading 0
+        // (handles inputs typed without the 0, e.g. "241935853")
+        function localCopyPhone(r) {
+            if (r.msisdn) return toLocal(r.msisdn);
+            var p = String(r.phone || '').trim();
+            if (/^\d+$/.test(p) && !p.startsWith('0')) return '0' + p;
+            return p;
+        }
+
         function copyInfo() {
             if (!lastBulkData) return;
             const dateFrom = document.getElementById('bulk-date-from').value;
@@ -1223,7 +1235,7 @@
                 if (!r.success) return;
                 const filtered = filterByDate(r.records || [], dateFrom, dateTo);
                 if (filtered.length === 0) return;
-                lines.push(r.phone + '\t' + sumDataGB(filtered));
+                lines.push(localCopyPhone(r) + '\t' + sumDataGB(filtered));
             });
             if (lines.length === 0) { showToast('No numbers with records'); return; }
             navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with info'));
@@ -1248,7 +1260,7 @@
 
             const rows = [['Phone', 'Data GB']];
             noInfoEntries.forEach(r => {
-                rows.push([r.phone, r.input_data_size || 0]);
+                rows.push([localCopyPhone(r), r.input_data_size || 0]);
             });
 
             const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
@@ -1273,7 +1285,7 @@
                 if (!r.success) return;
                 const filtered = filterByDate(r.records || [], dateFrom, dateTo);
                 if (filtered.length > 0) return;
-                lines.push(r.phone + '\t' + (r.input_data_size || 0));
+                lines.push(localCopyPhone(r) + '\t' + (r.input_data_size || 0));
             });
             if (lines.length === 0) { showToast('All numbers have records'); return; }
             navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with no info'));
@@ -1288,7 +1300,7 @@
                 if (!r.success) return;
                 const filtered = filterByDate(r.records || [], dateFrom, dateTo);
                 const hasFailed = filtered.some(rec => rec.status === 'failed');
-                if (hasFailed) lines.push(r.phone + '\t' + (r.input_data_size || 0));
+                if (hasFailed) lines.push(localCopyPhone(r) + '\t' + (r.input_data_size || 0));
             });
             if (lines.length === 0) { showToast('No numbers with failed status records'); return; }
             navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied ' + lines.length + ' number(s) with failed orders'));
