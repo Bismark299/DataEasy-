@@ -506,8 +506,10 @@ async function syncProcessingOrders() {
                         mcbisStatus === 'delivered' || mcbisStatus === 'successful') {
                         await updateOrderItemStatus(order.id, i, 'Delivered', item.providerReference);
                         logger.info('Background sync: order marked delivered', { orderId: order.orderId, itemIndex: i });
-                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'not_found') {
-                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)' : 'Failed by provider';
+                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'cancelled' || mcbisStatus === 'rejected' || mcbisStatus === 'not_found') {
+                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)'
+                            : mcbisStatus === 'cancelled' ? 'Cancelled by provider'
+                            : 'Failed by provider';
                         await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, reason);
                         logger.info('Background sync: order marked failed', { orderId: order.orderId, itemIndex: i, reason });
                     }
@@ -797,8 +799,10 @@ async function recoverPendingOrders(options = {}) {
                         logger.info('Recovery: item delivered (status re-check)', {
                             orderId: order.orderId, itemIndex: i, reference: item.providerReference
                         });
-                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'not_found') {
-                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)' : 'Failed by provider';
+                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'cancelled' || mcbisStatus === 'rejected' || mcbisStatus === 'not_found') {
+                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)'
+                            : mcbisStatus === 'cancelled' ? 'Cancelled by provider'
+                            : 'Failed by provider';
                         await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, reason);
                         logger.info('Recovery: item failed (status re-check)', {
                             orderId: order.orderId, itemIndex: i, reason

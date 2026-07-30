@@ -6,4 +6,5 @@
 - [Admin actions on store orders](admin-store-order-actions.md) — store orders reuse platform admin order endpoints via StoreOrder fallback; status changes MUST go through storeOrderDelivery.updateItem for ledger consistency.
 - [Store order numbering](store-order-numbering.md) — SO- orderId is the immutable ledger/tracking ref (stores page only); orderNumber is a shared-sequence display number assigned at payment, shown everywhere else.
 - [Bulk push to MCBIS](bulk-push-mcbis.md) — items with a providerReference are never re-sent (even Failed ones); only never-sent Failed items get reset+dispatched; per-order Retry is the manual escape hatch.
+- [MCBIS cancelled → auto-refund](store-cancelled-refunds.md) — wallet orders refund via poller Failed path; store orders get a two-phase Paystack refund with stale-claim retry + reconciliation.
 - [Dev env gotchas](dev-env-gotchas.md) — sync() doesn't add columns (need idempotent ALTER TABLE in server.js); tailwind `content` must list every top-level dir (store/, admin/...) or arbitrary-value classes get purged.

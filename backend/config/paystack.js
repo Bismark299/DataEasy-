@@ -50,6 +50,38 @@ const verifyTransaction = async (reference) => {
 };
 
 /**
+ * Refund a transaction (full or partial)
+ * @param {Object} params
+ * @param {string} params.transaction - Paystack transaction reference
+ * @param {number} [params.amount] - Amount in GHS to refund (omit for full refund)
+ * @param {string} [params.merchant_note] - Internal note for the refund
+ */
+const refundTransaction = async ({ transaction, amount, merchant_note }) => {
+    try {
+        const payload = { transaction, currency: 'GHS' };
+        if (amount) payload.amount = Math.round(amount * 100); // pesewas
+        if (merchant_note) payload.merchant_note = merchant_note;
+        const response = await paystackAPI.post('/refund', payload);
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || 'Failed to refund transaction');
+    }
+};
+
+/**
+ * List refunds for a transaction (used to reconcile ambiguous refund attempts)
+ * @param {string} transaction - Paystack transaction reference
+ */
+const listRefunds = async (transaction) => {
+    try {
+        const response = await paystackAPI.get('/refund', { params: { transaction } });
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response?.data?.message || 'Failed to list refunds');
+    }
+};
+
+/**
  * Get transaction details
  */
 const getTransaction = async (transactionId) => {
@@ -174,6 +206,8 @@ const verifyWebhookSignature = (payload, signature) => {
 module.exports = {
     initializeTransaction,
     verifyTransaction,
+    refundTransaction,
+    listRefunds,
     getTransaction,
     listTransactions,
     createTransferRecipient,

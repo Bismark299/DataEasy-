@@ -10,9 +10,10 @@
  * 3. A background sweep polls MCBIS for completion and updates the StoreOrder.
  * 4. When all items are Delivered → deliveryStatus 'Delivered' and status 'fulfilled'.
  *
- * NOTE: Store orders are paid via Paystack (NOT a wallet), so there is no wallet
- * refund on failure — a failed delivery is left as deliveryStatus 'Failed' for
- * the admin to reconcile/refund manually.
+ * NOTE: Store orders are paid via Paystack (NOT a wallet). When MCBIS reports a
+ * delivery as CANCELLED, the customer is automatically refunded via the Paystack
+ * refund API (see refundCancelledItem). Other failures (failed/error/404) are
+ * left as deliveryStatus 'Failed' for the admin to reconcile/refund manually.
  */
 
 const logger = require('../utils/logger');
@@ -22,6 +23,11 @@ const { StoreOrder, Setting } = require('../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 const ledgerService = require('./ledgerService');
+const { refundTransaction, listRefunds } = require('../config/paystack');
+
+// A refund claim ('processing') older than this is considered stale (crashed
+// mid-refund) and may be retried after reconciling against Paystack.
+const REFUND_CLAIM_TTL = 10 * 60 * 1000; // 10 minutes
 
 const DELIVERED_STATUSES = ['success', 'completed', 'delivered', 'successful'];
 const FAILED_STATUSES = ['failed', 'fail', 'error', 'cancelled', 'rejected', 'not_found'];
@@ -145,6 +151,119 @@ async function deliverItem(order, itemIndex) {
 }
 
 /**
+ * Automatically refund a customer (via Paystack) for an item MCBIS cancelled.
+ *
+ * Two-phase to prevent double refunds:
+ *  1. Atomically claim the refund under a row lock (refundStatus: 'processing').
+ *  2. Call the Paystack refund API, then persist 'refunded' or 'failed'.
+ *
+ * When every item in the order ends up Failed + refunded, the order status
+ * moves to 'refunded'.
+ */
+async function refundCancelledItem(storeOrderId, itemIndex, reason) {
+    // ── Phase 1: claim the refund atomically ──
+    let paymentReference = null;
+    let amount = 0;
+    let orderId = null;
+    let wasStaleReclaim = false;
+    const t = await sequelize.transaction();
+    try {
+        const order = await StoreOrder.findByPk(storeOrderId, { transaction: t, lock: t.LOCK.UPDATE });
+        if (!order || !order.paymentReference || !['paid', 'fulfilled'].includes(order.status)) {
+            await t.rollback();
+            return;
+        }
+        const items = [...(order.items || [])];
+        const item = items[itemIndex];
+        if (!item || item.refundStatus === 'refunded') {
+            await t.rollback();
+            return; // already refunded
+        }
+        if (item.refundStatus === 'processing') {
+            // In flight — only re-claim if the claim is stale (crash mid-refund)
+            const claimedAt = item.refundClaimedAt ? new Date(item.refundClaimedAt).getTime() : 0;
+            if (Date.now() - claimedAt < REFUND_CLAIM_TTL) {
+                await t.rollback();
+                return;
+            }
+            wasStaleReclaim = true;
+        }
+        amount = Math.round(parseFloat(item.lineTotal || (parseFloat(item.unitPrice || item.price || 0) * (item.quantity || 1)) || 0) * 100) / 100;
+        if (amount <= 0) { await t.rollback(); return; }
+
+        items[itemIndex] = { ...item, refundStatus: 'processing', refundClaimedAt: new Date().toISOString() };
+        await order.update({ items }, { transaction: t });
+        await t.commit();
+        paymentReference = order.paymentReference;
+        orderId = order.orderId;
+    } catch (e) {
+        await t.rollback();
+        logger.error('Store refund: failed to claim refund', { storeOrderId, itemIndex, error: e.message });
+        return;
+    }
+
+    // ── Phase 2: call Paystack, then persist the outcome ──
+    let refundOk = false;
+    let refundError = null;
+    const merchantNote = `Auto-refund: ${reason} — order ${orderId} item ${itemIndex + 1}`;
+    try {
+        // On a stale re-claim (previous attempt may have crashed after Paystack
+        // succeeded but before we persisted the result), reconcile with Paystack
+        // first so we never issue the same refund twice.
+        if (wasStaleReclaim) {
+            const existing = await listRefunds(paymentReference);
+            const match = (existing.data || []).find(r =>
+                (r.merchant_note || '').includes(`order ${orderId} item ${itemIndex + 1}`) &&
+                ['pending', 'processing', 'processed'].includes((r.status || '').toLowerCase())
+            );
+            if (match) {
+                refundOk = true;
+                logger.info('Store refund: found existing Paystack refund during reconciliation', { orderId, itemIndex });
+            }
+        }
+        if (!refundOk) await refundTransaction({
+            transaction: paymentReference,
+            amount,
+            merchant_note: merchantNote
+        });
+        refundOk = true;
+        logger.info('Store refund: Paystack refund issued', { orderId, itemIndex, amount });
+    } catch (e) {
+        refundError = e.message;
+        logger.error('Store refund: Paystack refund FAILED — admin must refund manually', {
+            orderId, itemIndex, amount, error: e.message
+        });
+    }
+
+    const t2 = await sequelize.transaction();
+    try {
+        const order = await StoreOrder.findByPk(storeOrderId, { transaction: t2, lock: t2.LOCK.UPDATE });
+        if (!order) { await t2.rollback(); return; }
+        const items = [...(order.items || [])];
+        if (!items[itemIndex]) { await t2.rollback(); return; }
+
+        items[itemIndex] = {
+            ...items[itemIndex],
+            refundStatus: refundOk ? 'refunded' : 'failed',
+            refundedAt: refundOk ? new Date().toISOString() : undefined,
+            refundAmount: refundOk ? amount : undefined,
+            refundError: refundOk ? null : refundError
+        };
+
+        const updates = { items };
+        const allRefunded = items.every(i => i.refundStatus === 'refunded');
+        if (refundOk && allRefunded && order.status === 'paid') {
+            updates.status = 'refunded';
+        }
+        await order.update(updates, { transaction: t2 });
+        await t2.commit();
+    } catch (e) {
+        await t2.rollback();
+        logger.error('Store refund: failed to persist refund result', { storeOrderId, itemIndex, refundOk, error: e.message });
+    }
+}
+
+/**
  * Poll MCBIS for the status of an already-dispatched item.
  */
 async function pollItem(order, itemIndex) {
@@ -160,9 +279,15 @@ async function pollItem(order, itemIndex) {
             await updateItem(order.id, itemIndex, { deliveryStatus: 'Delivered', deliveredAt: new Date().toISOString(), deliveryError: null });
             logger.info('Store delivery: confirmed delivered', { orderId: order.orderId, itemIndex });
         } else if (FAILED_STATUSES.includes(s)) {
-            const reason = s === 'not_found' ? 'Provider reference not found on provider (404)' : 'Delivery failed by provider';
+            const reason = s === 'not_found' ? 'Provider reference not found on provider (404)'
+                : s === 'cancelled' ? 'Cancelled by provider'
+                : 'Delivery failed by provider';
             await updateItem(order.id, itemIndex, { deliveryStatus: 'Failed', deliveryError: reason });
             logger.error('Store delivery: marked failed', { orderId: order.orderId, itemIndex, reason });
+            // Auto-refund the customer when MCBIS cancels the delivery
+            if (s === 'cancelled') {
+                await refundCancelledItem(order.id, itemIndex, 'Delivery cancelled by provider');
+            }
         }
         // else still processing — leave for the next sweep
     } catch (e) {
@@ -241,6 +366,45 @@ async function sweepStoreOrders() {
         logger.error('Store delivery sweep failed', { error: e.message });
     } finally {
         sweepRunning = false;
+    }
+
+    // Retry refunds that crashed mid-flight (refundStatus stuck at 'processing').
+    try {
+        await retryStuckRefunds();
+    } catch (e) {
+        logger.error('Store refund retry sweep failed', { error: e.message });
+    }
+}
+
+/**
+ * Find items whose auto-refund claim went stale (server crashed between the
+ * claim and the Paystack call / result persistence) and retry them.
+ * refundCancelledItem itself reconciles against Paystack, so this is
+ * double-refund safe.
+ */
+async function retryStuckRefunds() {
+    const orders = await StoreOrder.findAll({
+        where: {
+            status: { [Op.in]: ['paid', 'fulfilled'] },
+            deliveryStatus: { [Op.in]: ['Failed', 'Partially Delivered'] },
+            createdAt: { [Op.gte]: new Date(Date.now() - MAX_AGE) }
+        },
+        order: [['createdAt', 'ASC']],
+        limit: 100
+    });
+
+    for (const order of orders) {
+        const items = order.items || [];
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.refundStatus !== 'processing') continue;
+            const claimedAt = item.refundClaimedAt ? new Date(item.refundClaimedAt).getTime() : 0;
+            if (Date.now() - claimedAt < REFUND_CLAIM_TTL) continue;
+
+            logger.warn('Store refund: retrying stale refund claim', { orderId: order.orderId, itemIndex: i });
+            await refundCancelledItem(order.id, i, 'Delivery cancelled by provider');
+            await new Promise(r => setTimeout(r, 1000));
+        }
     }
 }
 
