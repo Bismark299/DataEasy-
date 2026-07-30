@@ -11,9 +11,10 @@
  * 4. When all items are Delivered → deliveryStatus 'Delivered' and status 'fulfilled'.
  *
  * NOTE: Store orders are paid via Paystack (NOT a wallet). When MCBIS reports a
- * delivery as CANCELLED, the customer is automatically refunded via the Paystack
- * refund API (see refundCancelledItem). Other failures (failed/error/404) are
- * left as deliveryStatus 'Failed' for the admin to reconcile/refund manually.
+ * delivery as cancelled/canceled/failed, the customer is automatically refunded
+ * via the Paystack refund API (see refundCancelledItem). Other terminal statuses
+ * (error/rejected/404) are left as deliveryStatus 'Failed' for the admin to
+ * reconcile/refund manually.
  */
 
 const logger = require('../utils/logger');
@@ -30,7 +31,9 @@ const { refundTransaction, listRefunds } = require('../config/paystack');
 const REFUND_CLAIM_TTL = 10 * 60 * 1000; // 10 minutes
 
 const DELIVERED_STATUSES = ['success', 'completed', 'delivered', 'successful'];
-const FAILED_STATUSES = ['failed', 'fail', 'error', 'cancelled', 'rejected', 'not_found'];
+const FAILED_STATUSES = ['failed', 'fail', 'error', 'cancelled', 'canceled', 'rejected', 'not_found'];
+// MCBIS statuses that trigger an automatic Paystack refund to the customer
+const REFUNDABLE_STATUSES = ['cancelled', 'canceled', 'failed'];
 
 function computeOverall(items) {
     if (!items.length) return 'Pending';
@@ -280,13 +283,13 @@ async function pollItem(order, itemIndex) {
             logger.info('Store delivery: confirmed delivered', { orderId: order.orderId, itemIndex });
         } else if (FAILED_STATUSES.includes(s)) {
             const reason = s === 'not_found' ? 'Provider reference not found on provider (404)'
-                : s === 'cancelled' ? 'Cancelled by provider'
+                : (s === 'cancelled' || s === 'canceled') ? 'Cancelled by provider'
                 : 'Delivery failed by provider';
             await updateItem(order.id, itemIndex, { deliveryStatus: 'Failed', deliveryError: reason });
             logger.error('Store delivery: marked failed', { orderId: order.orderId, itemIndex, reason });
-            // Auto-refund the customer when MCBIS cancels the delivery
-            if (s === 'cancelled') {
-                await refundCancelledItem(order.id, itemIndex, 'Delivery cancelled by provider');
+            // Auto-refund the customer when MCBIS cancels or fails the delivery
+            if (REFUNDABLE_STATUSES.includes(s)) {
+                await refundCancelledItem(order.id, itemIndex, reason);
             }
         }
         // else still processing — leave for the next sweep

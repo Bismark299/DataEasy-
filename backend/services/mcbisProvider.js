@@ -588,6 +588,7 @@ async function deliverBundle(orderItem, options = {}) {
         'fail': 'Failed',
         'error': 'Failed',
         'cancelled': 'Failed',
+        'canceled': 'Failed',
         'rejected': 'Failed'
     };
 

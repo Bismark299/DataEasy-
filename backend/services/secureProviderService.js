@@ -39,12 +39,12 @@ const MCBIS_RESPONSE_SCHEMA = {
     placeOrder: {
         requiredFields: ['data', 'message'],
         successIndicators: ['success', 'completed', 'pending', 'processing', 'submitted', 'initiated', 'queued'],
-        failureIndicators: ['failed', 'error', 'insufficient', 'invalid', 'cancelled', 'rejected']
+        failureIndicators: ['failed', 'error', 'insufficient', 'invalid', 'cancelled', 'canceled', 'rejected']
     },
     checkStatus: {
         requiredFields: ['data'],
         successIndicators: ['success', 'completed', 'delivered', 'successful'],
-        failureIndicators: ['failed', 'error', 'cancelled', 'rejected']
+        failureIndicators: ['failed', 'error', 'cancelled', 'canceled', 'rejected']
     }
 };
 
