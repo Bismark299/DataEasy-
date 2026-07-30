@@ -431,5 +431,9 @@ module.exports = {
     startStoreDeliverySweep,
     stopStoreDeliverySweep,
     updateItem,
-    computeOverall
+    computeOverall,
+    // exported for tests / targeted reuse
+    refundCancelledItem,
+    retryStuckRefunds,
+    pollItem
 };
