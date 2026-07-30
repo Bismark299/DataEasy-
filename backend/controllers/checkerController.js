@@ -66,16 +66,23 @@ async function getSession(force) {
     return _sessionCookie;
 }
 
-/** Parse site date — handles both "YYYY-MM-DD" (ISO) and "DD/MM/YYYY" */
+/**
+ * Parse site date — handles "YYYY-MM-DD" (ISO) and "DD/MM/YYYY", each with an
+ * optional time part ("HH:MM" or "HH:MM:SS"). Returns "YYYY-MM-DD" when the
+ * site gives only a date, or "YYYY-MM-DDTHH:MM[:SS]" when a time is included.
+ */
 function parseSiteDate(str) {
     if (!str) return null;
     const s = str.trim();
-    // ISO format returned by site: YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
-    // Legacy DD/MM/YYYY
-    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    const padTime = (t) => (t.indexOf(':') === 1 ? '0' + t : t); // "9:05" -> "09:05"
+    // ISO format returned by site: YYYY-MM-DD [HH:MM[:SS]]
+    let m = s.match(/^(\d{4}-\d{2}-\d{2})(?:[T\s]+(\d{1,2}:\d{2}(?::\d{2})?))?/);
+    if (m) return m[2] ? m[1] + 'T' + padTime(m[2]) : m[1];
+    // Legacy DD/MM/YYYY [HH:MM[:SS]]
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}:\d{2}(?::\d{2})?))?/);
     if (!m) return null;
-    return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+    const date = m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+    return m[4] ? date + 'T' + padTime(m[4]) : date;
 }
 
 /**
@@ -148,8 +155,9 @@ async function fetchSingleOrders(phone, dateFrom, dateTo, retry) {
         if (!msisdn || msisdn.toLowerCase() === 'no data found') continue;
 
         if (isoDate) {
-            if (dateFrom && isoDate < dateFrom) continue;
-            if (dateTo   && isoDate > dateTo)   continue;
+            const dateOnly = isoDate.substring(0, 10); // filter on the date part only
+            if (dateFrom && dateOnly < dateFrom) continue;
+            if (dateTo   && dateOnly > dateTo)   continue;
         }
 
         let status = rawStat;

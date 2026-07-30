@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -838,6 +838,13 @@ function clearDateFilter(scope) {
 
 /* ── Formatting ── */
 function fmtDate(iso) {
+    if (!iso) return '-';
+    // Date-only value (no time from the checker site) — don't show a fake 00:00
+    if (String(iso).length <= 10) {
+        try {
+            return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+        } catch (e) { return iso; }
+    }
     if (!iso) return '-';
     try {
         var d = new Date(iso);
