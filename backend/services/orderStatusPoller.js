@@ -295,40 +295,50 @@ async function updateOrderItemStatus(orderId, itemIndex, status, reference, erro
 
             if (refundAmount > 0) {
                 try {
-                    // Lock user's wallet row before crediting
-                    const wallet = await Wallet.findOne({
-                        where: { userId: order.userId },
-                        transaction: t,
-                        lock: t.LOCK.UPDATE
-                    });
-
-                    if (wallet) {
-                        await wallet.credit(refundAmount, { transaction: t });
-
-                        await Transaction.create({
-                            userId: order.userId,
-                            type: 'credit',
-                            amount: refundAmount,
-                            balanceBefore: wallet.balance - refundAmount,
-                            balanceAfter: wallet.balance,
-                            description: `Refund for ${errorMsg === 'Cancelled by provider' ? 'cancelled' : 'failed'} delivery — Order #${order.orderId} item ${itemIndex + 1}`,
-                            reference: `REFUND-${order.orderId}-${itemIndex}`,
-                            paymentMethod: 'wallet',
-                            status: 'completed',
-                            orderId: order.id
-                        }, { transaction: t });
-
-                        logger.info('Wallet refund issued for failed delivery', {
-                            orderId: order.orderId,
-                            itemIndex,
-                            refundAmount,
-                            userId: order.userId
+                    // Run the refund inside a SAVEPOINT (nested transaction). A plain
+                    // try/catch is NOT enough: any SQL error inside `t` poisons the
+                    // whole Postgres transaction, silently rolling back the status
+                    // update too — which caused endless refund retry loops.
+                    await sequelize.transaction({ transaction: t }, async (st) => {
+                        // Lock user's wallet row before crediting
+                        const wallet = await Wallet.findOne({
+                            where: { userId: order.userId },
+                            transaction: st,
+                            lock: st.LOCK.UPDATE
                         });
-                    } else {
-                        logger.error('Wallet not found for refund', { userId: order.userId, orderId: order.orderId });
-                    }
+
+                        if (wallet) {
+                            await wallet.credit(refundAmount, { transaction: st });
+
+                            await Transaction.create({
+                                userId: order.userId,
+                                type: 'credit',
+                                amount: refundAmount,
+                                balanceBefore: wallet.balance - refundAmount,
+                                balanceAfter: wallet.balance,
+                                description: `Refund for ${errorMsg === 'Cancelled by provider' ? 'cancelled' : 'failed'} delivery — Order #${order.orderId} item ${itemIndex + 1}`,
+                                // Use the immutable UUID (order.id), NOT the sequential
+                                // display orderId — display IDs can be reused after purges,
+                                // which would collide with an old refund reference and
+                                // silently skip the new customer's refund.
+                                reference: `REFUND-${order.id}-${itemIndex}`,
+                                paymentMethod: 'refund',
+                                status: 'completed',
+                                orderId: order.id
+                            }, { transaction: st });
+
+                            logger.info('Wallet refund issued for failed delivery', {
+                                orderId: order.orderId,
+                                itemIndex,
+                                refundAmount,
+                                userId: order.userId
+                            });
+                        } else {
+                            logger.error('Wallet not found for refund', { userId: order.userId, orderId: order.orderId });
+                        }
+                    });
                 } catch (refundErr) {
-                    // Log but don't block the status update commit
+                    // Savepoint rolled back — status update below still commits
                     logger.error('Refund failed — status will still be marked Failed', {
                         orderId: order.orderId, itemIndex, error: refundErr.message
                     });
