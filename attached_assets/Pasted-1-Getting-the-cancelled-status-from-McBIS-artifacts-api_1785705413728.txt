@@ -1,0 +1,40 @@
+1. Getting the cancelled status from McBIS
+artifacts/api-server/src/lib/mcbis.ts — a background poller runs every 10 seconds. It picks up orders that are paid but still "processing", asks McBIS for each one's status, and reacts to the answer:
+
+// Poll every processing order that has a McBIS reference
+const s = (await mcbisCheckStatus(apiKey, o.ref)).trim().toLowerCase();
+if (s === "success" || s === "completed" || s === "delivered") {
+  // mark delivered
+} else if (s === "cancelled" || s === "canceled") {
+  // Provider explicitly cancelled — mark fulfillment failed AND auto-refund
+  const refunded = await db.transaction(async (tx) => {
+    const amount = await refundOrderInTx(tx, o.id, null);   // null = system, not an admin
+    await tx.update(ordersTable).set({ delivered: "failed" })
+      .where(eq(ordersTable.id, o.id));
+    return amount;
+  });
+}
+
+Key decisions in this branch:
+
+Only an explicit "cancelled" from McBIS triggers an automatic refund. A plain "failed" status does not move money — an admin decides via the "Cancel & Refund" button. That's deliberate: "failed" can be temporary/ambiguous, "cancelled" means McBIS is definitely not delivering.
+Status words are lowercased so "Cancelled", "CANCELED" etc. all match.
+The refund and the "failed" flag are set in one database transaction — either both happen or neither.
+2. Refunding the agent
+artifacts/api-server/src/lib/refunds.ts — refundOrderInTx() is the single shared refund path (the admin refund button, bulk cancel, and this poller all use the same function, so money behaves identically everywhere):
+
+// Lock the order row so two refunds can't run at the same time
+.for("update");
+if (locked.delivered === "delivered") throw ...  // never refund a delivered order
+if (locked.status === "refunded")     throw ...  // never refund twice
+// Idempotency anchor: has a credit "refund-order-{id}" already been written?
+const [existingRefund] = await tx.select(...)
+  .where(eq(walletLedgerTable.reference, `refund-order-${id}`), type = "credit");
+if (existingRefund) throw ...  // already refunded — stop
+await tx.update(ordersTable).set({ status: "refunded" });
+// Credit the money back to the agent's wallet + ledger entry
+await creditWallet(locked.userId, parseFloat(locked.price), tx, {
+  source: "refund",
+  reference: `refund-order-${id}`,
+  note: `Refund for cancelled order #${id} (${locked.bundleName})`,
+});

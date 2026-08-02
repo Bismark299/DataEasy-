@@ -11,10 +11,10 @@
  * 4. When all items are Delivered → deliveryStatus 'Delivered' and status 'fulfilled'.
  *
  * NOTE: Store orders are paid via Paystack (NOT a wallet). When MCBIS reports a
- * delivery as cancelled/canceled/failed, the customer is automatically refunded
- * via the Paystack refund API (see refundCancelledItem). Other terminal statuses
- * (error/rejected/404) are left as deliveryStatus 'Failed' for the admin to
- * reconcile/refund manually.
+ * delivery as cancelled/canceled, the customer is automatically refunded via
+ * the Paystack refund API (see refundCancelledItem). Failed/error/rejected/404
+ * do NOT move money automatically ('failed' can be temporary/ambiguous) — those
+ * are left as deliveryStatus 'Failed' for the admin to reconcile/refund manually.
  */
 
 const logger = require('../utils/logger');
@@ -32,8 +32,10 @@ const REFUND_CLAIM_TTL = 10 * 60 * 1000; // 10 minutes
 
 const DELIVERED_STATUSES = ['success', 'completed', 'delivered', 'successful'];
 const FAILED_STATUSES = ['failed', 'fail', 'error', 'cancelled', 'canceled', 'rejected', 'not_found'];
-// MCBIS statuses that trigger an automatic Paystack refund to the customer
-const REFUNDABLE_STATUSES = ['cancelled', 'canceled', 'failed'];
+// MCBIS statuses that trigger an automatic Paystack refund to the customer.
+// Deliberately ONLY explicit cancellations: 'failed' can be temporary/ambiguous
+// and must not move money automatically — an admin decides on failed items.
+const REFUNDABLE_STATUSES = ['cancelled', 'canceled'];
 
 function computeOverall(items) {
     if (!items.length) return 'Pending';
