@@ -563,6 +563,15 @@
                     return;
                 }
                 
+                // Refund store item button (Paystack refund to customer)
+                const refundBtn = e.target.closest('.refund-item-btn');
+                if (refundBtn) {
+                    const orderId = refundBtn.dataset.orderId;
+                    const itemIndex = parseInt(refundBtn.dataset.itemIndex);
+                    if (orderId) refundStoreItem(orderId, itemIndex);
+                    return;
+                }
+
                 // Cancel and refund item button
                 const cancelBtn = e.target.closest('.cancel-item-btn');
                 if (cancelBtn) {
@@ -1115,6 +1124,8 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-1">
                                 ${orderItem.source === 'store' ? `<span class="w-7 h-7 flex items-center justify-center rounded-md bg-purple-100 text-purple-700 border border-purple-300" title="Order placed via store link"><i class="fas fa-store text-xs"></i></span>` : ''}
+                                ${(orderItem.source === 'store' && item.refundStatus === 'refunded') ? `<span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-300" title="Customer refunded via Paystack${item.refundAmount != null ? ` (GH₵${parseFloat(item.refundAmount).toFixed(2)})` : ''}">Refunded</span>` : ''}
+                                ${(orderItem.source === 'store' && itemStatus.toLowerCase() === 'failed' && item.refundStatus !== 'refunded') ? `<button class="refund-item-btn w-8 h-8 flex items-center justify-center bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" title="Refund customer via Paystack"><i class="fas fa-hand-holding-usd"></i></button>` : ''}
                                 ${(itemStatus.toLowerCase() === 'failed' || itemStatus.toLowerCase() === 'cancelled') ? `<button class="retry-item-btn w-8 h-8 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" data-source="${orderItem.source || 'platform'}" title="Retry"><i class="fas fa-redo"></i></button>` : ''}
                                 <button class="complete-item-btn w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-lg transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" data-source="${orderItem.source || 'platform'}" title="Complete"><i class="fas fa-check"></i></button>
                                 <button class="cancel-item-btn w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-lg transition" data-order-id="${orderItem.id}" data-item-index="${orderItem.itemIndex}" data-source="${orderItem.source || 'platform'}" title="Cancel & Refund"><i class="fas fa-undo"></i></button>
@@ -1666,6 +1677,28 @@
                     }
                 }
             );
+        }
+
+        async function refundStoreItem(orderId, itemIndex) {
+            showConfirm('Refund Customer', 'Refund this failed item to the customer via Paystack? This cannot be undone.', 'danger', async () => {
+                try {
+                    const token = localStorage.getItem('dataeasy_admin_token');
+                    const res = await fetch(`/api/admin/orders/${orderId}/item/${itemIndex}/refund`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Refund failed');
+                    showToast('success', 'Refunded', data.message || 'Customer refunded via Paystack');
+                    closeModal('confirmModal');
+                    loadOrders();
+                } catch (err) {
+                    console.error(err);
+                    showToast('error', 'Refund Failed', err.message || 'Failed to refund customer');
+                    closeModal('confirmModal');
+                    loadOrders();
+                }
+            });
         }
 
         async function retryStoreItem(orderId) {

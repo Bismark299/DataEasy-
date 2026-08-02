@@ -26,6 +26,7 @@ router.get('/orders', cacheResponse(30), adminController.getAllOrders);
 router.get('/orders/:orderId', adminController.getOrder);
 router.put('/orders/:orderId/status', adminController.updateOrderStatus);
 router.put('/orders/:orderId/item/:itemIndex/status', adminController.updateItemStatus);
+router.post('/orders/:orderId/item/:itemIndex/refund', sensitiveAdminLimiter, adminController.refundStoreOrderItem);
 router.put('/orders/bulk-item-status', adminController.bulkUpdateItemStatus);
 router.put('/orders/match-complete', adminController.matchAndCompleteOrders);
 

@@ -328,7 +328,9 @@ exports.getAllOrders = async (req, res) => {
                         phone: so.customerPhone,
                         quantity: it.quantity || 1,
                         price: parseFloat(it.lineTotal != null ? it.lineTotal : (it.unitPrice || 0) * (it.quantity || 1)) || 0,
-                        deliveryStatus: it.deliveryStatus || so.deliveryStatus
+                        deliveryStatus: it.deliveryStatus || so.deliveryStatus,
+                        refundStatus: it.refundStatus || null,
+                        refundAmount: it.refundAmount != null ? it.refundAmount : null
                     }));
                     return {
                         id: so.id,
@@ -623,6 +625,74 @@ exports.updateItemStatus = async (req, res) => {
     } catch (error) {
         console.error('Update item status error:', error);
         res.status(500).json({ error: 'Failed to update item' });
+    }
+};
+
+/**
+ * Refund a store-order item's customer via Paystack (admin action).
+ * POST /api/admin/orders/:orderId/item/:itemIndex/refund
+ *
+ * Used when an admin manually marked a store item Failed before the MCBIS
+ * poll could auto-refund it. Reuses the delivery service's idempotent
+ * two-phase refund (double-refund safe).
+ */
+exports.refundStoreOrderItem = async (req, res) => {
+    try {
+        const { orderId, itemIndex } = req.params;
+        const idx = parseInt(itemIndex);
+
+        const storeOrder = await findStoreOrder(orderId);
+        if (!storeOrder) {
+            return res.status(404).json({ error: 'Store order not found' });
+        }
+        const items = storeOrder.items || [];
+        if (isNaN(idx) || idx < 0 || idx >= items.length) {
+            return res.status(404).json({ error: 'Item not found' });
+        }
+        const item = items[idx];
+        if (item.deliveryStatus !== 'Failed') {
+            return res.status(400).json({ error: 'Only Failed items can be refunded' });
+        }
+        if (item.refundStatus === 'refunded') {
+            return res.status(400).json({ error: 'Item is already refunded' });
+        }
+        if (!storeOrder.paymentReference || !['paid', 'fulfilled'].includes(storeOrder.status)) {
+            return res.status(400).json({ error: 'Order has no refundable Paystack payment' });
+        }
+
+        await storeDelivery.refundCancelledItem(storeOrder.id, idx, 'Refunded by admin');
+
+        // Re-read to report the actual outcome (refundCancelledItem is idempotent
+        // and swallows its own errors, persisting the result on the item).
+        const updated = await StoreOrder.findByPk(storeOrder.id);
+        const updatedItem = (updated.items || [])[idx] || {};
+
+        invalidateCache('/admin/orders');
+        await AdminAuditLog.logAction(req, {
+            action: 'REFUND_STORE_ORDER_ITEM',
+            targetType: 'store_order',
+            targetId: storeOrder.orderId,
+            newValue: { itemIndex: idx, refundStatus: updatedItem.refundStatus, refundAmount: updatedItem.refundAmount },
+            description: `Refund store order ${storeOrder.orderId} item ${idx} → ${updatedItem.refundStatus || 'unchanged'}`
+        });
+
+        if (updatedItem.refundStatus === 'refunded') {
+            return res.json({
+                success: true,
+                message: `Refunded GH₵${Number(updatedItem.refundAmount || 0).toFixed(2)} to customer via Paystack`,
+                refundStatus: 'refunded'
+            });
+        }
+        if (updatedItem.refundStatus === 'processing') {
+            return res.json({ success: true, message: 'Refund is being processed', refundStatus: 'processing' });
+        }
+        return res.status(502).json({
+            error: `Paystack refund failed${updatedItem.refundError ? `: ${updatedItem.refundError}` : ''}`,
+            refundStatus: updatedItem.refundStatus || null
+        });
+    } catch (error) {
+        logger.error('Refund store order item error', { error: error.message });
+        res.status(500).json({ error: 'Failed to refund item' });
     }
 };
 
