@@ -220,6 +220,28 @@ const recordRefund = async (storeId, refundData, options = {}) => {
 };
 
 /**
+ * Record a customer refund for an order that was never fulfilled (no sale was
+ * recorded, so the settlement balance must NOT change). Creates a visible
+ * double entry: Debit REFUND_EXPENSE, Credit ACCOUNTS_RECEIVABLE.
+ */
+const recordCustomerRefund = async (storeId, refundData, options = {}) => {
+    const { orderId, amount, reason, metadata = {} } = refundData;
+
+    await createDoubleEntry({
+        storeId,
+        debitAccount: 'REFUND_EXPENSE',
+        creditAccount: 'ACCOUNTS_RECEIVABLE',
+        amount,
+        description: `Customer refund - Order ${orderId}${reason ? ' (' + reason + ')' : ''}`,
+        reference: orderId,
+        referenceType: 'refund',
+        metadata
+    }, options);
+
+    logger.info('Customer refund ledger entries recorded', { storeId, orderId, amount });
+};
+
+/**
  * Record an admin adjustment
  */
 const recordAdjustment = async (storeId, adjustmentData, options = {}) => {
@@ -265,5 +287,6 @@ module.exports = {
     recordSale,
     recordPayout,
     recordRefund,
+    recordCustomerRefund,
     recordAdjustment
 };

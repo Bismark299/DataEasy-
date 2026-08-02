@@ -262,6 +262,35 @@ async function refundCancelledItem(storeOrderId, itemIndex, reason) {
         }
         await order.update(updates, { transaction: t2 });
         await t2.commit();
+
+        // Record the refund in the store ledger so it shows in reports/statements.
+        // Done AFTER the commit so a ledger problem can never undo the refund record;
+        // duplicate entries are impossible because refundStatus='refunded' makes
+        // any retry exit before reaching this point.
+        if (refundOk) {
+            try {
+                const wasFulfilled = order.status === 'fulfilled';
+                if (wasFulfilled) {
+                    // Sale was recorded (settlement credited) — reverse it properly
+                    await ledgerService.recordRefund(order.storeId, {
+                        orderId: order.orderId,
+                        amount
+                    });
+                } else {
+                    // Never fulfilled — no settlement to reverse; record for visibility only
+                    await ledgerService.recordCustomerRefund(order.storeId, {
+                        orderId: order.orderId,
+                        amount,
+                        reason,
+                        metadata: { itemIndex, mcbisStatus: 'cancelled', paymentReference }
+                    });
+                }
+            } catch (ledgerErr) {
+                logger.error('Store refund: ledger record failed (refund itself succeeded)', {
+                    orderId: order.orderId, itemIndex, error: ledgerErr.message
+                });
+            }
+        }
     } catch (e) {
         await t2.rollback();
         logger.error('Store refund: failed to persist refund result', { storeOrderId, itemIndex, refundOk, error: e.message });

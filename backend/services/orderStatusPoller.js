@@ -311,7 +311,7 @@ async function updateOrderItemStatus(orderId, itemIndex, status, reference, erro
                             amount: refundAmount,
                             balanceBefore: wallet.balance - refundAmount,
                             balanceAfter: wallet.balance,
-                            description: `Refund for failed delivery — Order #${order.orderId} item ${itemIndex + 1}`,
+                            description: `Refund for ${errorMsg === 'Cancelled by provider' ? 'cancelled' : 'failed'} delivery — Order #${order.orderId} item ${itemIndex + 1}`,
                             reference: `REFUND-${order.orderId}-${itemIndex}`,
                             paymentMethod: 'wallet',
                             status: 'completed',
