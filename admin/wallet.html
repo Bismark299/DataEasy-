@@ -718,14 +718,22 @@
             const serverFilters = getTxServerFilters();
             lastTxServerFilters = { ...serverFilters };
             try {
-                const params = { limit: 100 };
+                const params = { limit: 1000 };
                 if (serverFilters.type) params.type = serverFilters.type;
                 if (serverFilters.status) params.status = serverFilters.status;
                 if (serverFilters.paymentMethod) params.paymentMethod = serverFilters.paymentMethod;
                 if (serverFilters.dateFrom) params.dateFrom = serverFilters.dateFrom;
                 if (serverFilters.dateTo) params.dateTo = serverFilters.dateTo;
-                const response = await DataEasyAPI.admin.getTransactions(params);
-                allTransactions = response.transactions || [];
+
+                const firstResponse = await DataEasyAPI.admin.getTransactions({ ...params, page: 1 });
+                allTransactions = firstResponse.transactions || [];
+
+                const totalPages = parseInt(firstResponse.pagination?.pages || 1);
+                for (let page = 2; page <= totalPages; page++) {
+                    const response = await DataEasyAPI.admin.getTransactions({ ...params, page });
+                    allTransactions.push(...(response.transactions || []));
+                }
+
                 updateStats();
                 applyTxClientFilters();
             } catch (error) {
