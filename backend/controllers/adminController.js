@@ -3322,13 +3322,16 @@ async function syncSingleItem(order, itemIndex, item) {
         
         // mcbisProvider.checkOrderStatus() already extracts data.order.status into statusResult.status
         const mcbisStatus = (statusResult.status || '').toLowerCase();
+        const confirmedOrderStatus = statusResult.confirmedOrderStatus === true;
         let newStatus = item.deliveryStatus;
         let updated = false;
         
-        if (mcbisStatus === 'success' || mcbisStatus === 'completed' || 
-            mcbisStatus === 'delivered' || mcbisStatus === 'successful') {
+        if (confirmedOrderStatus && (
+            mcbisStatus === 'success' || mcbisStatus === 'completed' ||
+            mcbisStatus === 'delivered' || mcbisStatus === 'successful'
+        )) {
             newStatus = 'Delivered';
-        } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error') {
+        } else if (confirmedOrderStatus && (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error')) {
             newStatus = 'Failed';
         }
         

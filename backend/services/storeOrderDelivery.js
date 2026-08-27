@@ -31,7 +31,7 @@ const { refundTransaction, listRefunds } = require('../config/paystack');
 const REFUND_CLAIM_TTL = 10 * 60 * 1000; // 10 minutes
 
 const DELIVERED_STATUSES = ['success', 'completed', 'delivered', 'successful'];
-const FAILED_STATUSES = ['failed', 'fail', 'error', 'cancelled', 'canceled', 'rejected', 'not_found'];
+const FAILED_STATUSES = ['failed', 'fail', 'error', 'cancelled', 'canceled', 'rejected'];
 // MCBIS statuses that trigger an automatic Paystack refund to the customer.
 // Deliberately ONLY explicit cancellations: 'failed' can be temporary/ambiguous
 // and must not move money automatically — an admin decides on failed items.
@@ -130,9 +130,20 @@ async function deliverItem(order, itemIndex) {
             existingReference: item.providerReference
         }, { skipBalanceCheck: false });
 
-        if (result.status === 'InsufficientBalance' || result.status === 'BalanceCheckFailed') {
-            await updateItem(order.id, itemIndex, { deliveryStatus: 'Pending', deliveryError: result.error });
-            logger.warn('Store delivery: insufficient MCBIS balance, item stays Pending', { orderId: order.orderId, itemIndex });
+        if (result.retryable || result.status === 'InsufficientBalance' || result.status === 'BalanceCheckFailed') {
+            const uncertainReference = result.submissionUncertain
+                ? result.attemptedReference
+                : null;
+            await updateItem(order.id, itemIndex, {
+                deliveryStatus: 'Pending',
+                deliveryError: result.error,
+                ...(uncertainReference ? {
+                    providerReference: uncertainReference,
+                    sentToProviderAt: new Date().toISOString(),
+                    submissionUncertain: true
+                } : {})
+            });
+            logger.warn('Store delivery: retryable MCBIS issue, item stays Pending', { orderId: order.orderId, itemIndex });
         } else if (result.reference && result.status !== 'Failed') {
             const patch = {
                 deliveryStatus: result.status === 'Delivered' ? 'Delivered' : 'Processing',
@@ -143,13 +154,26 @@ async function deliverItem(order, itemIndex) {
             if (result.status === 'Delivered') patch.deliveredAt = new Date().toISOString();
             await updateItem(order.id, itemIndex, patch);
             logger.info('Store delivery: sent to MCBIS', { orderId: order.orderId, itemIndex, reference: result.reference, status: result.status });
+        } else if (result.reference && result.status === 'Failed') {
+            await updateItem(order.id, itemIndex, {
+                deliveryStatus: 'Failed',
+                deliveryError: result.error || 'Delivery failed by provider',
+                providerReference: result.reference,
+                sentToProviderAt: new Date().toISOString()
+            });
+            logger.error('Store delivery: provider confirmed failure', {
+                orderId: order.orderId,
+                itemIndex,
+                reference: result.reference,
+                error: result.error
+            });
         } else {
-            await updateItem(order.id, itemIndex, { deliveryStatus: 'Failed', deliveryError: result.error || 'MCBIS dispatch returned no reference' });
-            logger.error('Store delivery: dispatch failed', { orderId: order.orderId, itemIndex, error: result.error });
+            await updateItem(order.id, itemIndex, { deliveryStatus: 'Pending', deliveryError: result.error || 'MCBIS dispatch returned no confirmed reference' });
+            logger.warn('Store delivery: no confirmed provider reference, item stays Pending', { orderId: order.orderId, itemIndex, error: result.error });
         }
     } catch (e) {
         logger.error('Store delivery: deliverItem error', { orderId: order.orderId, itemIndex, error: e.message });
-        await updateItem(order.id, itemIndex, { deliveryStatus: 'Failed', deliveryError: e.message });
+        await updateItem(order.id, itemIndex, { deliveryStatus: 'Pending', deliveryError: e.message });
     } finally {
         dispatchLock.release(order.id, itemIndex);
     }
@@ -308,17 +332,17 @@ async function pollItem(order, itemIndex) {
     try {
         const statusResult = await mcbisProvider.checkOrderStatus(item.providerReference);
         const s = (statusResult.status || '').toLowerCase().trim();
+        const confirmedOrderStatus = statusResult.confirmedOrderStatus === true;
 
-        if (DELIVERED_STATUSES.includes(s)) {
+        if (confirmedOrderStatus && DELIVERED_STATUSES.includes(s)) {
             await updateItem(order.id, itemIndex, { deliveryStatus: 'Delivered', deliveredAt: new Date().toISOString(), deliveryError: null });
             logger.info('Store delivery: confirmed delivered', { orderId: order.orderId, itemIndex });
-        } else if (FAILED_STATUSES.includes(s)) {
-            const reason = s === 'not_found' ? 'Provider reference not found on provider (404)'
-                : (s === 'cancelled' || s === 'canceled') ? 'Cancelled by provider'
+        } else if (confirmedOrderStatus && FAILED_STATUSES.includes(s)) {
+            const reason = (s === 'cancelled' || s === 'canceled') ? 'Cancelled by provider'
                 : 'Delivery failed by provider';
             await updateItem(order.id, itemIndex, { deliveryStatus: 'Failed', deliveryError: reason });
             logger.error('Store delivery: marked failed', { orderId: order.orderId, itemIndex, reason });
-            // Auto-refund the customer when MCBIS cancels or fails the delivery
+            // Auto-refund the customer only when MCBIS explicitly cancels.
             if (REFUNDABLE_STATUSES.includes(s)) {
                 await refundCancelledItem(order.id, itemIndex, reason);
             }
@@ -326,10 +350,9 @@ async function pollItem(order, itemIndex) {
         // else still processing — leave for the next sweep
     } catch (e) {
         const httpStatus = e.response?.status || e.httpStatus;
-        if (httpStatus === 404 || e.notFound === true) {
-            await updateItem(order.id, itemIndex, { deliveryStatus: 'Failed', deliveryError: 'Provider reference not found (404)' });
-        }
-        // transient errors — retry on next sweep
+        // A 404 is ambiguous (provider outage/routing issues can also produce
+        // it), so it is treated like every other transient status-check error.
+        // Leave the item untouched and retry on the next sweep.
     }
 }
 

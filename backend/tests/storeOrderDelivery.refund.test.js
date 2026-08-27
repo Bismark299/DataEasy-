@@ -280,7 +280,7 @@ describe('pollItem → auto-refund on MCBIS cancellation', () => {
             deliveryStatus: 'Processing',
             items: [{ network: 'MTN', data: '5GB', lineTotal: 10, quantity: 1, deliveryStatus: 'Processing', providerReference: 'MCB-1' }]
         });
-        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'CANCELLED' });
+        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'CANCELLED', confirmedOrderStatus: true });
 
         await svc.pollItem(makeInstance(id), 0);
 
@@ -296,7 +296,7 @@ describe('pollItem → auto-refund on MCBIS cancellation', () => {
             deliveryStatus: 'Processing',
             items: [{ network: 'MTN', data: '5GB', lineTotal: 10, quantity: 1, deliveryStatus: 'Processing', providerReference: 'MCB-1' }]
         });
-        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'failed' });
+        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'failed', confirmedOrderStatus: true });
 
         await svc.pollItem(makeInstance(id), 0);
 

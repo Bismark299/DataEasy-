@@ -322,7 +322,13 @@ async function placeOrder({ network, receiver, amount, reference }) {
         return {
             success: false,
             error: errorMsg,
-            status: 'failed',
+            // A transport/API error is not proof that delivery failed. The
+            // caller must keep the item Pending and retry it later rather
+            // than refunding the agent.
+            status: 'Pending',
+            retryable: true,
+            submissionUncertain: true,
+            attemptedReference: reference,
             raw: error.response?.data
         };
     }
@@ -348,6 +354,39 @@ async function placeOrder({ network, receiver, amount, reference }) {
  * @param {string} reference - Order reference
  * @returns {Promise<Object>} Order status
  */
+function extractConfirmedOrderStatus(respData, reference) {
+    const data = respData?.data;
+    const orderData = data?.order || respData?.order || null;
+    const explicitOrderStatus =
+        orderData?.status ||
+        data?.orderStatus ||
+        data?.order_status ||
+        respData?.orderStatus ||
+        respData?.order_status;
+    const returnedReference =
+        orderData?.reference ||
+        orderData?.orderReference ||
+        orderData?.order_reference ||
+        orderData?.clientReference ||
+        orderData?.client_reference ||
+        data?.reference ||
+        data?.orderReference ||
+        data?.order_reference ||
+        respData?.reference ||
+        respData?.orderReference ||
+        respData?.order_reference;
+    const referenceMatches = returnedReference != null &&
+        String(returnedReference).trim() === String(reference).trim();
+    const confirmedOrderStatus = Boolean(explicitOrderStatus && referenceMatches);
+
+    return {
+        status: confirmedOrderStatus ? explicitOrderStatus : 'unknown',
+        confirmedOrderStatus,
+        orderReference: returnedReference || null,
+        order: orderData
+    };
+}
+
 async function doCheckOrderStatus(reference) {
     try {
         const response = await mcbisApi.get(`/checkOrderStatus/${reference}`);
@@ -355,22 +394,19 @@ async function doCheckOrderStatus(reference) {
         const respData = response.data;
         const data = respData?.data;
         
-        // Robust status extraction - handle multiple possible response formats after MCBIS API updates
-        // Priority: data.order.status (nested) -> data.orderStatus -> respData.order?.status -> data.status -> respData.status
-        const orderStatus = 
-            data?.order?.status ||          // Original: { data: { order: { status: X } } }
-            data?.orderStatus ||            // Flat variant: { data: { orderStatus: X } }
-            data?.order_status ||           // Snake_case variant
-            respData?.order?.status ||      // Top-level: { order: { status: X } }
-            data?.status ||                 // Fallback: { data: { status: X } } (API call status, less reliable)
-            respData?.status ||             // Top-level status
-            'unknown';
+        // Only trust a status that belongs to an actual provider order whose
+        // reference matches the one queried. `data.status` is the API-call
+        // status (e.g. "success"/"error"), NOT the delivery status. Falling
+        // back to it can falsely fail/refund a wallet order during an outage.
+        const extracted = extractConfirmedOrderStatus(respData, reference);
         
         logger.info('MCBIS checkOrderStatus response', {
             reference,
-            extractedStatus: orderStatus,
+            extractedStatus: extracted.status,
             apiCallStatus: data?.status,
-            orderData: data?.order,
+            confirmedOrderStatus: extracted.confirmedOrderStatus,
+            returnedReference: extracted.orderReference,
+            orderData: extracted.order,
             responseKeys: respData ? Object.keys(respData) : [],
             dataKeys: data ? Object.keys(data) : [],
             rawData: JSON.stringify(respData).substring(0, 500)
@@ -378,8 +414,7 @@ async function doCheckOrderStatus(reference) {
         
         return {
             success: true,
-            status: orderStatus,
-            order: data?.order || respData?.order,
+            ...extracted,
             raw: respData
         };
     } catch (error) {
@@ -396,7 +431,8 @@ async function doCheckOrderStatus(reference) {
         return {
             success: false,
             error: error.response?.data?.message || error.message,
-            status: is404 ? 'not_found' : 'unknown'
+            status: is404 ? 'not_found' : 'unknown',
+            confirmedOrderStatus: false
         };
     }
 }
@@ -455,24 +491,30 @@ async function deliverBundle(orderItem, options = {}) {
         amount = match ? parseInt(match[1], 10) : 1;
     }
 
-    // BALANCE CHECK: Verify sufficient funds before proceeding
-    // NOTE: Uses OUR internal cost price, NOT provider price
-    // IMPORTANT: Balance check is advisory only - if it fails or can't parse the response,
-    // we proceed anyway and let MCBIS reject on placeOrder if balance is truly insufficient.
-    // This prevents orders getting stuck on "Pending" due to API format changes.
+    // BALANCE CHECK: Verify sufficient funds before proceeding.
+    // NOTE: Uses OUR internal cost price, NOT provider price.
+    // A failed/unparseable balance check is treated as retryable. Sending
+    // anyway can turn an API outage (for example a Cloudflare block) into a
+    // false Failed order and an incorrect wallet refund.
     if (!skipBalanceCheck) {
         try {
             const balanceResult = await getWalletBalance();
             const currentBalance = parseFloat(balanceResult.balance || 0);
             const orderCost = parseFloat(price || 0); // OUR cost price from order
             
-            // If balance wasn't parseable (API format may have changed), skip check and proceed
-            if (!balanceResult.balanceParsed) {
-                logger.warn('MCBIS balance could not be parsed - skipping balance check and proceeding with order', {
+            if (!balanceResult.success || !balanceResult.balanceParsed) {
+                logger.warn('MCBIS balance could not be verified - item stays Pending', {
                     orderId,
                     itemIndex,
+                    error: balanceResult.error,
                     rawResponse: balanceResult.raw
                 });
+                return {
+                    success: false,
+                    status: 'BalanceCheckFailed',
+                    retryable: true,
+                    error: balanceResult.error || 'Unable to verify MCBIS balance'
+                };
             } else if (orderCost > 0 && currentBalance < orderCost) {
                 // Only block if we successfully parsed a real balance that's too low
                 logger.error('Insufficient MCBIS balance for order', {
@@ -486,6 +528,7 @@ async function deliverBundle(orderItem, options = {}) {
                 return {
                     success: false,
                     status: 'InsufficientBalance',
+                    retryable: true,
                     error: `Insufficient MCBIS balance. Available: ₵${currentBalance.toFixed(2)}, Required: ₵${orderCost.toFixed(2)}`,
                     currentBalance,
                     requiredAmount: orderCost
@@ -496,6 +539,7 @@ async function deliverBundle(orderItem, options = {}) {
                 return {
                     success: false,
                     status: 'InsufficientBalance',
+                    retryable: true,
                     error: `MCBIS balance too low: ₵${currentBalance.toFixed(2)}`,
                     currentBalance
                 };
@@ -506,12 +550,17 @@ async function deliverBundle(orderItem, options = {}) {
                 });
             }
         } catch (balanceError) {
-            // Balance check failed - proceed anyway, let placeOrder handle it
-            logger.warn('Failed to check MCBIS balance - proceeding with order anyway', {
+            logger.warn('Failed to check MCBIS balance - item stays Pending', {
                 error: balanceError.message,
                 orderId,
                 itemIndex
             });
+            return {
+                success: false,
+                status: 'BalanceCheckFailed',
+                retryable: true,
+                error: balanceError.message
+            };
         }
     }
     
@@ -554,16 +603,23 @@ async function deliverBundle(orderItem, options = {}) {
             return {
                 success: false,
                 status: 'InsufficientBalance',
+                retryable: true,
                 error: result.error,
-                reference
+                attemptedReference: reference
             };
         }
 
         return {
             success: false,
-            status: 'Failed',
+            // No successful placeOrder response means there is no confirmed
+            // provider acceptance and therefore no terminal delivery failure.
+            status: 'Pending',
+            retryable: true,
+            // Preserve the exact reference used for an ambiguous submission.
+            // The caller must poll it rather than send the bundle again.
+            submissionUncertain: result.submissionUncertain === true,
             error: result.error,
-            reference
+            attemptedReference: result.attemptedReference || reference
         };
     }
 
@@ -592,8 +648,47 @@ async function deliverBundle(orderItem, options = {}) {
         'rejected': 'Failed'
     };
 
-    const rawStatus = statusCheck.status?.toLowerCase()?.trim();
+    const rawStatus = statusCheck.confirmedOrderStatus === true
+        ? statusCheck.status?.toLowerCase()?.trim()
+        : 'unknown';
     const finalStatus = statusMap[rawStatus] || 'Processing';
+
+    // MCBIS can accept the HTTP request but immediately report "failed" when
+    // its own wallet has no funds. That is retryable, not a completed delivery
+    // failure: keep the item Pending until the provider account is topped up.
+    const failureDetails = [
+        result.message,
+        result.error,
+        result.raw && JSON.stringify(result.raw),
+        statusCheck.error,
+        statusCheck.raw && JSON.stringify(statusCheck.raw)
+    ].filter(Boolean).join(' ').toLowerCase();
+    const isBalanceFailure = finalStatus === 'Failed' && (
+        failureDetails.includes('insufficient') ||
+        failureDetails.includes('low balance') ||
+        failureDetails.includes('not enough') ||
+        failureDetails.includes('no funds') ||
+        failureDetails.includes('topup') ||
+        failureDetails.includes('top up') ||
+        failureDetails.includes('wallet balance')
+    );
+
+    if (isBalanceFailure) {
+        _balanceCache.value = null;
+        _balanceCache.expiresAt = 0;
+        logger.warn('MCBIS reported failed because of provider balance — item stays Pending', {
+            reference,
+            rawMcbisStatus: statusCheck.status
+        });
+        return {
+            success: false,
+            status: 'InsufficientBalance',
+            retryable: true,
+            error: statusCheck.error || result.message || 'Insufficient MCBIS balance',
+            attemptedReference: reference,
+            providerResponse: statusCheck.raw
+        };
+    }
     
     logger.info('deliverBundle status mapping', {
         reference,
@@ -686,5 +781,6 @@ module.exports = {
     checkOrderStatus: enqueueStatusCheck,
     deliverBundle,
     canProcessOrder,
+    extractConfirmedOrderStatus,
     NETWORK_MAP
 };

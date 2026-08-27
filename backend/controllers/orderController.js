@@ -381,6 +381,13 @@ exports.createOrder = async (req, res) => {
                 const shouldAutoDeliver = await Setting.shouldDeliverViaMcbis(network);
                 if (!shouldAutoDeliver) {
                     logger.info('Auto-delivery not enabled for network', { network });
+                    for (const ord of createdOrders) {
+                        const it = ord.items[0];
+                        await ord.update({
+                            items: [{ ...it, deliveryStatus: 'Pending', deliveryError: 'MCBIS auto-delivery is disabled' }],
+                            deliveryStatus: 'Pending'
+                        });
+                    }
                     return;
                 }
 
@@ -392,7 +399,21 @@ exports.createOrder = async (req, res) => {
                 try {
                     const balanceResult = await provider.getWalletBalance();
                     const bal = parseFloat(balanceResult.balance || 0);
-                    if (balanceResult.balanceParsed && bal < 1) {
+                    if (!balanceResult.success || !balanceResult.balanceParsed) {
+                        batchBalanceOk = false;
+                        logger.warn('Auto-delivery: MCBIS balance unavailable, marking all orders Pending', {
+                            error: balanceResult.error
+                        });
+                        for (const ord of createdOrders) {
+                            const it = ord.items[0];
+                            await ord.update({
+                                items: [{ ...it, deliveryStatus: 'Pending', deliveryError: balanceResult.error || 'Unable to verify MCBIS balance' }],
+                                deliveryStatus: 'Pending'
+                            });
+                        }
+                        return;
+                    }
+                    if (bal < 1) {
                         batchBalanceOk = false;
                         logger.warn('Auto-delivery: MCBIS balance too low, marking all orders Pending', { balance: bal });
                         for (const ord of createdOrders) {
@@ -405,7 +426,15 @@ exports.createOrder = async (req, res) => {
                         return;
                     }
                 } catch (balErr) {
-                    logger.warn('Auto-delivery: balance pre-check failed, proceeding anyway', { error: balErr.message });
+                    logger.warn('Auto-delivery: balance pre-check failed, marking all orders Pending', { error: balErr.message });
+                    for (const ord of createdOrders) {
+                        const it = ord.items[0];
+                        await ord.update({
+                            items: [{ ...it, deliveryStatus: 'Pending', deliveryError: balErr.message }],
+                            deliveryStatus: 'Pending'
+                        });
+                    }
+                    return;
                 }
 
                 // Dispatch each order sequentially — one item each, 500ms apart
@@ -430,27 +459,72 @@ exports.createOrder = async (req, res) => {
                         }, { skipBalanceCheck: batchBalanceOk });
 
                         let updatedItem, updatedStatus;
-                        if (deliveryResult.status === 'InsufficientBalance' || deliveryResult.status === 'BalanceCheckFailed') {
-                            updatedItem = { ...item, deliveryStatus: 'Pending', deliveryError: deliveryResult.error };
+                        let terminalFailure = null;
+                        if (deliveryResult.retryable || deliveryResult.status === 'InsufficientBalance' || deliveryResult.status === 'BalanceCheckFailed') {
+                            const uncertainReference = deliveryResult.submissionUncertain
+                                ? deliveryResult.attemptedReference
+                                : null;
+                            updatedItem = {
+                                ...item,
+                                deliveryStatus: 'Pending',
+                                deliveryError: deliveryResult.error,
+                                ...(uncertainReference ? {
+                                    providerReference: uncertainReference,
+                                    sentToProviderAt: new Date().toISOString(),
+                                    submissionUncertain: true
+                                } : {})
+                            };
                             updatedStatus = 'Pending';
-                            logger.warn('Insufficient MCBIS balance, order stays Pending', { orderId: ord.orderId });
+                            logger.warn('Retryable MCBIS dispatch issue, order stays Pending', { orderId: ord.orderId, error: deliveryResult.error });
+                            if (uncertainReference) {
+                                poller.startPolling({
+                                    orderId: ord.id,
+                                    itemIndex: 0,
+                                    reference: uncertainReference,
+                                    displayOrderId: ord.orderId
+                                });
+                            }
                         } else if (deliveryResult.reference && deliveryResult.status !== 'Failed') {
                             updatedItem = { ...item, deliveryStatus: 'Processing', providerReference: deliveryResult.reference, sentToProviderAt: new Date().toISOString() };
                             updatedStatus = 'Processing';
                             poller.startPolling({ orderId: ord.id, itemIndex: 0, reference: deliveryResult.reference, displayOrderId: ord.orderId });
+                        } else if (deliveryResult.reference && deliveryResult.status === 'Failed') {
+                            // Persist the provider evidence first, then use the
+                            // authoritative locked transition below so the
+                            // per-item wallet refund is recorded atomically.
+                            updatedItem = {
+                                ...item,
+                                deliveryStatus: 'Processing',
+                                providerReference: deliveryResult.reference,
+                                sentToProviderAt: new Date().toISOString()
+                            };
+                            updatedStatus = 'Processing';
+                            terminalFailure = deliveryResult.error || 'Delivery failed by provider';
                         } else {
-                            updatedItem = { ...item, deliveryStatus: 'Failed', deliveryError: deliveryResult.error || 'MCBIS dispatch returned no reference' };
-                            updatedStatus = 'Failed';
+                            // No provider reference means there is no proof MCBIS
+                            // accepted or terminally rejected this item.
+                            updatedItem = { ...item, deliveryStatus: 'Pending', deliveryError: deliveryResult.error || 'MCBIS dispatch returned no confirmed reference' };
+                            updatedStatus = 'Pending';
                         }
 
                         await ord.update({ items: [updatedItem], deliveryStatus: updatedStatus });
+                        if (terminalFailure) {
+                            await poller.updateOrderItemStatus(
+                                ord.id,
+                                0,
+                                'Failed',
+                                deliveryResult.reference,
+                                terminalFailure
+                            );
+                            updatedStatus = 'Failed';
+                        }
                         logger.info('Sent to MCBIS', { orderId: ord.orderId, reference: deliveryResult.reference, status: deliveryResult.status });
                     } catch (itemError) {
                         logger.error('Failed to send order to MCBIS', { orderId: ord.orderId, error: itemError.message });
                         const it = ord.items[0];
                         await ord.update({
-                            items: [{ ...it, deliveryStatus: 'Failed', deliveryError: itemError.message }],
-                            deliveryStatus: 'Failed'
+                            items: [{ ...it, deliveryStatus: 'Pending', deliveryError: itemError.message }],
+                            deliveryStatus: 'Pending'
                         });
                     } finally {
                         dispatchLock.release(ord.id, 0);

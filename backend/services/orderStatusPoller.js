@@ -102,6 +102,7 @@ async function pollLoop(pollKey) {
         // statusResult.order contains the full order object from MCBIS
         
         const mcbisStatus = (statusResult.status || 'unknown').toLowerCase().trim();
+        const confirmedOrderStatus = statusResult.confirmedOrderStatus === true;
         
         logger.info('Extracted order status', { 
             mcbisStatus, 
@@ -123,8 +124,10 @@ async function pollLoop(pollKey) {
         // FAILED: failed, fail, error
         // PROCESSING: pending, processing, initiated
         
-        if (mcbisStatus === 'success' || mcbisStatus === 'completed' || 
-            mcbisStatus === 'delivered' || mcbisStatus === 'successful') {
+        if (confirmedOrderStatus && (
+            mcbisStatus === 'success' || mcbisStatus === 'completed' ||
+            mcbisStatus === 'delivered' || mcbisStatus === 'successful'
+        )) {
             // SUCCESS - Update order to Delivered
             await updateOrderItemStatus(
                 pollState.orderId, 
@@ -146,11 +149,13 @@ async function pollLoop(pollKey) {
             activePolls.delete(pollKey);
             return;
 
-        } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'cancelled' || mcbisStatus === 'canceled' || mcbisStatus === 'rejected' || mcbisStatus === 'not_found') {
+        } else if (confirmedOrderStatus && (
+            mcbisStatus === 'failed' || mcbisStatus === 'fail' ||
+            mcbisStatus === 'error' || mcbisStatus === 'cancelled' ||
+            mcbisStatus === 'canceled' || mcbisStatus === 'rejected'
+        )) {
             // FAILED - Update order and stop polling
-            const failReason = mcbisStatus === 'not_found' 
-                ? 'Order reference not found on provider (404)' 
-                : (statusResult.error || 'Delivery failed by provider');
+            const failReason = statusResult.error || 'Delivery failed by provider';
             
             await updateOrderItemStatus(
                 pollState.orderId,
@@ -198,22 +203,14 @@ async function pollLoop(pollKey) {
             httpStatus
         });
 
-        // Stop polling if MCBIS says the reference doesn't exist (404)
+        // A 404 is ambiguous: outages/proxy routing can make a valid reference
+        // temporarily look missing. Keep polling instead of failing/refunding.
         if (isNotFound) {
-            logger.warn('MCBIS reference not found (404), marking order as Failed and stopping poll', {
+            logger.warn('MCBIS reference not found (404), leaving order Processing and continuing poll', {
                 pollKey,
                 reference: pollState.reference,
                 orderId: pollState.orderId
             });
-            await updateOrderItemStatus(
-                pollState.orderId,
-                pollState.itemIndex,
-                'Failed',
-                pollState.reference,
-                'Order reference not found on provider (404)'
-            ).catch(e => logger.error('Failed to mark 404 order as failed', { error: e.message }));
-            activePolls.delete(pollKey);
-            return;
         }
 
         // Continue polling on transient errors (network issues, etc.)
@@ -504,6 +501,7 @@ async function syncProcessingOrders() {
                 try {
                     const statusResult = await mcbisProvider.checkOrderStatus(item.providerReference);
                     const mcbisStatus = (statusResult.status || '').toLowerCase().trim();
+                    const confirmedOrderStatus = statusResult.confirmedOrderStatus === true;
 
                     logger.info('Background sync status check', {
                         orderId: order.orderId,
@@ -512,13 +510,18 @@ async function syncProcessingOrders() {
                         mcbisStatus
                     });
 
-                    if (mcbisStatus === 'success' || mcbisStatus === 'completed' || 
-                        mcbisStatus === 'delivered' || mcbisStatus === 'successful') {
+                    if (confirmedOrderStatus && (
+                        mcbisStatus === 'success' || mcbisStatus === 'completed' ||
+                        mcbisStatus === 'delivered' || mcbisStatus === 'successful'
+                    )) {
                         await updateOrderItemStatus(order.id, i, 'Delivered', item.providerReference);
                         logger.info('Background sync: order marked delivered', { orderId: order.orderId, itemIndex: i });
-                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'cancelled' || mcbisStatus === 'canceled' || mcbisStatus === 'rejected' || mcbisStatus === 'not_found') {
-                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)'
-                            : (mcbisStatus === 'cancelled' || mcbisStatus === 'canceled') ? 'Cancelled by provider'
+                    } else if (confirmedOrderStatus && (
+                        mcbisStatus === 'failed' || mcbisStatus === 'fail' ||
+                        mcbisStatus === 'error' || mcbisStatus === 'cancelled' ||
+                        mcbisStatus === 'canceled' || mcbisStatus === 'rejected'
+                    )) {
+                        const reason = (mcbisStatus === 'cancelled' || mcbisStatus === 'canceled') ? 'Cancelled by provider'
                             : 'Failed by provider';
                         await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, reason);
                         logger.info('Background sync: order marked failed', { orderId: order.orderId, itemIndex: i, reason });
@@ -802,16 +805,22 @@ async function recoverPendingOrders(options = {}) {
                 try {
                     const statusResult = await mcbisProvider.checkOrderStatus(item.providerReference);
                     const mcbisStatus = (statusResult.status || '').toLowerCase().trim();
+                    const confirmedOrderStatus = statusResult.confirmedOrderStatus === true;
 
-                    if (mcbisStatus === 'success' || mcbisStatus === 'completed' ||
-                        mcbisStatus === 'delivered' || mcbisStatus === 'successful') {
+                    if (confirmedOrderStatus && (
+                        mcbisStatus === 'success' || mcbisStatus === 'completed' ||
+                        mcbisStatus === 'delivered' || mcbisStatus === 'successful'
+                    )) {
                         await updateOrderItemStatus(order.id, i, 'Delivered', item.providerReference);
                         logger.info('Recovery: item delivered (status re-check)', {
                             orderId: order.orderId, itemIndex: i, reference: item.providerReference
                         });
-                    } else if (mcbisStatus === 'failed' || mcbisStatus === 'fail' || mcbisStatus === 'error' || mcbisStatus === 'cancelled' || mcbisStatus === 'canceled' || mcbisStatus === 'rejected' || mcbisStatus === 'not_found') {
-                        const reason = mcbisStatus === 'not_found' ? 'Order reference not found on provider (404)'
-                            : (mcbisStatus === 'cancelled' || mcbisStatus === 'canceled') ? 'Cancelled by provider'
+                    } else if (confirmedOrderStatus && (
+                        mcbisStatus === 'failed' || mcbisStatus === 'fail' ||
+                        mcbisStatus === 'error' || mcbisStatus === 'cancelled' ||
+                        mcbisStatus === 'canceled' || mcbisStatus === 'rejected'
+                    )) {
+                        const reason = (mcbisStatus === 'cancelled' || mcbisStatus === 'canceled') ? 'Cancelled by provider'
                             : 'Failed by provider';
                         await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, reason);
                         logger.info('Recovery: item failed (status re-check)', {
@@ -830,9 +839,7 @@ async function recoverPendingOrders(options = {}) {
                 } catch (err) {
                     const httpStatus = err.response?.status || err.httpStatus;
                     if (httpStatus === 404 || err.notFound === true) {
-                        await updateOrderItemStatus(order.id, i, 'Failed', item.providerReference, 'Order reference not found on provider (404)')
-                            .catch(e => logger.error('Recovery: failed to mark 404 item as failed', { error: e.message }));
-                        logger.warn('Recovery: 404 from MCBIS, marked as Failed', {
+                        logger.warn('Recovery: 404 from MCBIS, leaving item Processing for retry', {
                             orderId: order.orderId, itemIndex: i, reference: item.providerReference
                         });
                     } else {

@@ -6,7 +6,7 @@
  *  - deliverItem (via dispatchStoreOrder) skips items that already have a
  *    providerReference (no double-send)
  *  - insufficient MCBIS balance leaves items Pending
- *  - dispatch failure marks items Failed
+ *  - retryable dispatch failures stay Pending
  *  - updateItem flips the order to 'fulfilled' and records the sale exactly
  *    once when all items deliver
  *  - the sweep skips admin-managed Processing items without a providerReference
@@ -135,7 +135,7 @@ beforeEach(() => {
     paystack.refundTransaction.mockResolvedValue({ status: true });
     paystack.listRefunds.mockResolvedValue({ data: [] });
     mcbisProvider.deliverBundle.mockResolvedValue({ status: 'Processing', reference: 'MCB-NEW' });
-    mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'processing' });
+    mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'processing', confirmedOrderStatus: true });
 });
 
 describe('dispatchStoreOrder → deliverItem', () => {
@@ -186,20 +186,57 @@ describe('dispatchStoreOrder → deliverItem', () => {
         expect(db.orders.get(id).status).toBe('paid');
     });
 
-    test('dispatch failure (no reference) marks the item Failed', async () => {
+    test('retryable dispatch failure (no reference) leaves the item Pending', async () => {
         const id = seedOrder();
-        mcbisProvider.deliverBundle.mockResolvedValue({ status: 'Failed', error: 'Provider rejected' });
+        mcbisProvider.deliverBundle.mockResolvedValue({ status: 'Pending', retryable: true, error: 'Provider unavailable' });
+        await svc.dispatchStoreOrder(id);
+        const item = db.orders.get(id).items[0];
+        expect(item.deliveryStatus).toBe('Pending');
+        expect(item.deliveryError).toBe('Provider unavailable');
+    });
+
+    test('ambiguous submission preserves its attempted reference and is never re-sent', async () => {
+        const id = seedOrder();
+        mcbisProvider.deliverBundle.mockResolvedValue({
+            status: 'Pending',
+            retryable: true,
+            submissionUncertain: true,
+            attemptedReference: 'MCB-UNCERTAIN',
+            error: 'Request timed out'
+        });
+
+        await svc.dispatchStoreOrder(id);
+        const item = db.orders.get(id).items[0];
+        expect(item.deliveryStatus).toBe('Pending');
+        expect(item.providerReference).toBe('MCB-UNCERTAIN');
+        expect(item.submissionUncertain).toBe(true);
+        expect(mcbisProvider.deliverBundle).toHaveBeenCalledTimes(1);
+
+        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'not_found', confirmedOrderStatus: false });
+        await svc.sweepStoreOrders();
+        expect(mcbisProvider.deliverBundle).toHaveBeenCalledTimes(1);
+        expect(mcbisProvider.checkOrderStatus).toHaveBeenCalledWith('MCB-UNCERTAIN');
+        expect(db.orders.get(id).items[0].deliveryStatus).toBe('Pending');
+    }, 15000);
+
+    test('confirmed terminal dispatch failure keeps its provider reference', async () => {
+        const id = seedOrder();
+        mcbisProvider.deliverBundle.mockResolvedValue({
+            status: 'Failed',
+            reference: 'MCB-FAILED',
+            error: 'Delivery rejected by provider'
+        });
         await svc.dispatchStoreOrder(id);
         const item = db.orders.get(id).items[0];
         expect(item.deliveryStatus).toBe('Failed');
-        expect(item.deliveryError).toBe('Provider rejected');
+        expect(item.providerReference).toBe('MCB-FAILED');
     });
 
-    test('dispatch throwing marks the item Failed with the error message', async () => {
+    test('dispatch throwing leaves the item Pending with the error message', async () => {
         const id = seedOrder();
         mcbisProvider.deliverBundle.mockRejectedValue(new Error('network down'));
         await svc.dispatchStoreOrder(id);
-        expect(db.orders.get(id).items[0].deliveryStatus).toBe('Failed');
+        expect(db.orders.get(id).items[0].deliveryStatus).toBe('Pending');
         expect(db.orders.get(id).items[0].deliveryError).toBe('network down');
     });
 
@@ -300,7 +337,7 @@ describe('sweepStoreOrders', () => {
                 { network: 'MTN', data: '2GB', costPrice: 4, deliveryStatus: 'Pending' }
             ]
         });
-        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'delivered' });
+        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'delivered', confirmedOrderStatus: true });
         mcbisProvider.deliverBundle.mockResolvedValue({ status: 'Processing', reference: 'MCB-2' });
 
         await svc.sweepStoreOrders();
@@ -338,7 +375,7 @@ describe('pollItem status transitions', () => {
 
     test('delivered status marks the item Delivered', async () => {
         const id = seedProcessing();
-        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'SUCCESS' });
+        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'SUCCESS', confirmedOrderStatus: true });
         await svc.pollItem(makeInstance(id), 0);
         expect(db.orders.get(id).items[0].deliveryStatus).toBe('Delivered');
         expect(db.orders.get(id).items[0].deliveredAt).toBeTruthy();
@@ -346,7 +383,7 @@ describe('pollItem status transitions', () => {
 
     test('unknown/processing status leaves the item untouched', async () => {
         const id = seedProcessing();
-        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'processing' });
+        mcbisProvider.checkOrderStatus.mockResolvedValue({ status: 'processing', confirmedOrderStatus: true });
         await svc.pollItem(makeInstance(id), 0);
         expect(db.orders.get(id).items[0].deliveryStatus).toBe('Processing');
     });
@@ -358,13 +395,12 @@ describe('pollItem status transitions', () => {
         expect(db.orders.get(id).items[0].deliveryStatus).toBe('Processing');
     });
 
-    test('404 from provider marks the item Failed', async () => {
+    test('404 from provider leaves the item Processing for a later retry', async () => {
         const id = seedProcessing();
         const err = new Error('not found');
         err.response = { status: 404 };
         mcbisProvider.checkOrderStatus.mockRejectedValue(err);
         await svc.pollItem(makeInstance(id), 0);
-        expect(db.orders.get(id).items[0].deliveryStatus).toBe('Failed');
-        expect(db.orders.get(id).items[0].deliveryError).toBe('Provider reference not found (404)');
+        expect(db.orders.get(id).items[0].deliveryStatus).toBe('Processing');
     });
 });
